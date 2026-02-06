@@ -1,0 +1,494 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use App\Http\Controllers\Controller;
+use App\Services\NeoFeederSyncService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Http\Request;
+
+class SyncController extends Controller
+{
+    /**
+     * Sync Program Studi
+     */
+    public function syncProdi(NeoFeederSyncService $syncService): JsonResponse
+    {
+        // Release session lock so other requests can proceed
+        session()->save();
+        
+        try {
+            $result = $syncService->syncProdi();
+            return $this->successResponse('Program Studi', $result['total'], $result['synced'], $result['errors']);
+        } catch (\Exception $e) {
+            Log::error('Sync Prodi Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Semester
+     */
+    public function syncSemester(NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        
+        try {
+            $result = $syncService->syncSemester();
+            return $this->successResponse('Semester', $result['total'], $result['synced'], $result['errors']);
+        } catch (\Exception $e) {
+            Log::error('Sync Semester Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Mata Kuliah
+     */
+    public function syncMataKuliah(NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        
+        try {
+            $result = $syncService->syncMataKuliah();
+            return $this->successResponse('Mata Kuliah', $result['total'], $result['synced'], $result['errors']);
+        } catch (\Exception $e) {
+            Log::error('Sync Mata Kuliah Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Mahasiswa
+     */
+    public function syncMahasiswa(NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        
+        try {
+            $result = $syncService->syncMahasiswa();
+            return $this->successResponse('Mahasiswa', $result['total'], $result['synced'], $result['errors']);
+        } catch (\Exception $e) {
+            Log::error('Sync Mahasiswa Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Mahasiswa Detail (Single)
+     */
+    public function syncMahasiswaDetail(Request $request, NeoFeederSyncService $syncService): \Illuminate\Http\RedirectResponse
+    {
+        $id = $request->input('id');
+        $mahasiswa = \App\Models\Mahasiswa::findOrFail($id);
+        
+        try {
+            $success = $syncService->syncBiodataMahasiswa($mahasiswa);
+            
+            if ($success) {
+                return back()->with('success', 'Detail mahasiswa berhasil disinkronisasi');
+            } else {
+                return back()->with('error', 'Gagal mengambil data dari Neo Feeder (Data Kosong)');
+            }
+        } catch (\Exception $e) {
+            return back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Biodata Mahasiswa (Bulk with Pagination)
+     * GetBiodataMahasiswa: Update biodata lengkap untuk semua mahasiswa
+     * Supports pagination with offset parameter (200 records per batch)
+     */
+    public function syncBiodata(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        // Increase execution time for bulk sync
+        set_time_limit(600);
+        
+        $batchSize = 200;
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            // Get total count for reference
+            $totalAll = \App\Models\Mahasiswa::whereNotNull('id_mahasiswa')
+                ->where('id_mahasiswa', '!=', '')
+                ->count();
+            
+            // Get batch of mahasiswa
+            $mahasiswaList = \App\Models\Mahasiswa::whereNotNull('id_mahasiswa')
+                ->where('id_mahasiswa', '!=', '')
+                ->orderBy('id')
+                ->skip($offset)
+                ->take($batchSize)
+                ->get();
+            
+            $batchCount = $mahasiswaList->count();
+            $synced = 0;
+            $failed = 0;
+            $errors = [];
+            
+            \Log::info("Starting biodata sync batch: offset={$offset}, batch_size={$batchCount}, total={$totalAll}");
+            
+            foreach ($mahasiswaList as $mahasiswa) {
+                try {
+                    $success = $syncService->syncBiodataMahasiswa($mahasiswa);
+                    if ($success) {
+                        $synced++;
+                    } else {
+                        $failed++;
+                    }
+                } catch (\Exception $e) {
+                    $failed++;
+                    $errors[] = "{$mahasiswa->nim}: " . $e->getMessage();
+                    \Log::error("Biodata sync error for {$mahasiswa->nim}: " . $e->getMessage());
+                }
+            }
+            
+            $nextOffset = $offset + $batchSize;
+            $hasMore = $nextOffset < $totalAll;
+            $progress = min(100, round(($offset + $batchCount) / $totalAll * 100));
+            
+            \Log::info("Biodata sync batch completed: {$synced} synced, {$failed} failed, progress={$progress}%");
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Batch {$offset}-" . ($offset + $batchCount) . " dari {$totalAll}: {$synced} berhasil, {$failed} gagal",
+                'data' => [
+                    'total_from_api' => $totalAll,
+                    'batch_size' => $batchCount,
+                    'synced' => $synced,
+                    'failed' => $failed,
+                    'offset' => $offset,
+                    'next_offset' => $hasMore ? $nextOffset : null,
+                    'has_more' => $hasMore,
+                    'progress' => $progress,
+                    'errors' => array_slice($errors, 0, 5),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            \Log::error("Biodata sync fatal error: " . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Sync Nilai (with pagination - 1000 per batch)
+     */
+    public function syncNilai(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncNilai($offset, 200);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Batch {$offset}-" . ($offset + $result['batch_count']) . " dari {$result['total_all']} mahasiswa: {$result['synced']} nilai berhasil",
+                'data' => [
+                    'total_from_api' => $result['total_all'],
+                    'batch_size' => $result['batch_count'],
+                    'synced' => $result['synced'],
+                    'failed' => $result['total'] - $result['synced'],
+                    'offset' => $result['offset'],
+                    'next_offset' => $result['next_offset'],
+                    'has_more' => $result['has_more'],
+                    'progress' => $result['progress'],
+                    'errors' => array_slice($result['errors'], 0, 5),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Nilai Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Nilai by Semester (BULK - FASTER)
+     * Use this for initial sync - much faster than per-student approach
+     */
+    public function syncNilaiSemester(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $semesterId = $request->input('semester_id');
+        $offset = (int) $request->input('offset', 0);
+        
+        if (!$semesterId) {
+            return $this->errorResponse('semester_id is required');
+        }
+        
+        try {
+            $result = $syncService->syncNilaiBySemester($semesterId, $offset, 2000);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Semester {$semesterId}: {$result['synced']} nilai berhasil disync",
+                'data' => [
+                    'semester_id' => $result['semester_id'],
+                    'total_from_api' => $result['total'],
+                    'synced' => $result['synced'],
+                    'skipped' => $result['skipped'],
+                    'offset' => $result['offset'],
+                    'next_offset' => $result['next_offset'],
+                    'has_more' => $result['has_more'],
+                    'errors' => array_slice($result['errors'], 0, 5),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Nilai Semester Error', ['message' => $e->getMessage(), 'semester' => $semesterId]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync KRS by Semester (BULK)
+     */
+    public function syncKrsSemester(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $semesterId = $request->input('semester_id');
+        $offset = (int) $request->input('offset', 0);
+        
+        if (!$semesterId) {
+            return $this->errorResponse('semester_id is required');
+        }
+        
+        try {
+            // Using syncKrsSemester (2000 per batch)
+            $result = $syncService->syncKrsSemester($semesterId, 2000, $offset);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Semester {$semesterId}: {$result['synced']} KRS tersimpan",
+                'data' => [
+                    'semester_id' => $semesterId,
+                    'total_from_api' => $result['total_from_api'],
+                    'synced' => $result['synced'],
+                    'offset' => $offset, 
+                    'next_offset' => $result['next_offset'],
+                    'has_more' => $result['has_more'],
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync KRS Semester Error', ['message' => $e->getMessage(), 'semester' => $semesterId]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync KRS Global (Batch by Student)
+     */
+    public function syncKrs(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncKrs($offset, 200);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Batch {$offset}-" . ($offset + $result['batch_count']) . " dari {$result['total_all']} mahasiswa: {$result['synced']} KRS berhasil",
+                'data' => [
+                    'total_from_api' => $result['total_all'],
+                    'batch_size' => $result['batch_count'],
+                    'synced' => $result['synced'],
+                    'failed' => $result['total'] - $result['synced'],
+                    'offset' => $result['offset'],
+                    'next_offset' => $result['next_offset'],
+                    'has_more' => $result['has_more'],
+                    'progress' => $result['progress'],
+                    'errors' => array_slice($result['errors'], 0, 5),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync KRS Global Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Aktivitas Kuliah (Bulk by Semester)
+     */
+    /**
+     * Sync Aktivitas Kuliah (By Student - Pagination)
+     */
+    public function syncAktivitasKuliah(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            // Use per-student sync (limit 10 per batch to prevent timeout)
+            $result = $syncService->syncAktivitasKuliah($offset, 10);
+            
+            return response()->json([
+                'success' => true,
+                'message' => "Batch {$offset}-" . ($offset + $result['batch_count']) . " dari {$result['total_all']} mahasiswa: {$result['synced']} aktivitas berhasil",
+                'data' => [
+                    'total_from_api' => $result['total_all'],
+                    'batch_size' => $result['batch_count'],
+                    'synced' => $result['synced'],
+                    'skipped' => $result['skipped'],
+                    'passed' => $result['synced'],
+                    'failed' => $result['total'] - $result['synced'] - $result['skipped'], // Approx
+                    'offset' => $result['offset'],
+                    'next_offset' => $result['next_offset'],
+                    'has_more' => $result['has_more'],
+                    'progress' => $result['progress'],
+                    'errors' => array_slice($result['errors'], 0, 5),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Aktivitas Kuliah Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Nilai Auto - Calculate semesters from earliest enrollment to current
+     * Returns list of semesters to sync, then client calls syncNilaiSemester for each
+     */
+    public function syncNilaiAuto(Request $request): JsonResponse
+    {
+        // Get earliest angkatan from mahasiswa (or use default 2015 if null)
+        $earliestAngkatan = \App\Models\Mahasiswa::whereNotNull('angkatan')
+            ->where('angkatan', '!=', '')
+            ->min('angkatan');
+        
+        // If no angkatan data, try to get from id_registrasi (periode format: 20231, 20222, etc)
+        if (!$earliestAngkatan) {
+            // Get earliest period from semester data that has nilai
+            // Or default to 5 years back
+            $currentYear = (int) date('Y');
+            $earliestAngkatan = $currentYear - 5; // Default: 5 years back
+        }
+        
+        // Current semester calculation
+        $currentYear = (int) date('Y');
+        $currentMonth = (int) date('m');
+        
+        // Determine current semester: Ganjil (Aug-Jan) = 1, Genap (Feb-Jul) = 2
+        if ($currentMonth >= 8 || $currentMonth <= 1) {
+            // Ganjil semester
+            $currentSemesterId = ($currentMonth >= 8 ? $currentYear : $currentYear - 1) . '1';
+        } else {
+            // Genap semester
+            $currentSemesterId = ($currentYear - 1) . '2';
+        }
+        
+        // Generate list of semesters from earliest to current
+        $semesters = [];
+        $startYear = (int) $earliestAngkatan;
+        $endYear = (int) substr($currentSemesterId, 0, 4);
+        $endSemType = (int) substr($currentSemesterId, 4, 1);
+        
+        for ($year = $startYear; $year <= $endYear; $year++) {
+            // Ganjil (1)
+            $semId = $year . '1';
+            if ($semId <= $currentSemesterId) {
+                $semesters[] = [
+                    'id_semester' => $semId,
+                    'nama' => "{$year}/" . ($year + 1) . " Ganjil"
+                ];
+            }
+            
+            // Genap (2)
+            $semId = $year . '2';
+            if ($semId <= $currentSemesterId) {
+                $semesters[] = [
+                    'id_semester' => $semId,
+                    'nama' => "{$year}/" . ($year + 1) . " Genap"
+                ];
+            }
+            
+            // Pendek (3) - optional
+            $semId = $year . '3';
+            if ($semId <= $currentSemesterId) {
+                $semesters[] = [
+                    'id_semester' => $semId,
+                    'nama' => "{$year}/" . ($year + 1) . " Pendek"
+                ];
+            }
+        }
+        
+        // Verify semesters exist in database
+        $existingSemesters = \App\Models\TahunAkademik::whereIn('id_semester', collect($semesters)->pluck('id_semester'))
+            ->pluck('id_semester')
+            ->toArray();
+        
+        $semesters = array_filter($semesters, fn($s) => in_array($s['id_semester'], $existingSemesters));
+        $semesters = array_values($semesters); // Re-index
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Semester range calculated',
+            'data' => [
+                'earliest_angkatan' => $earliestAngkatan,
+                'current_semester' => $currentSemesterId,
+                'semesters' => $semesters,
+                'total_semesters' => count($semesters),
+            ]
+        ]);
+    }
+
+    /**
+     * Sync Dosen
+     */
+    public function syncDosen(NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        
+        try {
+            $result = $syncService->syncDosen();
+            return $this->successResponse('Dosen', $result['total'], $result['synced'], $result['errors']);
+        } catch (\Exception $e) {
+            Log::error('Sync Dosen Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Build success response
+     */
+    private function successResponse(string $type, int $total, int $synced, array $errors): JsonResponse
+    {
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil sync {$type}",
+            'data' => [
+                'total_from_api' => $total,
+                'synced' => $synced,
+                'failed' => $total - $synced,
+                'errors' => array_slice($errors, 0, 10),
+            ],
+        ]);
+    }
+
+    /**
+     * Build error response
+     */
+    private function errorResponse(string $message): JsonResponse
+    {
+        return response()->json([
+            'success' => false,
+            'message' => $message,
+            'data' => null,
+        ]);
+    }
+}
+

@@ -1,0 +1,44 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        // KRS - Kartu Rencana Studi
+        Schema::create('krs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('mahasiswa_id')->constrained('mahasiswa')->cascadeOnDelete();
+            $table->foreignId('tahun_akademik_id')->constrained('tahun_akademik')->cascadeOnDelete();
+            $table->string('id_semester')->nullable();
+            $table->string('id_registrasi_mahasiswa')->nullable();
+            $table->boolean('is_approved')->default(false);
+            $table->timestamps();
+            
+            $table->unique(['mahasiswa_id', 'tahun_akademik_id']);
+            $table->index('mahasiswa_id');
+            $table->index('tahun_akademik_id');
+        });
+
+        // KRS Detail - Mata kuliah yang diambil
+        Schema::create('krs_detail', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('krs_id')->constrained('krs')->cascadeOnDelete();
+            $table->foreignId('mata_kuliah_id')->constrained('mata_kuliah')->cascadeOnDelete();
+            $table->string('id_kelas_kuliah')->nullable();
+            $table->string('nama_kelas')->nullable();
+            $table->timestamps();
+            
+            $table->index('krs_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('krs_detail');
+        Schema::dropIfExists('krs');
+    }
+};
