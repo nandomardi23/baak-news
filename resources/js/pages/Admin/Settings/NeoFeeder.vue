@@ -18,6 +18,8 @@ interface SyncResult {
         total_from_api: number;
         synced: number;
         failed: number;
+        inserted?: number;
+        updated?: number;
         skipped?: number;
         errors: string[];
         batch_size?: number;
@@ -56,6 +58,14 @@ const syncStates = reactive<Record<string, { loading: boolean; result: SyncResul
     nilai: { loading: false, result: null },
     krs: { loading: false, result: null },
     aktivitas: { loading: false, result: null },
+});
+
+// Accumulated counters for paginated syncs
+const accumulatedStats = reactive<Record<string, { synced: number; failed: number }>>({
+    biodata: { synced: 0, failed: 0 },
+    nilai: { synced: 0, failed: 0 },
+    krs: { synced: 0, failed: 0 },
+    aktivitas: { synced: 0, failed: 0 },
 });
 
 // Sync All State
@@ -111,14 +121,22 @@ const testConnection = async () => {
 
 const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
     const state = syncStates[type];
+    const paginatedTypes = ['biodata', 'nilai', 'aktivitas', 'krs'];
+    const isPaginated = paginatedTypes.includes(type);
+    
     state.loading = true;
+    
+    // Reset accumulated stats at start of new sync
     if (offset === 0) {
         state.result = null;
+        if (isPaginated && accumulatedStats[type]) {
+            accumulatedStats[type].synced = 0;
+            accumulatedStats[type].failed = 0;
+        }
     }
 
     try {
-        const paginatedTypes = ['biodata', 'nilai', 'aktivitas', 'krs'];
-        const url = paginatedTypes.includes(type)
+        const url = isPaginated
             ? `/admin/sync/${type}?offset=${offset}`
             : `/admin/sync/${type}`;
             
@@ -137,7 +155,24 @@ const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
         });
 
         const data = await response.json();
-        state.result = data;
+        
+        // For paginated types, accumulate the counts
+        if (isPaginated && data.success && data.data && accumulatedStats[type]) {
+            accumulatedStats[type].synced += data.data.synced || 0;
+            accumulatedStats[type].failed += data.data.failed || 0;
+            
+            // Update result with accumulated totals
+            state.result = {
+                ...data,
+                data: {
+                    ...data.data,
+                    synced: accumulatedStats[type].synced,
+                    failed: accumulatedStats[type].failed,
+                }
+            };
+        } else {
+            state.result = data;
+        }
         
         if (data.success && data.data?.has_more && data.data?.next_offset !== null) {
             // Wait and continue pagination
@@ -624,14 +659,52 @@ const connectionStatus = computed(() => {
                                         </div>
 
                                         <!-- Stats Grid -->
-                                        <div v-if="syncStates[sync.type].result?.data" class="grid grid-cols-2 gap-2 text-xs">
-                                            <div class="bg-muted/50 rounded-lg p-2 text-center">
-                                                <span class="block font-bold text-base">{{ syncStates[sync.type].result?.data?.synced }}</span>
-                                                <span class="text-emerald-600 dark:text-emerald-400">✓ Berhasil</span>
+                                        <div v-if="syncStates[sync.type].result?.data" class="space-y-2 text-xs">
+                                            <!-- Total from API (always show for clarity) -->
+                                            <div v-if="syncStates[sync.type].result?.data?.total_from_api" 
+                                                class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
+                                                <span class="text-indigo-600 dark:text-indigo-400 font-medium">
+                                                    Total: {{ syncStates[sync.type].result?.data?.total_from_api }} data
+                                                </span>
                                             </div>
-                                            <div class="bg-muted/50 rounded-lg p-2 text-center">
-                                                <span class="block font-bold text-base">{{ syncStates[sync.type].result?.data?.failed || 0 }}</span>
-                                                <span class="text-red-500">✗ Gagal</span>
+                                            
+                                            <!-- Detailed Stats (Insert/Update/Skip) - 3 columns -->
+                                            <div v-if="syncStates[sync.type].result?.data?.inserted !== undefined || 
+                                                        syncStates[sync.type].result?.data?.updated !== undefined || 
+                                                        syncStates[sync.type].result?.data?.skipped !== undefined" 
+                                                class="grid grid-cols-3 gap-1">
+                                                <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-1.5 text-center">
+                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.data?.inserted || 0 }}</span>
+                                                    <span class="text-emerald-600 dark:text-emerald-400 text-[10px]">✚ Baru</span>
+                                                </div>
+                                                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-1.5 text-center">
+                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.data?.updated || 0 }}</span>
+                                                    <span class="text-blue-600 dark:text-blue-400 text-[10px]">↻ Update</span>
+                                                </div>
+                                                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-1.5 text-center">
+                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.data?.skipped || 0 }}</span>
+                                                    <span class="text-gray-500 dark:text-gray-400 text-[10px]">⏸ Sama</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Fallback: Simple Success/Failed Grid (for endpoints without detailed stats) -->
+                                            <div v-else class="grid grid-cols-2 gap-2">
+                                                <div class="bg-muted/50 rounded-lg p-2 text-center">
+                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.data?.synced }}</span>
+                                                    <span class="text-emerald-600 dark:text-emerald-400">✓ Berhasil</span>
+                                                </div>
+                                                <div class="bg-muted/50 rounded-lg p-2 text-center">
+                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.data?.failed || 0 }}</span>
+                                                    <span class="text-red-500">✗ Gagal</span>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- Failed count (if any, show separately) -->
+                                            <div v-if="(syncStates[sync.type].result?.data?.inserted !== undefined) && (syncStates[sync.type].result?.data?.failed || 0) > 0" 
+                                                class="bg-red-50 dark:bg-red-900/20 rounded-lg p-1.5 text-center">
+                                                <span class="text-red-600 dark:text-red-400 font-medium">
+                                                    ✗ {{ syncStates[sync.type].result?.data?.failed }} Gagal
+                                                </span>
                                             </div>
                                         </div>
 

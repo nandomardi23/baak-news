@@ -26,6 +26,9 @@ Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController:
 Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [LandingController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
 Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [LandingController::class, 'printTranskrip'])->name('landing.transkrip.print');
 
+// Kalender Akademik (Public)
+Route::get('/kalender-akademik', [LandingController::class, 'kalender'])->name('landing.kalender');
+
 // Auth routes
 Route::get('dashboard', function () {
     return redirect()->route('admin.dashboard');
@@ -85,6 +88,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::get('semester', [AkademikController::class, 'semester'])->name('semester');
         Route::get('prodi', [AkademikController::class, 'prodi'])->name('prodi');
     });
+
+    // Kalender Akademik
+    Route::resource('kalender', \App\Http\Controllers\Admin\KalenderController::class)->except(['create', 'show', 'edit']);
 
     // Neo Feeder Settings (Admin only)
     Route::middleware('role:admin')->prefix('settings')->name('settings.')->group(function () {

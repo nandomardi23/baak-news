@@ -20,7 +20,11 @@ class SyncController extends Controller
         
         try {
             $result = $syncService->syncProdi();
-            return $this->successResponse('Program Studi', $result['total'], $result['synced'], $result['errors']);
+            return $this->successResponse('Program Studi', $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+            ]);
         } catch (\Exception $e) {
             Log::error('Sync Prodi Error', ['message' => $e->getMessage()]);
             return $this->errorResponse($e->getMessage());
@@ -36,7 +40,11 @@ class SyncController extends Controller
         
         try {
             $result = $syncService->syncSemester();
-            return $this->successResponse('Semester', $result['total'], $result['synced'], $result['errors']);
+            return $this->successResponse('Semester', $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+            ]);
         } catch (\Exception $e) {
             Log::error('Sync Semester Error', ['message' => $e->getMessage()]);
             return $this->errorResponse($e->getMessage());
@@ -52,7 +60,11 @@ class SyncController extends Controller
         
         try {
             $result = $syncService->syncMataKuliah();
-            return $this->successResponse('Mata Kuliah', $result['total'], $result['synced'], $result['errors']);
+            return $this->successResponse('Mata Kuliah', $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+            ]);
         } catch (\Exception $e) {
             Log::error('Sync Mata Kuliah Error', ['message' => $e->getMessage()]);
             return $this->errorResponse($e->getMessage());
@@ -68,7 +80,11 @@ class SyncController extends Controller
         
         try {
             $result = $syncService->syncMahasiswa();
-            return $this->successResponse('Mahasiswa', $result['total'], $result['synced'], $result['errors']);
+            return $this->successResponse('Mahasiswa', $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+            ]);
         } catch (\Exception $e) {
             Log::error('Sync Mahasiswa Error', ['message' => $e->getMessage()]);
             return $this->errorResponse($e->getMessage());
@@ -124,7 +140,8 @@ class SyncController extends Controller
                 ->get();
             
             $batchCount = $mahasiswaList->count();
-            $synced = 0;
+            $updated = 0;
+            $skipped = 0;
             $failed = 0;
             $errors = [];
             
@@ -132,9 +149,11 @@ class SyncController extends Controller
             
             foreach ($mahasiswaList as $mahasiswa) {
                 try {
-                    $success = $syncService->syncBiodataMahasiswa($mahasiswa);
-                    if ($success) {
-                        $synced++;
+                    $result = $syncService->syncBiodataMahasiswa($mahasiswa);
+                    if ($result === 'updated') {
+                        $updated++;
+                    } elseif ($result === 'skipped') {
+                        $skipped++;
                     } else {
                         $failed++;
                     }
@@ -149,15 +168,18 @@ class SyncController extends Controller
             $hasMore = $nextOffset < $totalAll;
             $progress = min(100, round(($offset + $batchCount) / $totalAll * 100));
             
-            \Log::info("Biodata sync batch completed: {$synced} synced, {$failed} failed, progress={$progress}%");
+            \Log::info("Biodata sync batch completed: {$updated} updated, {$skipped} skipped, {$failed} failed, progress={$progress}%");
             
             return response()->json([
                 'success' => true,
-                'message' => "Batch {$offset}-" . ($offset + $batchCount) . " dari {$totalAll}: {$synced} berhasil, {$failed} gagal",
+                'message' => "Batch {$offset}-" . ($offset + $batchCount) . " dari {$totalAll}: {$updated} update, {$skipped} sama, {$failed} gagal",
                 'data' => [
                     'total_from_api' => $totalAll,
                     'batch_size' => $batchCount,
-                    'synced' => $synced,
+                    'synced' => $updated + $skipped,
+                    'inserted' => 0,  // Biodata never inserts, only updates existing
+                    'updated' => $updated,
+                    'skipped' => $skipped,
                     'failed' => $failed,
                     'offset' => $offset,
                     'next_offset' => $hasMore ? $nextOffset : null,
@@ -188,20 +210,15 @@ class SyncController extends Controller
         try {
             $result = $syncService->syncNilai($offset, 200);
             
-            return response()->json([
-                'success' => true,
-                'message' => "Batch {$offset}-" . ($offset + $result['batch_count']) . " dari {$result['total_all']} mahasiswa: {$result['synced']} nilai berhasil",
-                'data' => [
-                    'total_from_api' => $result['total_all'],
-                    'batch_size' => $result['batch_count'],
-                    'synced' => $result['synced'],
-                    'failed' => $result['total'] - $result['synced'],
-                    'offset' => $result['offset'],
-                    'next_offset' => $result['next_offset'],
-                    'has_more' => $result['has_more'],
-                    'progress' => $result['progress'],
-                    'errors' => array_slice($result['errors'], 0, 5),
-                ],
+            return $this->successResponse('Nilai', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['batch_count'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Nilai Error', ['message' => $e->getMessage()]);
@@ -228,19 +245,13 @@ class SyncController extends Controller
         try {
             $result = $syncService->syncNilaiBySemester($semesterId, $offset, 2000);
             
-            return response()->json([
-                'success' => true,
-                'message' => "Semester {$semesterId}: {$result['synced']} nilai berhasil disync",
-                'data' => [
-                    'semester_id' => $result['semester_id'],
-                    'total_from_api' => $result['total'],
-                    'synced' => $result['synced'],
-                    'skipped' => $result['skipped'],
-                    'offset' => $result['offset'],
-                    'next_offset' => $result['next_offset'],
-                    'has_more' => $result['has_more'],
-                    'errors' => array_slice($result['errors'], 0, 5),
-                ],
+            return $this->successResponse('Nilai Semester ' . $semesterId, $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Nilai Semester Error', ['message' => $e->getMessage(), 'semester' => $semesterId]);
@@ -266,18 +277,14 @@ class SyncController extends Controller
         try {
             // Using syncKrsSemester (2000 per batch)
             $result = $syncService->syncKrsSemester($semesterId, 2000, $offset);
-            
-            return response()->json([
-                'success' => true,
-                'message' => "Semester {$semesterId}: {$result['synced']} KRS tersimpan",
-                'data' => [
-                    'semester_id' => $semesterId,
-                    'total_from_api' => $result['total_from_api'],
-                    'synced' => $result['synced'],
-                    'offset' => $offset, 
-                    'next_offset' => $result['next_offset'],
-                    'has_more' => $result['has_more'],
-                ],
+
+            return $this->successResponse('KRS Semester ' . $semesterId, $result['total_from_api'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'offset' => $offset,
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync KRS Semester Error', ['message' => $e->getMessage(), 'semester' => $semesterId]);
@@ -297,21 +304,16 @@ class SyncController extends Controller
         
         try {
             $result = $syncService->syncKrs($offset, 200);
-            
-            return response()->json([
-                'success' => true,
-                'message' => "Batch {$offset}-" . ($offset + $result['batch_count']) . " dari {$result['total_all']} mahasiswa: {$result['synced']} KRS berhasil",
-                'data' => [
-                    'total_from_api' => $result['total_all'],
-                    'batch_size' => $result['batch_count'],
-                    'synced' => $result['synced'],
-                    'failed' => $result['total'] - $result['synced'],
-                    'offset' => $result['offset'],
-                    'next_offset' => $result['next_offset'],
-                    'has_more' => $result['has_more'],
-                    'progress' => $result['progress'],
-                    'errors' => array_slice($result['errors'], 0, 5),
-                ],
+
+            return $this->successResponse('KRS', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['batch_count'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync KRS Global Error', ['message' => $e->getMessage()]);
@@ -335,23 +337,16 @@ class SyncController extends Controller
         try {
             // Use per-student sync (limit 10 per batch to prevent timeout)
             $result = $syncService->syncAktivitasKuliah($offset, 10);
-            
-            return response()->json([
-                'success' => true,
-                'message' => "Batch {$offset}-" . ($offset + $result['batch_count']) . " dari {$result['total_all']} mahasiswa: {$result['synced']} aktivitas berhasil",
-                'data' => [
-                    'total_from_api' => $result['total_all'],
-                    'batch_size' => $result['batch_count'],
-                    'synced' => $result['synced'],
-                    'skipped' => $result['skipped'],
-                    'passed' => $result['synced'],
-                    'failed' => $result['total'] - $result['synced'] - $result['skipped'], // Approx
-                    'offset' => $result['offset'],
-                    'next_offset' => $result['next_offset'],
-                    'has_more' => $result['has_more'],
-                    'progress' => $result['progress'],
-                    'errors' => array_slice($result['errors'], 0, 5),
-                ],
+
+            return $this->successResponse('Aktivitas Kuliah', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['batch_count'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Aktivitas Kuliah Error', ['message' => $e->getMessage()]);
@@ -455,7 +450,11 @@ class SyncController extends Controller
         
         try {
             $result = $syncService->syncDosen();
-            return $this->successResponse('Dosen', $result['total'], $result['synced'], $result['errors']);
+            return $this->successResponse('Dosen', $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+            ]);
         } catch (\Exception $e) {
             Log::error('Sync Dosen Error', ['message' => $e->getMessage()]);
             return $this->errorResponse($e->getMessage());
@@ -463,19 +462,28 @@ class SyncController extends Controller
     }
 
     /**
-     * Build success response
+     * Build success response with optional detailed stats
      */
-    private function successResponse(string $type, int $total, int $synced, array $errors): JsonResponse
+    private function successResponse(string $type, int $total, int $synced, array $errors, ?array $extras = null): JsonResponse
     {
+        $data = [
+            'total_from_api' => $total,
+            'synced' => $synced,
+            'failed' => count($errors),
+            'errors' => array_slice($errors, 0, 10),
+        ];
+        
+        // Add detailed stats if available
+        if ($extras !== null) {
+            if (isset($extras['inserted'])) $data['inserted'] = $extras['inserted'];
+            if (isset($extras['updated'])) $data['updated'] = $extras['updated'];
+            if (isset($extras['skipped'])) $data['skipped'] = $extras['skipped'];
+        }
+        
         return response()->json([
             'success' => true,
             'message' => "Berhasil sync {$type}",
-            'data' => [
-                'total_from_api' => $total,
-                'synced' => $synced,
-                'failed' => $total - $synced,
-                'errors' => array_slice($errors, 0, 10),
-            ],
+            'data' => $data,
         ]);
     }
 

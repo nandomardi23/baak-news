@@ -100,6 +100,19 @@ class DashboardController extends Controller
             ['range' => '< 2.00', 'total' => $ipkRaw->kurang ?? 0],
         ];
 
+        // Monthly pengajuan trend (last 12 months)
+        $monthlyPengajuan = collect();
+        for ($i = 11; $i >= 0; $i--) {
+            $date = now()->subMonths($i);
+            $count = SuratPengajuan::whereYear('created_at', $date->year)
+                ->whereMonth('created_at', $date->month)
+                ->count();
+            $monthlyPengajuan->push([
+                'bulan' => $date->translatedFormat('M Y'),
+                'total' => $count,
+            ]);
+        }
+
         return Inertia::render('Admin/Dashboard', [
             'stats' => $stats,
             'mahasiswaPerProdi' => $mahasiswaPerProdi,
@@ -108,6 +121,7 @@ class DashboardController extends Controller
             'pengajuanPerJenis' => $pengajuanPerJenis,
             'mahasiswaPerAngkatan' => $mahasiswaPerAngkatan,
             'ipkDistribution' => $ipkDistribution,
+            'monthlyPengajuan' => $monthlyPengajuan,
         ]);
     }
 }

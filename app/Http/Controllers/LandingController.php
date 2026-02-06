@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\KalenderAkademik;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
 use App\Models\SuratPengajuan;
@@ -272,6 +273,52 @@ class LandingController extends Controller
     public function printKartuUjian(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
     {
         return $this->generatePdfResponse('kartu_ujian', $mahasiswa, $tahunAkademik);
+    }
+
+    /**
+     * Public Kalender Akademik page
+     */
+    public function kalender(): Response
+    {
+        $activeTahun = TahunAkademik::where('is_active', true)->first();
+
+        $kalender = KalenderAkademik::with('tahunAkademik')
+            ->when($activeTahun, fn($q) => $q->where('tahun_akademik_id', $activeTahun->id))
+            ->orderBy('tanggal_mulai')
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->id,
+                'judul' => $item->judul,
+                'deskripsi' => $item->deskripsi,
+                'tanggal_mulai' => $item->tanggal_mulai->format('Y-m-d'),
+                'tanggal_selesai' => $item->tanggal_selesai?->format('Y-m-d'),
+                'tanggal_format' => $item->tanggal_format,
+                'jenis' => $item->jenis,
+                'jenis_label' => $item->jenis_label,
+                'warna' => $item->warna ?: $item->default_color,
+                'duration_days' => $item->duration_days,
+            ]);
+
+        $upcomingEvents = KalenderAkademik::upcoming()
+            ->when($activeTahun, fn($q) => $q->where('tahun_akademik_id', $activeTahun->id))
+            ->take(5)
+            ->get()
+            ->map(fn($item) => [
+                'id' => $item->id,
+                'judul' => $item->judul,
+                'tanggal_format' => $item->tanggal_format,
+                'jenis_label' => $item->jenis_label,
+                'warna' => $item->warna ?: $item->default_color,
+            ]);
+
+        return Inertia::render('Landing/Kalender', [
+            'kalender' => $kalender,
+            'tahunAkademik' => $activeTahun ? [
+                'id' => $activeTahun->id,
+                'nama' => $activeTahun->nama_semester,
+            ] : null,
+            'upcomingEvents' => $upcomingEvents,
+        ]);
     }
 
     /**

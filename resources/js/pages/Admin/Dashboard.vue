@@ -43,6 +43,11 @@ interface IpkStat {
     total: number;
 }
 
+interface MonthlyPengajuan {
+    bulan: string;
+    total: number;
+}
+
 const props = defineProps<{
     stats: Stats;
     mahasiswaPerProdi: ProdiStat[];
@@ -51,6 +56,7 @@ const props = defineProps<{
     pengajuanPerJenis: Record<string, number>;
     mahasiswaPerAngkatan: AngkatanStat[];
     ipkDistribution: IpkStat[];
+    monthlyPengajuan: MonthlyPengajuan[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -89,6 +95,10 @@ const maxAngkatanTotal = computed(() => {
 
 const maxIpkTotal = computed(() => {
     return Math.max(...props.ipkDistribution.map(i => i.total), 1);
+});
+
+const maxMonthlyTotal = computed(() => {
+    return Math.max(...props.monthlyPengajuan.map(m => m.total), 1);
 });
 
 const ipkColors: Record<string, string> = {
@@ -253,6 +263,30 @@ const ipkColors: Record<string, string> = {
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Monthly Trend Chart -->
+            <div class="rounded-xl border bg-card p-6 shadow-sm">
+                <h3 class="text-lg font-semibold mb-4">📈 Tren Pengajuan Surat (12 Bulan Terakhir)</h3>
+                <div class="flex items-end gap-2 h-48 overflow-x-auto pb-2">
+                    <div
+                        v-for="item in monthlyPengajuan"
+                        :key="item.bulan"
+                        class="flex flex-col items-center gap-1 min-w-[50px]"
+                    >
+                        <span class="text-xs font-medium">{{ item.total }}</span>
+                        <div
+                            class="w-8 bg-gradient-to-t from-blue-600 to-indigo-400 rounded-t transition-all"
+                            :style="{ height: `${Math.max((item.total / maxMonthlyTotal) * 140, 4)}px` }"
+                        ></div>
+                        <span class="text-xs text-muted-foreground text-center whitespace-nowrap">
+                            {{ item.bulan.split(' ')[0] }}
+                        </span>
+                    </div>
+                </div>
+                <p class="text-sm text-muted-foreground mt-2 text-center">
+                    Total: {{ monthlyPengajuan.reduce((a, b) => a + b.total, 0) }} pengajuan dalam 12 bulan terakhir
+                </p>
             </div>
 
             <!-- Quick Links -->

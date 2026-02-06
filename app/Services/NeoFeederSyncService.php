@@ -24,22 +24,42 @@ class NeoFeederSyncService
     /**
      * Sync Program Studi
      *
-     * @return array{total: int, synced: int, errors: array}
+     * @return array{total: int, synced: int, inserted: int, updated: int, skipped: int, errors: array}
      */
     public function syncProdi(): array
     {
         $response = $this->neoFeeder->getProdi();
         return $this->processResponse($response, 'Program Studi', function ($item) {
-            ProgramStudi::updateOrCreate(
-                ['id_prodi' => $item['id_prodi']],
-                [
-                    'kode_prodi' => $item['kode_program_studi'] ?? '',
-                    'nama_prodi' => $item['nama_program_studi'] ?? '',
-                    'jenjang' => $item['jenjang_pendidikan'] ?? '',
-                    'jenis_program' => $item['jenis_program'] ?? 'reguler',
-                    'is_active' => true,
-                ]
-            );
+            $existing = ProgramStudi::where('id_prodi', $item['id_prodi'])->first();
+            
+            $data = [
+                'kode_prodi' => $item['kode_program_studi'] ?? '',
+                'nama_prodi' => $item['nama_program_studi'] ?? '',
+                'jenjang' => $item['jenjang_pendidikan'] ?? '',
+                'jenis_program' => $item['jenis_program'] ?? 'reguler',
+                'is_active' => true,
+            ];
+            
+            if (!$existing) {
+                ProgramStudi::create(array_merge(['id_prodi' => $item['id_prodi']], $data));
+                return 'inserted';
+            }
+            
+            // Check if any data changed
+            $hasChanges = false;
+            foreach ($data as $key => $value) {
+                if ($existing->$key != $value) {
+                    $hasChanges = true;
+                    break;
+                }
+            }
+            
+            if ($hasChanges) {
+                $existing->update($data);
+                return 'updated';
+            }
+            
+            return 'skipped';
         }, 'nama_program_studi');
     }
 
@@ -172,28 +192,30 @@ class NeoFeederSyncService
     /**
      * Sync Biodata Mahasiswa (Single)
      * Fetches detailed data including parent info
+     * 
+     * @return string|null Returns 'updated', 'skipped', or null on failure
      */
-    public function syncBiodataMahasiswa(Mahasiswa $mahasiswa): bool
+    public function syncBiodataMahasiswa(Mahasiswa $mahasiswa): ?string
     {
         if (!$mahasiswa->id_mahasiswa) {
-            return false;
+            return null;
         }
 
         $response = $this->neoFeeder->getBiodataMahasiswa($mahasiswa->id_mahasiswa);
         
         if (empty($response['data'])) {
-            return false;
+            return null;
         }
 
         $data = $response['data'][0];
         
-        // Map parent data
-        $mahasiswa->update([
+        // Build update data
+        $updateData = [
             'nama_ayah' => $data['nama_ayah'] ?? $mahasiswa->nama_ayah,
             'nama_ibu' => $data['nama_ibu_kandung'] ?? $mahasiswa->nama_ibu,
             'pekerjaan_ayah' => $data['nama_pekerjaan_ayah'] ?? $mahasiswa->pekerjaan_ayah,
             'pekerjaan_ibu' => $data['nama_pekerjaan_ibu'] ?? $mahasiswa->pekerjaan_ibu,
-            'alamat_ortu' => $data['jalan'] ?? $mahasiswa->alamat_ortu, // Often shared address
+            'alamat_ortu' => $data['jalan'] ?? $mahasiswa->alamat_ortu,
             'nik' => $data['nik'] ?? $mahasiswa->nik,
             'nisn' => $data['nisn'] ?? $mahasiswa->nisn,
             'npwp' => $data['npwp'] ?? $mahasiswa->npwp,
@@ -207,7 +229,20 @@ class NeoFeederSyncService
             'telepon' => $data['telepon'] ?? $mahasiswa->telepon,
             'no_hp' => $data['handphone'] ?? $mahasiswa->no_hp,
             'email' => $data['email'] ?? $mahasiswa->email,
-        ]);
+        ];
+        
+        // Check if any data changed
+        $hasChanges = false;
+        foreach ($updateData as $key => $value) {
+            if ($mahasiswa->$key != $value) {
+                $hasChanges = true;
+                break;
+            }
+        }
+        
+        if ($hasChanges) {
+            $mahasiswa->update($updateData);
+        }
 
         // EXTRA: Sync Status from GetListMahasiswa (since Biodata doesn't have it)
         try {
@@ -217,15 +252,17 @@ class NeoFeederSyncService
 
             if ($statusResponse && !empty($statusResponse['data'])) {
                 $statusData = $statusResponse['data'][0];
-                $mahasiswa->update([
-                    'status_mahasiswa' => $statusData['id_status_mahasiswa'] ?? $mahasiswa->status_mahasiswa,
-                ]);
+                $newStatus = $statusData['id_status_mahasiswa'] ?? $mahasiswa->status_mahasiswa;
+                if ($mahasiswa->status_mahasiswa != $newStatus) {
+                    $mahasiswa->update(['status_mahasiswa' => $newStatus]);
+                    $hasChanges = true;
+                }
             }
         } catch (\Exception $e) {
             \Log::warning("Failed to sync status for {$mahasiswa->nim}: " . $e->getMessage());
         }
 
-        return true;
+        return $hasChanges ? 'updated' : 'skipped';
     }
 
     /**
@@ -292,17 +329,17 @@ class NeoFeederSyncService
 
         $totalTotal = 0;
         $totalSynced = 0;
+        $inserted = 0;
+        $updated = 0;
         $skipped = 0;
         $allErrors = [];
 
         foreach ($mahasiswaList as $index => $mhs) {
-            // Removed usleep delay
             
             $response = $this->neoFeeder->getRiwayatNilaiMahasiswa($mhs->id_registrasi_mahasiswa);
             
             if (!$response || !isset($response['data'])) {
-                $skipped++;
-                // Clean up response
+                // If no data response, count nothing as processed
                 unset($response);
                 continue;
             }
@@ -314,10 +351,11 @@ class NeoFeederSyncService
                     $semesterId = $semesterMap[$item['id_semester'] ?? ''] ?? null;
 
                     if (!$matkulId || !$semesterId) {
+                        $skipped++; // Cannot process without relation
                         continue;
                     }
 
-                    Nilai::updateOrCreate(
+                    $nilai = Nilai::updateOrCreate(
                         [
                             'mahasiswa_id' => $mhs->id,
                             'mata_kuliah_id' => $matkulId,
@@ -331,22 +369,28 @@ class NeoFeederSyncService
                             'nilai_indeks' => $item['nilai_indeks'] ?? null,
                         ]
                     );
+
+                    if ($nilai->wasRecentlyCreated) {
+                        $inserted++;
+                    } elseif ($nilai->wasChanged()) {
+                        $updated++;
+                    } else {
+                        $skipped++;
+                    }
+                    
                     $totalSynced++;
                 } catch (\Exception $e) {
                     $allErrors[] = "Nilai {$mhs->nim}: " . $e->getMessage();
                 }
             }
             
-            // Memory cleanup after each mahasiswa to prevent RAM overflow
             unset($response);
             
-            // Force garbage collection every 10 mahasiswa
             if ($index % 10 === 0) {
                 gc_collect_cycles();
             }
         }
         
-        // Final cleanup
         unset($mahasiswaList);
         gc_collect_cycles();
 
@@ -357,6 +401,8 @@ class NeoFeederSyncService
         return [
             'total' => $totalTotal,
             'synced' => $totalSynced,
+            'inserted' => $inserted,
+            'updated' => $updated,
             'skipped' => $skipped,
             'errors' => $allErrors,
             'total_all' => $totalAll,
@@ -406,6 +452,8 @@ class NeoFeederSyncService
         $data = $response['data'] ?? [];
         $totalFromApi = count($data);
         $totalSynced = 0;
+        $inserted = 0;
+        $updated = 0;
         $skipped = 0;
         $allErrors = [];
 
@@ -420,7 +468,7 @@ class NeoFeederSyncService
                     continue;
                 }
 
-                Nilai::updateOrCreate(
+                $nilai = Nilai::updateOrCreate(
                     [
                         'mahasiswa_id' => $mahasiswaId,
                         'mata_kuliah_id' => $matkulId,
@@ -434,6 +482,15 @@ class NeoFeederSyncService
                         'nilai_indeks' => $item['nilai_indeks'] ?? null,
                     ]
                 );
+                
+                if ($nilai->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($nilai->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                
                 $totalSynced++;
             } catch (\Exception $e) {
                 $nim = $item['nim'] ?? 'Unknown';
@@ -455,6 +512,8 @@ class NeoFeederSyncService
             'semester_id' => $semesterId,
             'total' => $totalFromApi,
             'synced' => $totalSynced,
+            'inserted' => $inserted,
+            'updated' => $updated,
             'skipped' => $skipped,
             'errors' => $allErrors,
             'offset' => $offset,
@@ -492,6 +551,8 @@ class NeoFeederSyncService
 
         $totalTotal = 0;
         $totalSynced = 0;
+        $inserted = 0;
+        $updated = 0;
         $skipped = 0;
         $allErrors = [];
 
@@ -514,12 +575,6 @@ class NeoFeederSyncService
                     return $b['id_semester'] <=> $a['id_semester'];
                 });
                 
-                // DEBUG: Log the keys of the latest data to verify mapping
-                if ($index === 0) {
-                    \Illuminate\Support\Facades\Log::info('Raw Aktivitas Kuliah Data Keys:', array_keys($data[0]));
-                    \Illuminate\Support\Facades\Log::info('Raw Aktivitas Kuliah Data Sample:', $data[0]);
-                }
-                
                 // Get latest activity
                 $latest = $data[0];
                 
@@ -534,7 +589,13 @@ class NeoFeederSyncService
                 if ($sks !== null) $updateData['sks_tempuh'] = $sks;
 
                 // Update Mahasiswa
-                $mhs->update($updateData);
+                $mhs->fill($updateData);
+                if ($mhs->isDirty()) {
+                     $mhs->save();
+                     $updated++;
+                } else {
+                     $skipped++;
+                }
                 
                 $totalSynced++;
             } catch (\Exception $e) {
@@ -562,6 +623,8 @@ class NeoFeederSyncService
         return [
             'total' => $totalTotal,
             'synced' => $totalSynced,
+            'inserted' => $inserted,
+            'updated' => $updated,
             'skipped' => $skipped,
             'errors' => $allErrors,
             'total_all' => $totalAll,
@@ -575,6 +638,12 @@ class NeoFeederSyncService
 
     /**
      * Helper to process standard Feeder responses
+     * 
+     * Callback should return:
+     * - 'inserted' for new records
+     * - 'updated' for changed records
+     * - 'skipped' for unchanged records
+     * - null/void for legacy behavior (counts as synced)
      */
     protected function processResponse(?array $response, string $context, callable $callback, string $identifierKey): array
     {
@@ -594,13 +663,29 @@ class NeoFeederSyncService
         }
 
         $total = count($data);
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
         $synced = 0;
         $errors = [];
 
         foreach ($data as $item) {
             try {
-                $callback($item);
-                $synced++;
+                $result = $callback($item);
+                
+                // Track detailed stats based on callback return
+                if ($result === 'inserted') {
+                    $inserted++;
+                    $synced++;
+                } elseif ($result === 'updated') {
+                    $updated++;
+                    $synced++;
+                } elseif ($result === 'skipped') {
+                    $skipped++;
+                } else {
+                    // Legacy behavior: count as synced
+                    $synced++;
+                }
             } catch (\Exception $e) {
                 $id = $item[$identifierKey] ?? 'Unknown';
                 $errors[] = "$context $id: " . $e->getMessage();
@@ -610,6 +695,9 @@ class NeoFeederSyncService
         return [
             'total' => $total,
             'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
             'errors' => $errors
         ];
     }
@@ -622,11 +710,14 @@ class NeoFeederSyncService
         $response = $this->neoFeeder->getKrsMahasiswa("id_registrasi_mahasiswa = '{$idRegistrasi}'");
         
         if (!$response || !isset($response['data']) || !is_array($response['data'])) {
-             return ['synced' => 0, 'total' => 0, 'errors' => []];
+             return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => []];
         }
         
         $data = $response['data'];
         $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
         $errors = [];
         
         // Group by Semester
@@ -641,7 +732,7 @@ class NeoFeederSyncService
         
         $mahasiswa = Mahasiswa::where('id_registrasi_mahasiswa', $idRegistrasi)->first();
         if (!$mahasiswa) {
-             return ['synced' => 0, 'total' => 0, 'errors' => ["Mahasiswa not found locally"]];
+             return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => ["Mahasiswa not found locally"]];
         }
 
         foreach ($grouped as $idSemester => $items) {
@@ -660,6 +751,12 @@ class NeoFeederSyncService
                         'is_approved' => true,
                     ]
                 );
+                
+                if ($krs->wasRecentlyCreated) {
+                    $inserted++;
+                } else {
+                    $updated++;
+                }
                 
                 // Reset details for this semester to handle dropped classes
                 $krs->details()->delete();
@@ -687,8 +784,6 @@ class NeoFeederSyncService
                          }
                      }
                      
-                     // If still not found, search by name? No, risky.
-                     
                      if ($mk) {
                         KrsDetail::create([
                              'krs_id' => $krs->id,
@@ -708,6 +803,9 @@ class NeoFeederSyncService
         return [
             'total' => count($grouped),
             'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
             'errors' => $errors
         ];
     }
@@ -808,7 +906,7 @@ class NeoFeederSyncService
         if ($totalAll === 0) {
             throw new \Exception('Tidak ada Mahasiswa dengan id_registrasi. Sync Mahasiswa terlebih dahulu.');
         }
-
+    
         $mahasiswaList = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')
             ->orderBy('id')
             ->skip($offset)
@@ -816,12 +914,19 @@ class NeoFeederSyncService
             ->get();
             
         $totalSynced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
         $allErrors = [];
         
         foreach ($mahasiswaList as $mhs) {
              // Removed usleep delay
              $result = $this->syncKrsMahasiswa($mhs->id_registrasi_mahasiswa);
              $totalSynced += $result['synced'];
+             $inserted += $result['inserted'] ?? 0;
+             $updated += $result['updated'] ?? 0;
+             $skipped += $result['skipped'] ?? 0;
+             
              if (!empty($result['errors'])) {
                  $allErrors[] = $mhs->nim . ': ' . implode(', ', $result['errors']);
              }
@@ -834,6 +939,9 @@ class NeoFeederSyncService
         return [
              'total' => $limit, 
              'synced' => $totalSynced,
+             'inserted' => $inserted,
+             'updated' => $updated,
+             'skipped' => $skipped,
              'errors' => $allErrors,
              'total_all' => $totalAll,
              'batch_count' => $mahasiswaList->count(),
