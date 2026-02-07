@@ -371,13 +371,28 @@ class KartuUjianService extends BasePdfService
         // Name
         $this->SetXY(140, $sigY + 25); // Adjusted to +25 for font size 10
         $this->SetFont('Arial', 'U', 10); 
-        $kaBaak = Pejabat::where('jabatan', 'like', '%BAAK%')->first();
-        $this->Cell(50, 5, $kaBaak?->nama_lengkap ?? 'Budi Prasetyo, S.Kom', 0, 1, 'C'); 
+        
+        // Get signer from setting, or fallback to Ka. BAAK
+        $signerId = Setting::getValue('signer_kartu_ujian');
+        $signer = null;
+        
+        if ($signerId) {
+            $signer = Pejabat::find($signerId);
+        }
+        
+        if (!$signer) {
+            $signer = Pejabat::where('jabatan', 'like', '%BAAK%')->first();
+        }
+
+        $nama = $signer?->nama_lengkap ?? 'Budi Prasetyo, S.Kom';
+        $nidn = $signer?->nidn ?? $signer?->nip ?? '11074';
+
+        $this->Cell(50, 5, $nama, 0, 1, 'C'); 
         
         // NIK
         $this->SetX(140);
         $this->SetFont('Arial', '', 10); 
-        $this->Cell(50, 5, 'NIK : ' . ($kaBaak?->nidn ?? $kaBaak?->nip ?? '11074'), 0, 1, 'C'); 
+        $this->Cell(50, 5, 'NIK : ' . $nidn, 0, 1, 'C'); 
 
         // Batas Potong (Cut Line)
         $cutY = $this->GetY() + 10; // Dynamic spacing 10mm after NIK

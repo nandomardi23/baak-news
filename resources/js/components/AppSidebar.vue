@@ -72,6 +72,7 @@ const navGroups = [
         label: 'Pengaturan Sistem',
         items: [
             { title: 'Pengaturan Umum', href: '/admin/settings/general', icon: Settings },
+            { title: 'Pengaturan Surat', href: '/admin/settings/surat', icon: FileText },
             { title: 'Sync Neo Feeder', href: '/admin/settings/neofeeder', icon: RefreshCw },
         ],
     },

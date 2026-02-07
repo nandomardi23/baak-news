@@ -108,6 +108,21 @@
                                     </div>
 
                                     <div class="space-y-2">
+                                        <Label for="signer_kartu_ujian">Kartu Ujian</Label>
+                                        <select
+                                            id="signer_kartu_ujian"
+                                            v-model="form.signer_kartu_ujian"
+                                            class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                            <option value="">-- Pilih Pejabat --</option>
+                                            <option v-for="p in pejabat" :key="p.id" :value="p.id">
+                                                {{ p.nama }} ({{ p.jabatan }})
+                                            </option>
+                                        </select>
+                                        <InputError :message="form.errors.signer_kartu_ujian" />
+                                    </div>
+
+                                    <div class="space-y-2">
                                         <Label for="signer_krs">Kartu Rencana Studi (KRS)</Label>
                                         <select
                                             id="signer_krs"
@@ -195,6 +210,7 @@ const form = useForm({
     kop_email: props.settings.kop_email || '',
     kota_terbit: props.settings.kota_terbit || '',
     signer_aktif_kuliah: props.settings.signer_aktif_kuliah || '',
+    signer_kartu_ujian: props.settings.signer_kartu_ujian || '',
     signer_krs: props.settings.signer_krs || '',
     signer_khs: props.settings.signer_khs || '',
     signer_transkrip: props.settings.signer_transkrip || '',

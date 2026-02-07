@@ -182,9 +182,27 @@ class KrsService extends BasePdfService
         $this->Ln(20);
         
         // Attempt to find PA if possible, otherwise placeholder
-        $this->SetFont('Arial', 'B', 9);
-        $this->SetX(130);
-        $this->Cell(50, 5, '............................................', 0, 1, 'C');
+        $signerId = Setting::getValue('signer_krs');
+        $signer = $customSigner;
+        
+        if (!$signer && $signerId) {
+             $signer = Pejabat::find($signerId);
+        }
+
+        // Only display if signer is found, otherwise dots
+        if ($signer) {
+            $this->SetFont('Arial', 'BU', 9);
+            $this->SetX(130);
+            $this->Cell(50, 5, strtoupper($signer->nama_lengkap), 0, 1, 'C');
+            
+            $this->SetFont('Arial', '', 9);
+            $this->SetX(130);
+            $this->Cell(50, 5, 'NIDN/NIP: ' . ($signer->nidn ?? $signer->nip ?? '-'), 0, 1, 'C');
+        } else {
+            $this->SetFont('Arial', 'B', 9);
+            $this->SetX(130);
+            $this->Cell(50, 5, '............................................', 0, 1, 'C');
+        }
         
         // Final Output
         $filename = 'krs_' . $mahasiswa->nim . '_' . $tahunAkademik->id_semester . '.pdf';

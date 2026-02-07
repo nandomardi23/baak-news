@@ -26,6 +26,7 @@ class LetterSettingsController extends Controller
 
                 // Default Signers
                 'signer_aktif_kuliah' => Setting::getValue('signer_aktif_kuliah'),
+                'signer_kartu_ujian' => Setting::getValue('signer_kartu_ujian'),
                 'signer_krs' => Setting::getValue('signer_krs'),
                 'signer_khs' => Setting::getValue('signer_khs'),
                 'signer_transkrip' => Setting::getValue('signer_transkrip'),
@@ -48,6 +49,7 @@ class LetterSettingsController extends Controller
             'kop_email' => 'nullable|email|max:255',
             'kota_terbit' => 'required|string|max:100',
             'signer_aktif_kuliah' => 'nullable|exists:pejabat,id',
+            'signer_kartu_ujian' => 'nullable|exists:pejabat,id',
             'signer_krs' => 'nullable|exists:pejabat,id',
             'signer_khs' => 'nullable|exists:pejabat,id',
             'signer_transkrip' => 'nullable|exists:pejabat,id',
