@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Head, router, useForm } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
     Select,
     SelectContent,
@@ -13,14 +14,26 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import {
-    DataTable,
-    TableHeader,
-    TableRow,
-    TableCell,
-    Pagination
-} from '@/components/ui/datatable';
-import { Filter, X, Search, Eye, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next';
-import { watchDebounced } from '@vueuse/core';
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import SmartTable from '@/components/ui/datatable/SmartTable.vue';
+import { Pencil, Trash2, Plus, Eye } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 
 interface Dosen {
     id: number;
@@ -33,20 +46,11 @@ interface Dosen {
     jabatan_fungsional: string | null;
     status_aktif: string | null;
     prodi: string | null;
-}
-
-interface PaginationData {
-    data: Dosen[];
-    links: any[];
-    current_page: number;
-    last_page: number;
-    total: number;
-    from: number;
-    to: number;
+    program_studi_id?: number; 
 }
 
 const props = defineProps<{
-    dosen: PaginationData;
+    dosen: any;
     prodiList: Record<string, string>;
     filters: {
         search?: string;
@@ -60,45 +64,87 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dosen', href: '/admin/dosen' },
 ];
 
-const search = ref(props.filters.search || '');
-const selectedProdi = ref(props.filters.prodi || 'all');
-const selectedStatus = ref(props.filters.status || 'all');
-const sortField = ref('nama');
-const sortDirection = ref<'asc' | 'desc'>('asc');
+const columns = [
+    { key: 'nama_lengkap', label: 'Nama Dosen', sortable: true },
+    { key: 'nidn', label: 'NIDN', sortable: true },
+    { key: 'nip', label: 'NIP', sortable: true },
+    { key: 'jabatan_fungsional', label: 'Jabatan', sortable: true },
+    { key: 'prodi', label: 'Program Studi', sortable: false },
+    { key: 'status_aktif', label: 'Status', sortable: true, align: 'center' as const },
+    { key: 'actions', label: 'Aksi', align: 'center' as const },
+];
 
-const applyFilters = () => {
-    router.get('/admin/dosen', {
-        search: search.value || undefined,
-        prodi: selectedProdi.value === 'all' ? undefined : selectedProdi.value,
-        status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
-        sort_field: sortField.value,
-        sort_direction: sortDirection.value
-    }, { preserveState: true, preserveScroll: true });
+// -- Forms & Dialogs --
+
+const isCreateOpen = ref(false);
+const isEditOpen = ref(false);
+const isDeleteOpen = ref(false);
+const selectedItem = ref<Dosen | null>(null);
+
+const form = useForm({
+    nidn: '',
+    nip: '',
+    nama_dosen: '',
+    nama_lengkap: '',
+    jenis_kelamin: 'L',
+    jabatan_fungsional: '',
+    program_studi_id: null as string | null,
+    status_aktif: 'Aktif',
+});
+
+const openCreate = () => {
+    form.reset();
+    isCreateOpen.value = true;
 };
 
-watchDebounced(
-    search,
-    () => { applyFilters(); },
-    { debounce: 500, maxWait: 1000 }
-);
-
-const clearFilters = () => {
-    search.value = '';
-    selectedProdi.value = 'all';
-    selectedStatus.value = 'all';
-    sortField.value = 'nama';
-    sortDirection.value = 'asc';
-    applyFilters();
+const openEdit = (item: Dosen) => {
+    selectedItem.value = item;
+    form.nidn = item.nidn || '';
+    form.nip = item.nip || '';
+    form.nama_dosen = item.nama; // 'nama' is what's used in index mapping for 'nama'
+    form.nama_lengkap = item.nama_lengkap;
+    form.jenis_kelamin = item.jenis_kelamin || 'L';
+    form.jabatan_fungsional = item.jabatan_fungsional || '';
+    // We need program_studi_id. Since the controller currently only provides 'prodi' name, 
+    // we might have an issue here. I'll rely on the assumption I'll fix the controller shortly.
+    // If not fixed, this will be null and the select won't show the current value.
+    form.program_studi_id = item.program_studi_id ? String(item.program_studi_id) : null;
+    form.status_aktif = item.status_aktif || 'Aktif';
+    isEditOpen.value = true;
 };
 
-const sort = (field: string) => {
-    if (sortField.value === field) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-    } else {
-        sortField.value = field;
-        sortDirection.value = 'asc';
-    }
-    applyFilters();
+const openDelete = (item: Dosen) => {
+    selectedItem.value = item;
+    isDeleteOpen.value = true;
+};
+
+const submitCreate = () => {
+    form.post(route('admin.dosen.store'), {
+        onSuccess: () => {
+            isCreateOpen.value = false;
+            toast.success('Berhasil', { description: 'Data dosen berhasil ditambahkan' });
+        },
+    });
+};
+
+const submitEdit = () => {
+    if (!selectedItem.value) return;
+    form.put(route('admin.dosen.update', selectedItem.value.id), {
+        onSuccess: () => {
+            isEditOpen.value = false;
+            toast.success('Berhasil', { description: 'Data dosen berhasil diperbarui' });
+        },
+    });
+};
+
+const submitDelete = () => {
+    if (!selectedItem.value) return;
+    router.delete(route('admin.dosen.destroy', selectedItem.value.id), {
+        onSuccess: () => {
+            isDeleteOpen.value = false;
+            toast.success('Berhasil', { description: 'Data dosen berhasil dihapus' });
+        },
+    });
 };
 
 const getStatusBadge = (status: string | null) => {
@@ -119,171 +165,195 @@ const getStatusBadge = (status: string | null) => {
                     <p class="text-slate-500 mt-1">Kelola data dosen, jabatan fungsional, dan status aktif.</p>
                 </div>
                 <div class="flex gap-2">
-                    <!-- Optional: Add Buttons here if needed -->
+                    <Button @click="openCreate" class="gap-2">
+                        <Plus class="w-4 h-4" />
+                        Tambah Dosen
+                    </Button>
                 </div>
             </div>
 
-            <!-- Standardized DataTable -->
-            <DataTable>
-                <!-- Toolbar Slot -->
-                <template #toolbar>
-                    <div class="flex items-center gap-2">
-                        <div class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                            <Filter class="w-4 h-4" />
-                        </div>
-                        <h3 class="text-base font-bold text-slate-700">Filtering</h3>
+            <SmartTable
+                :data="dosen"
+                :columns="columns"
+                :search="filters.search"
+                :filters="{ prodi: filters.prodi, status: filters.status }"
+                :sort-field="filters.prodi" 
+                title="Filter Data Dosen"
+            >
+                <template #filters>
+                     <!-- Prodi Filter -->
+                    <div class="w-full sm:w-48">
+                         <!-- SmartTable handles generic filters via slots if manual implementation needed, 
+                              but actually SmartTable implementation expects us to handle filters OUTSIDE via its slots. 
+                              Wait, looking at SmartTable.vue, it renders slots named 'filters'. 
+                              And emits update:filters. But here we usually bind v-model to props or router. 
+                              The 'SmartTable' doesn't auto-generate Selects. We must provide them. 
+                              The previous implementation had them manual. I will re-implement them here. -->
+                        <Select 
+                            :model-value="filters.prodi || 'all'" 
+                            @update:model-value="(val) => router.get('/admin/dosen', { ...filters, prodi: val === 'all' ? null : String(val) }, { preserveState: true })"
+                        >
+                            <SelectTrigger class="h-9 w-full">
+                                <SelectValue placeholder="Pilih Prodi" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Prodi</SelectItem>
+                                <SelectItem v-for="(nama, id) in prodiList" :key="id" :value="String(id)">
+                                    {{ nama }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    <div class="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
-                        
-                        <!-- Filter Button / Clear -->
-                        <Button 
-                            v-if="search || selectedProdi !== 'all' || selectedStatus !== 'all'"
-                            variant="ghost" 
-                            size="sm" 
-                            @click="clearFilters"
-                            class="text-red-600 hover:text-red-700 hover:bg-red-50 h-9 gap-1"
+                    <!-- Status Filter -->
+                    <div class="w-full sm:w-36">
+                        <Select
+                            :model-value="filters.status || 'all'"
+                            @update:model-value="(val) => router.get('/admin/dosen', { ...filters, status: val === 'all' ? null : String(val) }, { preserveState: true })"
                         >
-                            <X class="w-4 h-4" />
-                            Clear Filters
+                            <SelectTrigger class="h-9 w-full">
+                                <SelectValue placeholder="Pilih Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Status</SelectItem>
+                                <SelectItem value="aktif">Aktif</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                </template>
+                
+                <template #cell-status_aktif="{ value }">
+                    <span
+                        :class="getStatusBadge(value)"
+                        class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize"
+                    >
+                        {{ value || 'N/A' }}
+                    </span>
+                </template>
+
+                <template #cell-actions="{ row }">
+                    <div class="flex items-center justify-center gap-2">
+                        <!-- Action Buttons -->
+                         <Button variant="ghost" size="icon" class="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50" @click="openEdit(row)">
+                            <Pencil class="w-4 h-4" />
                         </Button>
+                        <Button variant="ghost" size="icon" class="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50" @click="openDelete(row)">
+                            <Trash2 class="w-4 h-4" />
+                        </Button>
+                    </div>
+                </template>
+            </SmartTable>
+        </div>
 
-                         <div v-if="search || selectedProdi !== 'all' || selectedStatus !== 'all'" class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+        <!-- Create/Edit Modal -->
+        <Dialog :open="isCreateOpen || isEditOpen" @update:open="(val) => { if(!val) { isCreateOpen = false; isEditOpen = false; } }">
+            <DialogContent class="sm:max-w-[600px]">
+                <DialogHeader>
+                    <DialogTitle>{{ isEditOpen ? 'Edit Dosen' : 'Tambah Dosen' }}</DialogTitle>
+                    <DialogDescription>
+                        {{ isEditOpen ? 'Perbarui data dosen di sini.' : 'Tambahkan data dosen baru ke sistem.' }}
+                    </DialogDescription>
+                </DialogHeader>
 
-                        <!-- Prodi Filter -->
-                        <div class="w-full sm:w-48">
-                            <Select v-model="selectedProdi" @update:modelValue="applyFilters">
-                                <SelectTrigger class="h-9 w-full">
+                <div class="grid gap-4 py-4">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <Label>Nama Dosen (Tanpa Gelar)</Label>
+                            <Input v-model="form.nama_dosen" placeholder="Contoh: Budi Santoso" />
+                        </div>
+                        <div class="space-y-2">
+                             <Label>Nama Lengkap (Dengan Gelar)</Label>
+                            <Input v-model="form.nama_lengkap" placeholder="Contoh: Dr. Budi Santoso, M.Kom" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <Label>NIDN</Label>
+                            <Input v-model="form.nidn" placeholder="Nomor Induk Dosen Nasional" />
+                        </div>
+                        <div class="space-y-2">
+                             <Label>NIP</Label>
+                            <Input v-model="form.nip" placeholder="Nomor Induk Pegawai" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                         <div class="space-y-2">
+                            <Label>Jenis Kelamin</Label>
+                            <Select v-model="form.jenis_kelamin">
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Pilih JK" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="L">Laki-laki</SelectItem>
+                                    <SelectItem value="P">Perempuan</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                         <div class="space-y-2">
+                            <Label>Program Studi</Label>
+                             <Select v-model="form.program_studi_id">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Pilih Prodi" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Semua Prodi</SelectItem>
                                     <SelectItem v-for="(nama, id) in prodiList" :key="id" :value="String(id)">
                                         {{ nama }}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
+                    </div>
 
-                        <!-- Status Filter -->
-                        <div class="w-full sm:w-36">
-                            <Select v-model="selectedStatus" @update:modelValue="applyFilters">
-                                <SelectTrigger class="h-9 w-full">
+                     <div class="grid grid-cols-2 gap-4">
+                        <div class="space-y-2">
+                            <Label>Jabatan Fungsional</Label>
+                             <Input v-model="form.jabatan_fungsional" placeholder="Contoh: Lektor" />
+                        </div>
+                         <div class="space-y-2">
+                            <Label>Status Aktif</Label>
+                            <Select v-model="form.status_aktif">
+                                <SelectTrigger>
                                     <SelectValue placeholder="Pilih Status" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">Semua Status</SelectItem>
-                                    <SelectItem value="aktif">Aktif</SelectItem>
+                                    <SelectItem value="Aktif">Aktif</SelectItem>
+                                    <SelectItem value="Tidak Aktif">Tidak Aktif</SelectItem>
+                                    <SelectItem value="Cuti">Cuti</SelectItem>
+                                    <SelectItem value="Keluar">Keluar</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        <!-- Search Input -->
-                        <div class="relative w-full sm:w-64">
-                            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                            <Input
-                                v-model="search"
-                                type="text"
-                                placeholder="Cari Nama / NIDN / NIP..."
-                                class="pl-9 h-9 w-full focus-visible:ring-1"
-                            />
-                        </div>
                     </div>
-                </template>
+                </div>
 
-                <!-- Table Header -->
-                <thead class="bg-slate-50/50">
-                    <tr>
-                        <TableHeader @click="sort('nama')" class="cursor-pointer hover:bg-slate-100">
-                            Nama Dosen
-                            <ArrowUp v-if="sortField === 'nama' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
-                            <ArrowDown v-else-if="sortField === 'nama' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
-                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
-                        </TableHeader>
-                        <TableHeader @click="sort('nidn')" class="cursor-pointer hover:bg-slate-100">
-                            NIDN
-                            <ArrowUp v-if="sortField === 'nidn' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
-                            <ArrowDown v-else-if="sortField === 'nidn' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
-                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
-                        </TableHeader>
-                        <TableHeader @click="sort('nip')" class="cursor-pointer hover:bg-slate-100">
-                            NIP
-                            <ArrowUp v-if="sortField === 'nip' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
-                            <ArrowDown v-else-if="sortField === 'nip' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
-                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
-                        </TableHeader>
-                        <TableHeader @click="sort('jabatan_fungsional')" class="cursor-pointer hover:bg-slate-100">
-                            Jabatan Fungsional
-                            <ArrowUp v-if="sortField === 'jabatan_fungsional' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
-                            <ArrowDown v-else-if="sortField === 'jabatan_fungsional' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
-                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
-                        </TableHeader>
-                        <TableHeader>Program Studi</TableHeader>
-                        <TableHeader @click="sort('status_aktif')" class="cursor-pointer hover:bg-slate-100 text-center">
-                            Status
-                            <ArrowUp v-if="sortField === 'status_aktif' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
-                            <ArrowDown v-else-if="sortField === 'status_aktif' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
-                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
-                        </TableHeader>
-                        <!-- Aksi column temporarily removed or kept if needed. The wireframe has no explicit actions but standard requires it. Assuming 'Detail' view exists or will exist. The user didn't ask for Edit/Delete on Dosen yet, but Detail is usually safe. -->
-                         <!-- Wait, Dosen controller doesn't seem to have a show method in the view_file output, but web.php shows it uses Resource controller? No, it uses [DosenController::class, 'index']. Let me check web.php again. -->
-                         <!-- Route::get('dosen', [\App\Http\Controllers\Admin\DosenController::class, 'index'])->name('dosen.index'); -->
-                         <!-- Only index is defined! So no show/edit/delete routes for Dosen. I should omit the Aksi column for now or keep it empty/future-proof. -->
-                         <!-- Actually, standardizing implied adding features. But if the route doesn't exist, the link will break. -->
-                         <!-- I will OMIT the Action column for now to avoid broken links, or added it but disable the button. -->
-                         <!-- Let's check if I can add a Detail route later. For now, I will NOT include the Aksi column to be safe, as it wasn't requested explicitly and no route exists. -->
-                    </tr>
-                </thead>
+                <DialogFooter>
+                    <Button variant="outline" @click="isCreateOpen = false; isEditOpen = false">Batal</Button>
+                    <Button @click="isEditOpen ? submitEdit() : submitCreate()">
+                        {{ isEditOpen ? 'Simpan Perubahan' : 'Tambah Dosen' }}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
 
-                <!-- Table Body -->
-                <tbody>
-                    <TableRow v-for="item in dosen.data" :key="item.id">
-                        <TableCell>
-                            <div class="flex flex-col">
-                                <span class="font-bold text-slate-800">{{ item.nama_lengkap }}</span>
-                                <span class="text-xs text-slate-500">{{ item.jenis_kelamin === 'L' ? 'Laki-laki' : item.jenis_kelamin === 'P' ? 'Perempuan' : '-' }}</span>
-                            </div>
-                        </TableCell>
-                        <TableCell class="font-mono text-slate-600 text-sm">{{ item.nidn || '-' }}</TableCell>
-                        <TableCell class="font-mono text-slate-600 text-sm">{{ item.nip || '-' }}</TableCell>
-                        <TableCell>{{ item.jabatan_fungsional || '-' }}</TableCell>
-                        <TableCell>{{ item.prodi || '-' }}</TableCell>
-                        <TableCell class="text-center">
-                            <span
-                                :class="getStatusBadge(item.status_aktif)"
-                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize"
-                            >
-                                {{ item.status_aktif || 'N/A' }}
-                            </span>
-                        </TableCell>
-                    </TableRow>
-                    
-                    <!-- Empty State -->
-                    <TableRow v-if="dosen.data.length === 0">
-                        <TableCell colspan="6" class="h-64 text-center">
-                            <div class="flex flex-col items-center justify-center text-slate-500">
-                                <div class="bg-slate-100 p-4 rounded-full mb-3">
-                                    <Search class="h-6 w-6 text-slate-400" />
-                                </div>
-                                <p class="font-medium text-slate-900">Tidak ada data dosen ditemukan</p>
-                                <p class="text-sm">Silakan sync dari Neo Feeder atau ubah filter.</p>
-                                <Button 
-                                    variant="link" 
-                                    class="mt-2 text-blue-600" 
-                                    @click="clearFilters"
-                                >
-                                    Reset Filter
-                                </Button>
-                            </div>
-                        </TableCell>
-                    </TableRow>
-                </tbody>
+        <!-- Delete Confirmation -->
+        <AlertDialog :open="isDeleteOpen" @update:open="isDeleteOpen = $event">
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Batal</AlertDialogCancel>
+                    <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="submitDelete">
+                        Hapus
+                    </AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
 
-                <!-- Pagination Slot -->
-                <template #pagination>
-                    <Pagination :pagination="dosen" />
-                </template>
-            </DataTable>
-        </div>
     </AppLayout>
 </template>

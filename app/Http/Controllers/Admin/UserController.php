@@ -15,6 +15,8 @@ use Spatie\Permission\Models\Role;
 
 class UserController extends Controller
 {
+    use \App\Traits\HasDataTable;
+
     public function index(Request $request): Response
     {
         $query = User::with('roles');
@@ -23,29 +25,24 @@ class UserController extends Controller
             $query->role($request->role);
         }
 
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('name', 'like', "%{$request->search}%")
-                  ->orWhere('email', 'like', "%{$request->search}%");
-            });
-        }
-
-        $users = $query->orderBy('name')
-            ->paginate(20)
-            ->through(fn($user) => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-                'roles' => $user->roles->pluck('name'),
-                'created_at' => $user->created_at->format('d M Y'),
-            ]);
+        // Use standard DataTable trait for search (name/email) and sort
+        $users = $this->applyDataTable($query, $request, ['name', 'email'], 20);
+        
+        // Transform data *after* pagination to keep structure correct for Inertia
+        $users->through(fn($user) => [
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'roles' => $user->roles->pluck('name'),
+            'created_at' => $user->created_at->format('d M Y'),
+        ]);
 
         $roles = Role::all()->pluck('name');
 
         return Inertia::render('Admin/User/Index', [
             'users' => $users,
             'roles' => $roles,
-            'filters' => $request->only(['role', 'search']),
+            'filters' => $request->only(['role', 'search', 'sort_field', 'sort_direction']),
         ]);
     }
 

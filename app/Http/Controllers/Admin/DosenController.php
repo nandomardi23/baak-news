@@ -52,6 +52,7 @@ class DosenController extends Controller
                 'jabatan_fungsional' => $item->jabatan_fungsional,
                 'status_aktif' => $item->status_aktif,
                 'prodi' => $item->programStudi?->nama_prodi,
+                'program_studi_id' => $item->program_studi_id,
             ]);
 
         return Inertia::render('Admin/Dosen/Index', [
@@ -63,6 +64,55 @@ class DosenController extends Controller
                 'status' => $request->input('status'),
             ],
         ]);
+    }
+    public function store(Request $request)
+    {
+        $validated = $request->validate([
+            'nidn' => 'nullable|string|max:20|unique:dosen,nidn',
+            'nip' => 'nullable|string|max:20|unique:dosen,nip',
+            'nama_dosen' => 'required|string|max:255',
+            'nama_lengkap' => 'required|string|max:255',
+            'jenis_kelamin' => 'required|in:L,P',
+            'jabatan_fungsional' => 'nullable|string|max:100',
+            'program_studi_id' => 'nullable|exists:program_studi,id',
+            'status_aktif' => 'nullable|string',
+        ]);
+
+        // Map nama_dosen to descriptors if needed, usually just nama
+        $validated['nama'] = $validated['nama_dosen'];
+        unset($validated['nama_dosen']);
+
+        Dosen::create($validated);
+
+        return redirect()->back()->with('success', 'Data dosen berhasil ditambahkan (Note: Sinkronisasi Neo Feeder disarankan)');
+    }
+
+    public function update(Request $request, Dosen $dosen)
+    {
+        $validated = $request->validate([
+            'nidn' => 'nullable|string|max:20|unique:dosen,nidn,' . $dosen->id,
+            'nip' => 'nullable|string|max:20|unique:dosen,nip,' . $dosen->id,
+            'nama_dosen' => 'required|string|max:255',
+            'nama_lengkap' => 'required|string|max:255',
+            'jenis_kelamin' => 'required|in:L,P',
+            'jabatan_fungsional' => 'nullable|string|max:100',
+            'program_studi_id' => 'nullable|exists:program_studi,id',
+            'status_aktif' => 'nullable|string',
+        ]);
+
+         // Map nama_dosen to descriptors if needed
+        $validated['nama'] = $validated['nama_dosen'];
+        unset($validated['nama_dosen']);
+
+        $dosen->update($validated);
+
+        return redirect()->back()->with('success', 'Data dosen berhasil diperbarui');
+    }
+
+    public function destroy(Dosen $dosen)
+    {
+        $dosen->delete();
+        return redirect()->back()->with('success', 'Data dosen berhasil dihapus');
     }
 }
 

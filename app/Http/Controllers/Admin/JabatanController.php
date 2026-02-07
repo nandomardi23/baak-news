@@ -11,12 +11,22 @@ use Inertia\Response;
 
 class JabatanController extends Controller
 {
-    public function index(): Response
+    use \App\Traits\HasDataTable;
+
+    public function index(Request $request): Response
     {
-        $jabatan = Jabatan::orderBy('nama_jabatan')->get();
+        $query = Jabatan::query();
+
+        // Specific filter (Active) if needed, unrelated to global search
+        if ($request->has('is_active')) {
+            $query->where('is_active', $request->boolean('is_active'));
+        }
+
+        $jabatan = $this->applyDataTable($query, $request, ['nama_jabatan', 'kode_jabatan'], 10);
 
         return Inertia::render('Admin/Jabatan/Index', [
             'jabatan' => $jabatan,
+            'filters' => $request->only(['search', 'sort_field', 'sort_direction', 'is_active']),
         ]);
     }
 

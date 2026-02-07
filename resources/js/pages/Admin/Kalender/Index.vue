@@ -231,7 +231,7 @@ const selectedJenisColor = computed(() => {
                                             {{ item.deskripsi }}
                                         </p>
                                     </div>
-                                    <div class="flex gap-2 flex-shrink-0">
+                                    <div class="flex gap-2 shrink-0">
                                         <button
                                             @click="openModal(item)"
                                             class="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"

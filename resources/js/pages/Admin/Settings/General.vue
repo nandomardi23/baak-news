@@ -51,7 +51,7 @@ const submit = () => {
                  <div class="absolute -top-10 -left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl -z-10"></div>
                  <div class="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-3xl -z-10"></div>
 
-                <h1 class="text-3xl font-bold tracking-tight text-slate-900 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 to-slate-600">
+                <h1 class="text-3xl font-bold tracking-tight text-transparent bg-clip-text bg-linear-to-r from-slate-900 to-slate-600">
                     Pengaturan Umum
                 </h1>
                 <p class="mt-2 text-lg text-slate-500 max-w-2xl">
@@ -60,9 +60,9 @@ const submit = () => {
             </div>
 
             <!-- Main Form Card -->
-            <div class="bg-white rounded-[2rem] shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
+            <div class="bg-white rounded-4xl shadow-xl shadow-slate-200/50 border border-slate-100 overflow-hidden relative">
                  <!-- Decorative Top Border -->
-                <div class="h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
+                <div class="h-2 bg-linear-to-r from-blue-500 via-indigo-500 to-purple-500"></div>
 
                 <form @submit.prevent="submit">
                     <div class="p-8 sm:p-10 space-y-12">

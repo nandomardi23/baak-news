@@ -47,7 +47,7 @@ const groupedByMonth = computed(() => {
 <template>
     <Head title="Kalender Akademik" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
+    <div class="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
         <!-- Header -->
         <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b sticky top-0 z-40">
             <div class="max-w-6xl mx-auto px-4 py-4">
@@ -93,7 +93,7 @@ const groupedByMonth = computed(() => {
                                     <div class="rounded-xl bg-white dark:bg-slate-800 p-5 shadow-md hover:shadow-lg transition-shadow border border-gray-100 dark:border-gray-700">
                                         <div class="flex items-start gap-3">
                                             <div
-                                                class="w-2 h-full rounded-full flex-shrink-0"
+                                                class="w-2 h-full rounded-full shrink-0"
                                                 :style="{ backgroundColor: item.warna }"
                                             ></div>
                                             <div class="flex-1">

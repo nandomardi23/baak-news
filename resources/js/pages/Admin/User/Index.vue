@@ -3,6 +3,16 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import SmartTable from '@/components/ui/datatable/SmartTable.vue';
+import { Pencil, Trash2, Plus } from 'lucide-vue-next';
+import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface User {
     id: number;
@@ -12,21 +22,10 @@ interface User {
     created_at: string;
 }
 
-interface Pagination {
-    data: User[];
-    links: any[];
-    current_page: number;
-    last_page: number;
-    total: number;
-}
-
 const props = defineProps<{
-    users: Pagination;
+    users: any;
     roles: string[];
-    filters: {
-        role?: string;
-        search?: string;
-    };
+    filters: Record<string, any>;
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -34,14 +33,22 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'User Management', href: '/admin/user' },
 ];
 
-const search = ref(props.filters.search || '');
-const selectedRole = ref(props.filters.role || '');
+const columns = [
+    { key: 'name', label: 'Nama User', sortable: true },
+    { key: 'email', label: 'Email', sortable: true },
+    { key: 'roles', label: 'Role', sortable: false },
+    { key: 'created_at', label: 'Terdaftar', sortable: true },
+    { key: 'aksi', label: 'Aksi', align: 'right' as const },
+];
 
-const applyFilters = () => {
+// Role Filter State
+const selectedRole = ref(props.filters.role || 'all');
+
+const updateFilter = () => {
     router.get('/admin/user', {
-        search: search.value || undefined,
-        role: selectedRole.value || undefined,
-    }, { preserveState: true });
+        role: selectedRole.value === 'all' ? undefined : selectedRole.value,
+        search: props.filters.search, // Preserve search
+    }, { preserveState: true, preserveScroll: true });
 };
 
 const deleteUser = (id: number) => {
@@ -52,10 +59,12 @@ const deleteUser = (id: number) => {
 
 const getRoleBadgeClass = (role: string) => {
     const classes: Record<string, string> = {
-        admin: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-400',
-        staff_baak: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+        admin: 'bg-purple-100 text-purple-800 border-purple-200',
+        staff_baak: 'bg-blue-100 text-blue-800 border-blue-200',
+        mahasiswa: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        dosen: 'bg-amber-100 text-amber-800 border-amber-200',
     };
-    return classes[role] || 'bg-gray-100 text-gray-800';
+    return classes[role] || 'bg-gray-100 text-gray-800 border-gray-200';
 };
 </script>
 
@@ -67,122 +76,85 @@ const getRoleBadgeClass = (role: string) => {
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold">User Management</h1>
-                    <p class="text-muted-foreground">Total: {{ users.total }} user</p>
+                    <p class="text-muted-foreground">Total: {{ users.total }} user terdaftar</p>
                 </div>
-                <Link
-                    href="/admin/user/create"
-                    class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition"
-                >
-                    + Tambah User
-                </Link>
             </div>
 
-            <!-- Filters -->
-            <div class="flex flex-wrap gap-4 items-end">
-                <div class="flex-1 min-w-[200px]">
-                    <label class="block text-sm font-medium mb-1">Cari</label>
-                    <input
-                        v-model="search"
-                        type="text"
-                        placeholder="Nama atau email..."
-                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        @keyup.enter="applyFilters"
-                    />
-                </div>
-                <div class="w-40">
-                    <label class="block text-sm font-medium mb-1">Role</label>
-                    <select
-                        v-model="selectedRole"
-                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="">Semua</option>
-                        <option v-for="role in roles" :key="role" :value="role">
-                            {{ role }}
-                        </option>
-                    </select>
-                </div>
-                <button
-                    @click="applyFilters"
-                    class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-                >
-                    Filter
-                </button>
-            </div>
+            <SmartTable
+                :data="users"
+                :columns="columns"
+                :search="filters.search"
+                :filters="{ role: filters.role }"
+                :sort-field="filters.sort_field"
+                :sort-direction="filters.sort_direction"
+                title="Data User"
+            >
+                <!-- Actions Toolbar -->
+                <template #actions>
+                    <Link href="/admin/user/create">
+                        <Button class="bg-primary text-primary-foreground hover:bg-primary/90">
+                            <Plus class="w-4 h-4 mr-2" />
+                            Tambah User
+                        </Button>
+                    </Link>
+                </template>
 
-            <!-- Table -->
-            <div class="rounded-xl border bg-card shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-muted/50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Nama</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Email</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Role</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Dibuat</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="user in users.data" :key="user.id" class="hover:bg-muted/50">
-                                <td class="px-6 py-4 font-medium">{{ user.name }}</td>
-                                <td class="px-6 py-4 text-muted-foreground">{{ user.email }}</td>
-                                <td class="px-6 py-4">
-                                    <span
-                                        v-for="role in user.roles"
-                                        :key="role"
-                                        :class="getRoleBadgeClass(role)"
-                                        class="px-2 py-1 rounded-full text-xs font-medium mr-1"
-                                    >
-                                        {{ role }}
-                                    </span>
-                                </td>
-                                <td class="px-6 py-4 text-sm text-muted-foreground">{{ user.created_at }}</td>
-                                <td class="px-6 py-4">
-                                    <div class="flex gap-2">
-                                        <Link
-                                            :href="`/admin/user/${user.id}/edit`"
-                                            class="text-primary hover:underline text-sm"
-                                        >
-                                            Edit
-                                        </Link>
-                                        <button
-                                            @click="deleteUser(user.id)"
-                                            class="text-red-600 hover:underline text-sm"
-                                        >
-                                            Hapus
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="users.data.length === 0">
-                                <td colspan="5" class="px-6 py-12 text-center text-muted-foreground">
-                                    Tidak ada user
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="users.last_page > 1" class="px-6 py-4 border-t flex items-center justify-between">
-                    <p class="text-sm text-muted-foreground">
-                        Halaman {{ users.current_page }} dari {{ users.last_page }}
-                    </p>
-                    <div class="flex gap-2">
-                        <Link
-                            v-for="link in users.links"
-                            :key="link.label"
-                            :href="link.url || '#'"
-                            :class="[
-                                'px-3 py-1 rounded text-sm',
-                                link.active ? 'bg-primary text-primary-foreground' : 'border hover:bg-muted',
-                                !link.url ? 'opacity-50 cursor-not-allowed' : ''
-                            ]"
-                            v-html="link.label"
-                        />
+                <!-- Filters Slot -->
+                <template #filters>
+                    <div class="w-full sm:w-48">
+                        <Select v-model="selectedRole" @update:modelValue="updateFilter">
+                            <SelectTrigger class="h-9 w-full">
+                                <SelectValue placeholder="Pilih Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Semua Role</SelectItem>
+                                <SelectItem v-for="role in roles" :key="role" :value="role">
+                                    {{ role }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
-                </div>
-            </div>
+                </template>
+
+                <!-- Custom Cell: Roles -->
+                <template #cell-roles="{ value }">
+                    <div class="flex flex-wrap gap-1">
+                        <span
+                            v-for="role in value"
+                            :key="role"
+                            :class="getRoleBadgeClass(role)"
+                            class="px-2 py-0.5 rounded-full text-xs font-bold border capitalize"
+                        >
+                            {{ role }}
+                        </span>
+                    </div>
+                </template>
+
+                <!-- Custom Cell: Aksi -->
+                <template #cell-aksi="{ row }">
+                     <div class="flex items-center justify-end gap-2">
+                        <Link :href="`/admin/user/${row.id}/edit`">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                class="text-blue-600 hover:text-blue-700 hover:bg-blue-50 h-8 w-8"
+                                title="Edit"
+                            >
+                                <Pencil class="w-4 h-4" />
+                            </Button>
+                        </Link>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            @click="deleteUser(row.id)"
+                            class="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
+                            title="Hapus"
+                        >
+                            <Trash2 class="w-4 h-4" />
+                        </Button>
+                    </div>
+                </template>
+            </SmartTable>
         </div>
     </AppLayout>
 </template>

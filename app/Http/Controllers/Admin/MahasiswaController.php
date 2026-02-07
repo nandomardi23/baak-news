@@ -18,13 +18,11 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class MahasiswaController extends Controller
 {
+    use \App\Traits\HasDataTable;
+
     public function index(Request $request): Response
     {
         $query = Mahasiswa::with('programStudi');
-
-        if ($request->filled('search')) {
-            $query->search($request->search);
-        }
 
         if ($request->filled('prodi')) {
             $query->where('program_studi_id', $request->prodi);
@@ -34,37 +32,26 @@ class MahasiswaController extends Controller
             $query->where('status_mahasiswa', $request->status);
         }
 
-        if ($request->filled('status')) {
-            $query->where('status_mahasiswa', $request->status);
-        }
+        // Apply standardized Search and Sort
+        $mahasiswa = $this->applyDataTable($query, $request, ['nim', 'nama', 'angkatan', 'programStudi.nama_prodi'], 20);
 
-        $sortField = $request->input('sort_field', 'nama');
-        $sortDirection = $request->input('sort_direction', 'asc');
-        
-        // whitelist sort fields to prevent SQL injection
-        $allowedSorts = ['nim', 'nama', 'angkatan', 'ipk', 'status_mahasiswa'];
-        if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'nama';
-        }
-
-        $mahasiswa = $query->orderBy($sortField, $sortDirection)
-            ->paginate(20)
-            ->through(fn($item) => [
-                'id' => $item->id,
-                'nim' => $item->nim,
-                'nama' => $item->nama,
-                'program_studi' => $item->programStudi?->nama_prodi,
-                'angkatan' => $item->angkatan,
-                'status' => $item->status_text, // Use human readable status
-                'ipk' => $item->ipk !== null ? (float) $item->ipk : null,
-            ]);
+        // Transform results
+        $mahasiswa->through(fn($item) => [
+            'id' => $item->id,
+            'nim' => $item->nim,
+            'nama' => $item->nama,
+            'program_studi' => $item->programStudi?->nama_prodi,
+            'angkatan' => $item->angkatan,
+            'status' => $item->status_text,
+            'ipk' => $item->ipk !== null ? (float) $item->ipk : null,
+        ]);
 
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
 
         return Inertia::render('Admin/Mahasiswa/Index', [
             'mahasiswa' => $mahasiswa,
             'prodi' => $prodi,
-            'filters' => $request->only(['search', 'prodi', 'status']),
+            'filters' => $request->only(['search', 'prodi', 'status', 'sort_field', 'sort_direction']),
         ]);
     }
 
@@ -88,7 +75,7 @@ class MahasiswaController extends Controller
                 'nim' => $mahasiswa->nim,
                 'nama' => $mahasiswa->nama,
                 'tempat_lahir' => $mahasiswa->tempat_lahir,
-                'tanggal_lahir' => $mahasiswa->tanggal_lahir?->format('d M Y'),
+                'tanggal_lahir' => $mahasiswa->tanggal_lahir instanceof \Illuminate\Support\Carbon ? $mahasiswa->tanggal_lahir->translatedFormat('d F Y') : null,
                 'ttl' => $mahasiswa->ttl,
                 'jenis_kelamin' => $mahasiswa->jenis_kelamin,
                 'alamat' => $mahasiswa->alamat,
@@ -306,7 +293,7 @@ class MahasiswaController extends Controller
     }
 
 
-    public function sync(Request $request, \App\Services\NeoFeederSyncService $syncService): \Illuminate\Http\RedirectResponse
+    public function sync(Request $request, NeoFeederSyncService $syncService): \Illuminate\Http\RedirectResponse
     {
         $type = $request->get('type', 'mahasiswa');
         $message = '';

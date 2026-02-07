@@ -313,7 +313,7 @@ const connectionStatus = computed(() => {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <!-- Modern Header -->
-            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 text-white shadow-xl">
+            <div class="relative overflow-hidden rounded-2xl bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 text-white shadow-xl">
                 <div class="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxwYXRoIGQ9Ik0zNiAxOGMtOS45NDEgMC0xOCA4LjA1OS0xOCAxOHM4LjA1OSAxOCAxOCAxOGMzLjU4NiAwIDYuOTI5LTEuMDU4IDkuNzQ3LTIuODc1IiBzdHJva2U9IiNmZmYiIHN0cm9rZS1vcGFjaXR5PSIuMDUiIHN0cm9rZS13aWR0aD0iMiIvPjwvZz48L3N2Zz4=')] opacity-20"></div>
                 <div class="relative">
                     <div class="flex items-center gap-4">
@@ -337,7 +337,7 @@ const connectionStatus = computed(() => {
                         <!-- Credentials Card -->
                         <div class="rounded-2xl border bg-card/50 backdrop-blur-sm p-6 shadow-lg space-y-5">
                             <div class="flex items-center gap-3">
-                                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-500 text-white shadow-lg">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-linear-to-br from-indigo-500 to-purple-500 text-white shadow-lg">
                                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                     </svg>
@@ -439,8 +439,8 @@ const connectionStatus = computed(() => {
                             <div v-if="testResult" :class="[
                                 'rounded-xl p-4 mb-4 transition-all',
                                 testResult.success
-                                    ? 'bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800'
-                                    : 'bg-gradient-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200 dark:border-red-800'
+                                    ? 'bg-linear-to-r from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border border-emerald-200 dark:border-emerald-800'
+                                    : 'bg-linear-to-r from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200 dark:border-red-800'
                             ]">
                                 <div class="flex items-center gap-3">
                                     <div :class="[
@@ -465,7 +465,7 @@ const connectionStatus = computed(() => {
                                 <button
                                     type="submit"
                                     :disabled="form.processing"
-                                    class="flex-1 px-5 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
+                                    class="flex-1 px-5 py-3 bg-linear-to-r from-indigo-600 to-purple-600 text-white font-medium rounded-xl hover:from-indigo-700 hover:to-purple-700 transition-all shadow-lg shadow-indigo-500/25 disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     <svg v-if="form.processing" class="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -493,7 +493,7 @@ const connectionStatus = computed(() => {
                         </div>
 
                         <!-- Warning -->
-                        <div v-if="!settings.has_password" class="rounded-xl p-4 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800">
+                        <div v-if="!settings.has_password" class="rounded-xl p-4 bg-linear-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800">
                             <div class="flex gap-3">
                                 <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-500 text-white">
                                     <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -514,7 +514,7 @@ const connectionStatus = computed(() => {
                     <div class="rounded-2xl border bg-card/50 backdrop-blur-sm p-6 shadow-lg">
                         <div class="flex items-center justify-between mb-6">
                             <div class="flex items-center gap-3">
-                                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white shadow-lg">
+                                <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-linear-to-br from-blue-500 to-cyan-500 text-white shadow-lg">
                                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
                                     </svg>
@@ -530,7 +530,7 @@ const connectionStatus = computed(() => {
                                 v-if="!isSyncingAll"
                                 @click="syncAll"
                                 :disabled="!settings.has_password"
-                                class="px-5 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center gap-2"
+                                class="px-5 py-2.5 bg-linear-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center gap-2"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -540,7 +540,7 @@ const connectionStatus = computed(() => {
                             <button
                                 v-else
                                 @click="stopSyncAll"
-                                class="px-5 py-2.5 bg-gradient-to-r from-red-500 to-rose-500 text-white font-medium rounded-xl hover:from-red-600 hover:to-rose-600 transition-all shadow-lg shadow-red-500/25 flex items-center gap-2"
+                                class="px-5 py-2.5 bg-linear-to-r from-red-500 to-rose-500 text-white font-medium rounded-xl hover:from-red-600 hover:to-rose-600 transition-all shadow-lg shadow-red-500/25 flex items-center gap-2"
                             >
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -551,7 +551,7 @@ const connectionStatus = computed(() => {
                         </div>
 
                         <!-- Sync All Progress Panel -->
-                        <div v-if="isSyncingAll || syncAllProgress > 0" class="mb-6 rounded-xl border bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4">
+                        <div v-if="isSyncingAll || syncAllProgress > 0" class="mb-6 rounded-xl border bg-linear-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4">
                             <div class="flex items-center justify-between mb-3">
                                 <div class="flex items-center gap-2">
                                     <svg v-if="isSyncingAll" class="w-5 h-5 animate-spin text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -570,7 +570,7 @@ const connectionStatus = computed(() => {
                             <!-- Overall Progress Bar -->
                             <div class="w-full bg-white dark:bg-black/20 rounded-full h-2.5 overflow-hidden mb-3">
                                 <div 
-                                    class="h-2.5 rounded-full transition-all bg-gradient-to-r from-indigo-500 to-purple-500"
+                                    class="h-2.5 rounded-full transition-all bg-linear-to-r from-indigo-500 to-purple-500"
                                     :style="{ width: syncAllProgress + '%' }"
                                 ></div>
                             </div>
@@ -611,7 +611,7 @@ const connectionStatus = computed(() => {
                                 class="group relative overflow-hidden rounded-xl border bg-card p-4 transition-all hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700"
                             >
                                 <!-- Gradient Accent -->
-                                <div :class="['absolute top-0 left-0 h-1 w-full bg-gradient-to-r', sync.color]"></div>
+                                <div :class="['absolute top-0 left-0 h-1 w-full bg-linear-to-r', sync.color]"></div>
                                 
                                 <div class="flex flex-col h-full">
                                     <div class="flex items-start justify-between mb-3">
@@ -628,7 +628,7 @@ const connectionStatus = computed(() => {
                                         @click="syncData(sync.type)"
                                         :disabled="syncStates[sync.type].loading || !settings.has_password || isSyncingAll"
                                         :class="['w-full px-4 py-2.5 text-white font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-lg', 
-                                                 'bg-gradient-to-r hover:shadow-xl', sync.color]"
+                                                 'bg-linear-to-r hover:shadow-xl', sync.color]"
                                     >
                                         <svg
                                             v-if="syncStates[sync.type].loading"
@@ -652,7 +652,7 @@ const connectionStatus = computed(() => {
                                             </div>
                                             <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                                                 <div 
-                                                    :class="['h-1.5 rounded-full transition-all bg-gradient-to-r', sync.color]"
+                                                    :class="['h-1.5 rounded-full transition-all bg-linear-to-r', sync.color]"
                                                     :style="{ width: syncStates[sync.type].result?.data?.progress + '%' }"
                                                 ></div>
                                             </div>

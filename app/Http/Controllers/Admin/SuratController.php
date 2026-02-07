@@ -15,6 +15,8 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class SuratController extends Controller
 {
+    use \App\Traits\HasDataTable;
+
     public function index(Request $request): Response
     {
         $query = SuratPengajuan::with(['mahasiswa.programStudi', 'pejabat', 'processedBy']);
@@ -27,50 +29,37 @@ class SuratController extends Controller
             $query->where('jenis_surat', $request->jenis);
         }
 
-        if ($request->filled('search')) {
-            $query->whereHas('mahasiswa', function($q) use ($request) {
-                $q->where('nama', 'like', "%{$request->search}%")
-                  ->orWhere('nim', 'like', "%{$request->search}%");
-            });
-        }
+        // Apply standardized Search and Sort
+        // Searching on related models: mahasiswa.nama, mahasiswa.nim
+        $pengajuan = $this->applyDataTable($query, $request, ['mahasiswa.nama', 'mahasiswa.nim', 'nomor_surat'], 20);
 
-        $sortField = $request->input('sort_field', 'created_at');
-        $sortDirection = $request->input('sort_direction', 'desc');
-
-        $allowedSorts = ['created_at', 'nomor_surat', 'jenis_surat', 'status'];
-        if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'created_at';
-        }
-
-        $pengajuan = $query->orderBy($sortField, $sortDirection)
-            ->paginate(20)
-            ->through(fn($item) => [
-                'id' => $item->id,
-                'nomor_surat' => $item->nomor_surat,
-                'mahasiswa' => [
-                    'nim' => $item->mahasiswa->nim,
-                    'nama' => $item->mahasiswa->nama,
-                    'prodi' => $item->mahasiswa->programStudi?->nama_prodi,
-                ],
-                'pejabat' => $item->pejabat ? [
-                    'id' => $item->pejabat->id,
-                    'nama' => $item->pejabat->nama_lengkap,
-                    'jabatan' => $item->pejabat->jabatan,
-                ] : null,
-                'jenis_surat' => $item->jenis_surat,
-                'jenis_surat_label' => $item->jenis_surat_label,
-                'keperluan' => $item->keperluan,
-                'status' => $item->status,
-                'status_label' => $item->status_label,
-                'status_badge' => $item->status_badge,
-                'processed_by' => $item->processedBy?->name,
-                'processed_at' => $item->processed_at?->format('d M Y H:i'),
-                'created_at' => $item->created_at->format('d M Y H:i'),
-            ]);
+        $pengajuan->through(fn($item) => [
+            'id' => $item->id,
+            'nomor_surat' => $item->nomor_surat,
+            'mahasiswa' => [
+                'nim' => $item->mahasiswa->nim,
+                'nama' => $item->mahasiswa->nama,
+                'prodi' => $item->mahasiswa->programStudi?->nama_prodi,
+            ],
+            'pejabat' => $item->pejabat ? [
+                'id' => $item->pejabat->id,
+                'nama' => $item->pejabat->nama_lengkap,
+                'jabatan' => $item->pejabat->jabatan,
+            ] : null,
+            'jenis_surat' => $item->jenis_surat,
+            'jenis_surat_label' => $item->jenis_surat_label,
+            'keperluan' => $item->keperluan,
+            'status' => $item->status,
+            'status_label' => $item->status_label,
+            'status_badge' => $item->status_badge,
+            'processed_by' => $item->processedBy?->name,
+            'processed_at' => $item->processed_at?->format('d M Y H:i'),
+            'created_at' => $item->created_at->format('d M Y H:i'),
+        ]);
 
         return Inertia::render('Admin/Surat/Index', [
             'pengajuan' => $pengajuan,
-            'filters' => $request->only(['status', 'jenis', 'search']),
+            'filters' => $request->only(['status', 'jenis', 'search', 'sort_field', 'sort_direction']),
         ]);
     }
 

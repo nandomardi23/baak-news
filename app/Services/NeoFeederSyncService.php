@@ -557,6 +557,7 @@ class NeoFeederSyncService
         $allErrors = [];
 
         foreach ($mahasiswaList as $index => $mhs) {
+            /** @var Mahasiswa $mhs */
             $totalTotal++;
             
             // Fetch activity history for this student

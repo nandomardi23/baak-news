@@ -47,7 +47,7 @@ class TemplateDesignerController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'type' => 'required|string|in:surat,krs,khs,transkrip',
+            'type' => 'required|string|in:surat,krs,khs,transkrip,kartu_ujian',
             'template_file' => 'required|file|mimes:pdf|max:10240',
         ]);
 

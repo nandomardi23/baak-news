@@ -57,7 +57,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('mahasiswa/{mahasiswa}/transkrip/print', [MahasiswaController::class, 'printTranskrip'])->name('mahasiswa.transkrip.print');
 
     // Dosen
-    Route::get('dosen', [\App\Http\Controllers\Admin\DosenController::class, 'index'])->name('dosen.index');
+    Route::resource('dosen', \App\Http\Controllers\Admin\DosenController::class)->except(['create', 'show', 'edit']);
 
     // Surat Pengajuan
     Route::get('surat', [SuratController::class, 'index'])->name('surat.index');
@@ -84,7 +84,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Academic Data (Mata Kuliah, Semester, Prodi)
     Route::prefix('akademik')->name('akademik.')->group(function () {
-        Route::get('matakuliah', [AkademikController::class, 'mataKuliah'])->name('matakuliah');
+        Route::resource('matakuliah', \App\Http\Controllers\Admin\MataKuliahController::class)->except(['create', 'edit', 'show']);
         Route::get('semester', [AkademikController::class, 'semester'])->name('semester');
         Route::get('prodi', [AkademikController::class, 'prodi'])->name('prodi');
     });

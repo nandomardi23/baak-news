@@ -116,7 +116,7 @@ const ipkColors: Record<string, string> = {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="relative min-h-screen">
             <!-- Decorative Background -->
-            <div class="absolute top-0 left-0 w-full h-96 bg-gradient-to-b from-blue-50/50 to-transparent -z-10"></div>
+            <div class="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-blue-50/50 to-transparent -z-10"></div>
             <div class="absolute -top-10 left-10 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl -z-10"></div>
             <div class="absolute top-10 right-10 w-64 h-64 bg-indigo-400/10 rounded-full blur-3xl -z-10"></div>
 
@@ -251,7 +251,7 @@ const ipkColors: Record<string, string> = {
                                         </div>
                                         <!-- Bar -->
                                         <div
-                                            class="w-full max-w-[40px] bg-gradient-to-t from-blue-500 to-indigo-400 rounded-t-lg transition-all duration-300 group-hover:from-blue-600 group-hover:to-indigo-500 group-hover:shadow-lg group-hover:shadow-blue-500/20"
+                                            class="w-full max-w-[40px] bg-linear-to-t from-blue-500 to-indigo-400 rounded-t-lg transition-all duration-300 group-hover:from-blue-600 group-hover:to-indigo-500 group-hover:shadow-lg group-hover:shadow-blue-500/20"
                                             :style="{ height: `${Math.max((item.total / maxMonthlyTotal) * 100, 4)}%` }"
                                         ></div>
                                     </div>
@@ -354,7 +354,7 @@ const ipkColors: Record<string, string> = {
 
                             <div class="grid grid-cols-2 gap-4 mt-6">
                                 <div v-for="(count, status) in suratPerStatus" :key="status" class="flex items-center gap-3">
-                                    <div :class="[statusLabels[status]?.class || 'bg-gray-500', 'w-3 h-3 rounded-full flex-shrink-0 ring-2 ring-white shadow-sm']" />
+                                    <div :class="[statusLabels[status]?.class || 'bg-gray-500', 'w-3 h-3 rounded-full shrink-0 ring-2 ring-white shadow-sm']" />
                                     <div>
                                         <p class="text-xs text-slate-500 capitalize">{{ statusLabels[status]?.label }}</p>
                                         <p class="text-sm font-bold text-slate-900">{{ count }}</p>
@@ -390,7 +390,7 @@ const ipkColors: Record<string, string> = {
 
                         <!-- Quick Actions Grid -->
                         <div class="grid grid-cols-2 gap-4">
-                            <Link href="/admin/surat" class="p-4 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all text-center">
+                            <Link href="/admin/surat" class="p-4 rounded-xl bg-linear-to-br from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 hover:shadow-blue-500/40 hover:-translate-y-0.5 transition-all text-center">
                                 <p class="font-bold text-lg">Kelola Surat</p>
                                 <p class="text-blue-100 text-xs mt-1">Lihat pengajuan</p>
                             </Link>
