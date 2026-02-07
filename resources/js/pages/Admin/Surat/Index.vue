@@ -41,8 +41,8 @@ const columns = [
     { key: 'nomor_surat', label: 'Nomor Surat', sortable: true },
     { key: 'mahasiswa', label: 'Mahasiswa', sortable: false }, // Custom render
     { key: 'jenis_surat', label: 'Jenis Surat', sortable: true }, // Using value derived from row
-    { key: 'status', label: 'Status', sortable: true, align: 'center' },
-    { key: 'aksi', label: 'Aksi', align: 'right' },
+    { key: 'status', label: 'Status', sortable: true },
+    { key: 'aksi', label: 'Aksi' },
 ];
 
 const selectedStatus = ref(props.filters.status || 'all');
@@ -126,33 +126,49 @@ const getBadgeClass = (badge: string) => {
                     </div>
                 </template>
 
+                <!-- Custom Cell: Nomor Surat -->
+                <template #cell-nomor_surat="{ row }">
+                    <div v-if="row.nomor_surat && !row.nomor_surat.startsWith('/')" class="inline-flex items-center px-2 py-1 rounded-md bg-slate-50 border border-slate-200 font-mono text-xs font-medium text-slate-700">
+                        {{ row.nomor_surat }}
+                    </div>
+                    <span v-else class="text-xs text-slate-400 italic flex items-center gap-1">
+                        <span class="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                        {{ row.nomor_surat || 'Belum digenerate' }}
+                    </span>
+                </template>
+
                 <!-- Custom Cell: Mahasiswa -->
                 <template #cell-mahasiswa="{ row }">
-                    <div>
-                        <div class="font-medium text-slate-900">{{ row.mahasiswa.nama }}</div>
-                        <div class="text-xs text-slate-500">{{ row.mahasiswa.nim }}</div>
-                        <div class="text-xs text-slate-400">{{ row.mahasiswa.prodi }}</div>
+                    <div class="flex flex-col py-1">
+                        <div class="font-semibold text-sm text-slate-900 mb-0.5">{{ row.mahasiswa.nama }}</div>
+                        <div class="flex items-center gap-2 text-xs text-slate-500">
+                            <span class="font-mono bg-slate-100 px-1.5 py-0.5 rounded border border-slate-200 text-slate-600">{{ row.mahasiswa.nim }}</span>
+                            <span class="text-slate-300">•</span>
+                            <span class="text-slate-500">{{ row.mahasiswa.prodi }}</span>
+                        </div>
                     </div>
                 </template>
 
                  <!-- Custom Cell: Jenis Surat -->
                 <template #cell-jenis_surat="{ row }">
-                     {{ row.jenis_surat_label }}
+                     <span class="text-sm text-slate-700">{{ row.jenis_surat_label }}</span>
                 </template>
 
                  <!-- Custom Cell: Status -->
                  <template #cell-status="{ row }">
-                    <span 
-                        :class="getBadgeClass(row.status_badge)" 
-                        class="px-2.5 py-0.5 rounded-full text-xs font-bold border"
-                    >
-                        {{ row.status_label }}
-                    </span>
+                    <div class="flex justify-center">
+                        <span 
+                            :class="getBadgeClass(row.status_badge)" 
+                            class="inline-flex items-center justify-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm min-w-[80px]"
+                        >
+                            {{ row.status_label }}
+                        </span>
+                    </div>
                 </template>
 
                 <!-- Custom Cell: Aksi -->
                 <template #cell-aksi="{ row }">
-                     <div class="flex items-center justify-end gap-1">
+                     <div class="flex items-center justify-center gap-1">
                         <Link :href="`/admin/surat/${row.id}`">
                              <Button
                                 variant="ghost"

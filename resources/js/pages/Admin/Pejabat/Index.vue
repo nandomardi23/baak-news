@@ -2,7 +2,7 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -36,10 +36,8 @@ import {
     MoreHorizontal, 
     Pencil, 
     Trash2, 
-    FileSignature,
     UserCircle,
-    CheckCircle2,
-    XCircle
+    CheckCircle2
 } from 'lucide-vue-next';
 
 interface Pejabat {
@@ -57,11 +55,23 @@ interface Pejabat {
     periode_akhir: string | null;
     tandatangan_path: string | null;
     is_active: boolean;
+    dosen_id: number | null;
+}
+
+interface Dosen {
+    id: number;
+    nama: string;
+    nama_lengkap: string;
+    nip: string | null;
+    nidn: string | null;
+    gelar_depan: string | null;
+    gelar_belakang: string | null;
 }
 
 const props = defineProps<{
     pejabat: Pejabat[];
     jabatanOptions: string[];
+    dosenOptions: Dosen[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -86,6 +96,21 @@ const form = useForm({
     periode_akhir: '',
     tandatangan: null as File | null,
     is_active: true,
+    dosen_id: null as number | null,
+});
+
+// Watch for Dosen selection to auto-fill data
+watch(() => form.dosen_id, (newVal) => {
+    if (newVal) {
+        const selectedDosen = props.dosenOptions.find(d => d.id === newVal);
+        if (selectedDosen) {
+            form.nama = selectedDosen.nama;
+            form.nip = selectedDosen.nip || form.nip;
+            form.nidn = selectedDosen.nidn || form.nidn;
+            form.gelar_depan = selectedDosen.gelar_depan || form.gelar_depan;
+            form.gelar_belakang = selectedDosen.gelar_belakang || form.gelar_belakang;
+        }
+    }
 });
 
 const filteredPejabat = computed(() => {
@@ -112,6 +137,7 @@ const openCreateDialog = () => {
     editingPejabat.value = null;
     form.reset();
     form.is_active = true;
+    form.dosen_id = null;
     showDialog.value = true;
 };
 
@@ -129,6 +155,7 @@ const openEditDialog = (item: Pejabat) => {
     form.periode_akhir = item.periode_akhir || '';
     form.tandatangan = null;
     form.is_active = Boolean(item.is_active);
+    form.dosen_id = item.dosen_id || null;
     showDialog.value = true;
 };
 
@@ -203,7 +230,7 @@ const handleFileChange = (event: Event) => {
                         <TableRow class="hover:bg-transparent">
                             <TableHeader class="w-[300px] pl-6 h-12">Pejabat</TableHeader>
                             <TableHeader>Jabatan & Pangkat</TableHeader>
-                            <TableHeader>Identitas (NIP/NIDN)</TableHeader>
+                            <TableHeader>Identitas (NIK/NIDN)</TableHeader>
                             <TableHeader>Periode Menjabat</TableHeader>
                             <TableHeader class="w-[100px] text-center">Status</TableHeader>
                             <TableHeader class="w-[80px] text-right pr-6">Aksi</TableHeader>
@@ -245,7 +272,7 @@ const handleFileChange = (event: Event) => {
                             <TableCell>
                                 <div class="flex flex-col font-mono text-xs text-slate-600 gap-1">
                                     <span v-if="item.nip" class="flex items-center gap-1.5">
-                                        <span class="text-slate-400 w-8">NIP</span>
+                                        <span class="text-slate-400 w-8">NIK</span>
                                         <span>{{ item.nip }}</span>
                                     </span>
                                     <span v-if="item.nidn" class="flex items-center gap-1.5">
@@ -352,6 +379,26 @@ const handleFileChange = (event: Event) => {
                     </div>
 
                     <div class="grid grid-cols-2 gap-4">
+                        <!-- Dosen Selection -->
+                        <div class="col-span-2 p-3 bg-slate-100/50 rounded-lg border border-slate-200">
+                            <Label class="text-xs font-semibold uppercase text-slate-500 mb-1.5 block">Ambil Data dari Dosen</Label>
+                            <div class="relative">
+                                <select
+                                    v-model="form.dosen_id"
+                                    class="flex h-9 w-full rounded-md border border-input bg-white px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                                >
+                                    <option :value="null">-- Tidak / Manual --</option>
+                                    <option v-for="dosen in dosenOptions" :key="dosen.id" :value="dosen.id">
+                                        {{ dosen.nama_lengkap }} ({{ dosen.nidn || dosen.nip || '-' }})
+                                    </option>
+                                </select>
+                            </div>
+                            <p class="text-[10px] text-slate-500 mt-1.5 flex items-center gap-1">
+                                <CheckCircle2 class="w-3 h-3 text-emerald-500" />
+                                Otomatis mengisi Nama, NIP/NIDN, dan Gelar.
+                            </p>
+                        </div>
+
                         <div class="col-span-2 space-y-1.5">
                             <Label>Nama Panggilan <span class="text-red-500">*</span></Label>
                             <Input v-model="form.nama" placeholder="Nama singkat" />
@@ -375,8 +422,8 @@ const handleFileChange = (event: Event) => {
                         </div>
 
                         <div class="space-y-1.5">
-                            <Label>NIP</Label>
-                            <Input v-model="form.nip" placeholder="Nomor Induk Pegawai" />
+                            <Label>NIK (Kepegawaian)</Label>
+                            <Input v-model="form.nip" placeholder="Nomor Induk Kepegawaian" />
                         </div>
 
                         <div class="space-y-1.5">
@@ -385,7 +432,7 @@ const handleFileChange = (event: Event) => {
                         </div>
 
                         <div class="col-span-2 space-y-1.5">
-                            <Label>NIK</Label>
+                            <Label>No. KTP</Label>
                             <Input v-model="form.nik" placeholder="Nomor Induk Kependudukan" maxlength="16" />
                         </div>
 

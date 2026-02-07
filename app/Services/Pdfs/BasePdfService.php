@@ -127,8 +127,9 @@ abstract class BasePdfService extends Fpdi
             $this->Cell(100, 6, '', 0, 0);
         }
         
-        $idNumber = $pejabat?->nidn ?? $pejabat?->nip;
-        $idLabel = $pejabat?->nidn ? 'NIDN' : ($pejabat?->nip ? 'NIP' : 'NIK');
+        $idNumber = $pejabat?->nip ?? $pejabat?->nidn;
+        // Always usage 'NIK' label as per user request ("semuanya pakai NIK")
+        $idLabel = 'NIK';
         
         $this->Cell(0, 6, $idLabel . ': ' . ($idNumber ?? '........................'), 0, 1, 'C');
     }

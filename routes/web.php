@@ -14,6 +14,7 @@ use Laravel\Fortify\Features;
 
 // Landing Pages (Public)
 Route::get('/', [LandingController::class, 'index'])->name('landing.home');
+Route::get('/profil', [LandingController::class, 'profile'])->name('landing.profile');
 Route::get('/search', [LandingController::class, 'search'])->name('landing.search');
 Route::get('/pengajuan/{mahasiswa}', [LandingController::class, 'form'])->name('landing.form');
 Route::post('/pengajuan/{mahasiswa}', [LandingController::class, 'submit'])->name('landing.submit');

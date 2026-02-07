@@ -24,7 +24,7 @@ const isMobileMenuOpen = ref(false);
     <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 text-slate-800">
         <!-- Navbar -->
         <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16 items-center">
                     <Link href="/" class="flex items-center gap-3 group">
                         <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white group-hover:shadow-blue-500/40 transition">
@@ -42,6 +42,7 @@ const isMobileMenuOpen = ref(false);
                     <!-- Desktop Nav -->
                     <div class="hidden md:flex items-center gap-4">
                         <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
+                        <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
                         <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
                     </div>
                 </div>
@@ -50,12 +51,13 @@ const isMobileMenuOpen = ref(false);
             <div v-if="isMobileMenuOpen" class="md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-lg">
                 <div class="px-4 py-3 space-y-2">
                     <Link href="/" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Beranda</Link>
+                    <Link href="/profil" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Profil</Link>
                     <Link href="/login" class="block px-4 py-2 bg-blue-600 text-white font-medium rounded-lg text-center">Login Admin</Link>
                 </div>
             </div>
         </nav>
 
-        <div class="max-w-4xl mx-auto py-8 px-4 sm:py-12">
+        <div class="w-full mx-auto py-8 px-4 sm:py-12">
             <!-- Back Button -->
             <Link href="/" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition font-medium group">
                 <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>

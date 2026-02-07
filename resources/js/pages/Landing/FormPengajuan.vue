@@ -24,6 +24,12 @@ interface Mahasiswa {
     nama_ibu: string | null;
     pekerjaan_ibu: string | null;
     alamat_ortu: string | null;
+    rt_ortu: string | null;
+    rw_ortu: string | null;
+    kelurahan_ortu: string | null;
+    kecamatan_ortu: string | null;
+    kota_kabupaten_ortu: string | null;
+    provinsi_ortu: string | null;
 }
 
 interface Semester {
@@ -60,6 +66,12 @@ const form = useForm({
     nama_ibu: props.mahasiswa.nama_ibu || '',
     pekerjaan_ibu: props.mahasiswa.pekerjaan_ibu || '',
     alamat_ortu: props.mahasiswa.alamat_ortu || '',
+    rt_ortu: props.mahasiswa.rt_ortu || '',
+    rw_ortu: props.mahasiswa.rw_ortu || '',
+    kelurahan_ortu: props.mahasiswa.kelurahan_ortu || '',
+    kecamatan_ortu: props.mahasiswa.kecamatan_ortu || '',
+    kota_kabupaten_ortu: props.mahasiswa.kota_kabupaten_ortu || '',
+    provinsi_ortu: props.mahasiswa.provinsi_ortu || '',
 });
 
 const jenisSuratOptions = [
@@ -82,7 +94,10 @@ const pageTitle = computed(() => {
     return `Form Pengajuan ${labels[form.jenis_surat]}`;
 });
 
-const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
+const toTitleCase = (str: string | null) => {
+    if (!str) return '';
+    return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
+};
 </script>
 
 <template>
@@ -91,7 +106,7 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
     <div class="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30 text-slate-800">
         <!-- Navbar -->
         <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16 items-center">
                     <Link href="/" class="flex items-center gap-3 group">
                         <div class="w-10 h-10 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white group-hover:shadow-blue-500/40 transition">
@@ -109,6 +124,7 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                     <!-- Desktop Nav -->
                     <div class="hidden md:flex items-center gap-4">
                         <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
+                        <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
                         <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
                     </div>
                 </div>
@@ -117,12 +133,13 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
             <div v-if="isMobileMenuOpen" class="md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-lg">
                 <div class="px-4 py-3 space-y-2">
                     <Link href="/" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Beranda</Link>
+                    <Link href="/profil" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Profil</Link>
                     <Link href="/login" class="block px-4 py-2 bg-blue-600 text-white font-medium rounded-lg text-center">Login Admin</Link>
                 </div>
             </div>
         </nav>
 
-        <div class="max-w-5xl mx-auto py-8 px-4 sm:py-12">
+        <div class="w-full mx-auto py-8 px-4 sm:py-12">
             <!-- Back Button -->
             <Link href="/" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition font-medium group">
                 <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
@@ -168,7 +185,7 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                         <!-- Nama (Editable) -->
                         <div class="col-span-2 sm:col-span-1">
                             <label class="block text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Nama Lengkap <span class="text-blue-500 ml-1 text-[10px] normal-case tracking-normal bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Bisa dikoreksi</span></label>
-                            <input v-model="form.nama" type="text" 
+                            <input v-model="form.nama" @blur="form.nama = toTitleCase(form.nama)" type="text" 
                                 class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm"
                                 placeholder="Nama sesuai KTM"/>
                             <p v-if="form.errors.nama" class="text-red-500 text-sm mt-1">{{ form.errors.nama }}</p>
@@ -224,6 +241,23 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                         </div>
                     </div>
 
+                    <!-- Static Guide for Aktif Kuliah -->
+                    <div v-if="form.jenis_surat === 'aktif_kuliah'" class="bg-amber-50 border border-amber-100 rounded-2xl p-5 mb-6">
+                        <div class="flex gap-3">
+                            <div class="mt-0.5 text-amber-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <div class="space-y-2 text-sm text-amber-800">
+                                <h4 class="font-bold text-amber-900">Panduan Pengisian:</h4>
+                                <ul class="list-disc pl-4 space-y-1">
+                                    <li>Pastikan <strong>Nama</strong> dan <strong>Alamat</strong> ditulis dengan huruf kapital di awal kata (Contoh: <em>Jalan Merdeka</em>, bukan <em>jalan merdeka</em>).</li>
+                                    <li>Isi data <strong>Alamat Lengkap</strong> (Nama Jalan, RT, RW, Kelurahan, Kecamatan) agar surat terlihat profesional.</li>
+                                    <li>Untuk <strong>Data Orang Tua</strong>, mohon lengkapi pekerjaan dan alamat ayah/ibu dengan detail yang sama untuk keperluan administrasi surat.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Keperluan -->
                     <div v-if="showKeperluan">
                         <label class="block text-slate-700 font-bold mb-2">Keperluan Surat <span class="text-red-500">*</span></label>
@@ -274,7 +308,7 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                         <div class="grid sm:grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-slate-600 text-sm font-medium mb-2">Tempat Lahir</label>
-                                <input v-model="form.tempat_lahir" type="text" placeholder="Contoh: Tanjungpinang"
+                                <input v-model="form.tempat_lahir" @blur="form.tempat_lahir = toTitleCase(form.tempat_lahir)" type="text" placeholder="Contoh: Tanjungpinang"
                                     class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                             </div>
                             <div>
@@ -285,18 +319,18 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                         </div>
                         <div class="mt-4">
                             <label class="block text-slate-600 text-sm font-medium mb-2">Alamat</label>
-                            <textarea v-model="form.alamat" rows="2" placeholder="Alamat lengkap"
+                            <textarea v-model="form.alamat" @blur="form.alamat = toTitleCase(form.alamat)" rows="2" placeholder="Alamat lengkap"
                                 class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
                         </div>
                         <div class="grid grid-cols-4 gap-3 mt-3">
                             <input v-model="form.rt" type="text" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
                             <input v-model="form.rw" type="text" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
-                            <input v-model="form.kelurahan" type="text" placeholder="Kelurahan" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.kelurahan" @blur="form.kelurahan = toTitleCase(form.kelurahan)" type="text" placeholder="Kelurahan" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                         </div>
                         <div class="grid sm:grid-cols-3 gap-3 mt-3">
-                            <input v-model="form.kecamatan" type="text" placeholder="Kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.kota_kabupaten" type="text" placeholder="Kota/Kab" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.provinsi" type="text" placeholder="Provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.kecamatan" @blur="form.kecamatan = toTitleCase(form.kecamatan)" type="text" placeholder="Kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.kota_kabupaten" @blur="form.kota_kabupaten = toTitleCase(form.kota_kabupaten)" type="text" placeholder="Kota/Kab" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.provinsi" @blur="form.provinsi = toTitleCase(form.provinsi)" type="text" placeholder="Provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                         </div>
                         <div class="mt-3">
                             <input v-model="form.no_hp" type="tel" placeholder="No. HP / WhatsApp"
@@ -315,15 +349,43 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                                 <p class="text-slate-500 text-xs">Untuk keperluan surat keterangan</p>
                             </div>
                         </div>
+                        
+                        <!-- Static Guide for Parent Data -->
+                        <div v-if="form.jenis_surat === 'aktif_kuliah'" class="bg-amber-50 border border-amber-100 rounded-xl p-4 mb-5">
+                            <div class="flex gap-3">
+                                <div class="mt-0.5 text-amber-600">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                </div>
+                                <div class="text-sm text-amber-800">
+                                    <p class="font-semibold text-amber-900 mb-1">Penting:</p>
+                                    <ul class="list-disc pl-4 space-y-0.5">
+                                        <li>Mohon lengkapi <strong>Pekerjaan</strong> Ayah dan Ibu.</li>
+                                        <li>Isi <strong>Alamat Orang Tua</strong> secara lengkap (termasuk RT/RW, Kelurahan, Kecamatan) jika berbeda dengan alamat asal.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid sm:grid-cols-2 gap-4">
-                            <input v-model="form.nama_ayah" type="text" placeholder="Nama Ayah" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.pekerjaan_ayah" type="text" placeholder="Pekerjaan Ayah" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.nama_ibu" type="text" placeholder="Nama Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.pekerjaan_ibu" type="text" placeholder="Pekerjaan Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.nama_ayah" @blur="form.nama_ayah = toTitleCase(form.nama_ayah)" type="text" placeholder="Nama Ayah" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.pekerjaan_ayah" @blur="form.pekerjaan_ayah = toTitleCase(form.pekerjaan_ayah)" type="text" placeholder="Pekerjaan Ayah" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.nama_ibu" @blur="form.nama_ibu = toTitleCase(form.nama_ibu)" type="text" placeholder="Nama Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.pekerjaan_ibu" @blur="form.pekerjaan_ibu = toTitleCase(form.pekerjaan_ibu)" type="text" placeholder="Pekerjaan Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                         </div>
                         <div class="mt-3">
-                            <textarea v-model="form.alamat_ortu" rows="2" placeholder="Alamat Orang Tua (jika berbeda)"
+                            <label class="block text-slate-600 text-sm font-medium mb-2">Alamat Orang Tua</label>
+                            <textarea v-model="form.alamat_ortu" @blur="form.alamat_ortu = toTitleCase(form.alamat_ortu)" rows="2" placeholder="Alamat Orang Tua (jika berbeda)"
                                 class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                        </div>
+                        <div class="grid grid-cols-4 gap-3 mt-3">
+                            <input v-model="form.rt_ortu" type="text" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
+                            <input v-model="form.rw_ortu" type="text" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
+                            <input v-model="form.kelurahan_ortu" @blur="form.kelurahan_ortu = toTitleCase(form.kelurahan_ortu)" type="text" placeholder="Kelurahan" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                        </div>
+                        <div class="grid sm:grid-cols-3 gap-3 mt-3">
+                            <input v-model="form.kecamatan_ortu" @blur="form.kecamatan_ortu = toTitleCase(form.kecamatan_ortu)" type="text" placeholder="Kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.kota_kabupaten_ortu" @blur="form.kota_kabupaten_ortu = toTitleCase(form.kota_kabupaten_ortu)" type="text" placeholder="Kota/Kab" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.provinsi_ortu" @blur="form.provinsi_ortu = toTitleCase(form.provinsi_ortu)" type="text" placeholder="Provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                         </div>
                     </div>
 

@@ -101,16 +101,16 @@ class SuratService extends BasePdfService
 
         // Parents Data
         $parentFields = [
-            'Nama Ayah' => $mahasiswa->nama_ayah,
-            'Pekerjaan' => $mahasiswa->pekerjaan_ayah,
-            'Nama Ibu' => $mahasiswa->nama_ibu,
-            'Pekerjaan' => $mahasiswa->pekerjaan_ibu,
-            'Alamat' => $mahasiswa->alamat_ortu ?? $mahasiswa->alamat_lengkap // Fallback
+            ['label' => 'Nama Ayah', 'value' => $this->formatText($mahasiswa->nama_ayah)],
+            ['label' => 'Pekerjaan', 'value' => $this->formatText($mahasiswa->pekerjaan_ayah)],
+            ['label' => 'Nama Ibu', 'value' => $this->formatText($mahasiswa->nama_ibu)],
+            ['label' => 'Pekerjaan', 'value' => $this->formatText($mahasiswa->pekerjaan_ibu)],
+            ['label' => 'Alamat', 'value' => $this->formatText($mahasiswa->alamat_ortu_lengkap ?? $mahasiswa->alamat_lengkap)]
         ];
 
-        foreach ($parentFields as $label => $value) {
+        foreach ($parentFields as $field) {
             $this->SetX($startX);
-            $this->Cell($labelWidth, 6, $label, 0, 0);
+            $this->Cell($labelWidth, 6, $field['label'], 0, 0);
             $this->Cell(5, 6, ':', 0, 0);
             
             // Handle multi-line value alignment (hanging indent)
@@ -118,7 +118,7 @@ class SuratService extends BasePdfService
             $originalMargin = $this->lMargin;
             
             $this->SetLeftMargin($currentX);
-            $this->MultiCell(100, 6, $value ?? '-', 0, 'L'); // Limit width to 100mm
+            $this->MultiCell(100, 6, $field['value'] ?: '-', 0, 'L'); // Limit width to 100mm
             $this->SetLeftMargin($originalMargin);
         }
 
@@ -148,14 +148,23 @@ class SuratService extends BasePdfService
         
         $this->Ln(25);
         
-        // Signer Name & NIK
+        // Signer Name
         $this->SetX(120);
         $signerName = $customSigner?->nama_lengkap ?? 'apt. Dra. Mila Abdullah, M.M';
-        $signerNik = $customSigner?->nik ?? $customSigner?->nidn ?? '12060';
-
         $this->Cell(60, 5, $signerName, 0, 1, 'C');
+
+        // Pangkat / Golongan (e.g. Kolonel Laut (K/W) Purn)
+        if ($customSigner?->pangkat_golongan) {
+            $this->SetX(120);
+            $this->Cell(60, 5, $customSigner->pangkat_golongan, 0, 1, 'C');
+        }
+
+        // Signer ID (Always 'NIK' label)
+        // Prioritize NIP (NIK Kepegawaian), then NIDN, then KTP
+        $idNumber = $customSigner?->nip ?? $customSigner?->nidn ?? $customSigner?->nik ?? '12060';
+        
         $this->SetX(120);
-        $this->Cell(60, 5, 'NIK: ' . $signerNik, 0, 1, 'C');
+        $this->Cell(60, 5, 'NIK: ' . $idNumber, 0, 1, 'C');
 
         $filename = 'surat_aktif_kuliah_' . $mahasiswa->nim . '_' . date('YmdHis') . '.pdf';
         $path = storage_path('app/public/surat/' . $filename);

@@ -32,7 +32,7 @@ const handleSearch = () => {
 
         <!-- Navbar -->
         <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-20 items-center">
                     <div class="flex items-center gap-3">
                          <!-- Logo Icon wrapper -->
@@ -45,6 +45,7 @@ const handleSearch = () => {
                     <!-- Desktop Menu -->
                     <div class="hidden md:flex items-center gap-8">
                         <a href="#home" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Home</a>
+                        <Link href="/profil" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Profil</Link>
                         <a href="#alur" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Alur Sistem</a>
                         <a href="#layanan" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Layanan</a>
                         <Link href="/login" class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5">
@@ -83,6 +84,7 @@ const handleSearch = () => {
                 >
                     <div class="px-4 pt-2 pb-6 space-y-2">
                         <a href="#home" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Home</a>
+                        <Link href="/profil" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Profil</Link>
                         <a href="#alur" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Alur Sistem</a>
                         <a href="#layanan" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Layanan</a>
                         <div class="pt-4 mt-4 border-t border-slate-100">
@@ -97,7 +99,7 @@ const handleSearch = () => {
 
         <!-- Hero Section -->
         <section id="home" class="py-24 px-4 relative">
-            <div class="max-w-4xl mx-auto text-center">
+            <div class="w-full mx-auto text-center">
                 <span class="inline-block py-1 px-3 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-semibold mb-6">
                     Sistem Pelayanan Akademik Online
                 </span>
@@ -152,7 +154,7 @@ const handleSearch = () => {
 
         <!-- Alur Section -->
         <section id="alur" class="py-24 px-4 bg-slate-50/80 border-y border-slate-100">
-            <div class="max-w-6xl mx-auto">
+            <div class="w-full mx-auto">
                 <div class="text-center mb-16">
                     <span class="text-blue-600 font-semibold tracking-wider text-sm uppercase">Panduan</span>
                     <h2 class="text-3xl font-bold text-slate-900 mt-2">Alur Pengajuan Surat</h2>
@@ -203,7 +205,7 @@ const handleSearch = () => {
 
         <!-- Layanan Section -->
         <section id="layanan" class="py-24 px-4">
-            <div class="max-w-6xl mx-auto">
+            <div class="w-full mx-auto">
                 <div class="text-center mb-16">
                     <span class="text-blue-600 font-semibold tracking-wider text-sm uppercase">Dokumen</span>
                     <h2 class="text-3xl font-bold text-slate-900 mt-2">Layanan Tersedia</h2>
@@ -251,7 +253,7 @@ const handleSearch = () => {
 
         <!-- Footer -->
         <footer class="bg-slate-900 text-slate-400 py-16">
-            <div class="max-w-6xl mx-auto px-4">
+            <div class="w-full mx-auto px-4">
                 <div class="grid md:grid-cols-4 gap-12 mb-12">
                     <div class="col-span-2">
                         <div class="flex items-center gap-3 mb-6">

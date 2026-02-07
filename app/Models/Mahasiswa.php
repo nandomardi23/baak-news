@@ -38,6 +38,12 @@ class Mahasiswa extends Model
         'nama_ibu',
         'pekerjaan_ibu',
         'alamat_ortu',
+        'rt_ortu',
+        'rw_ortu',
+        'kelurahan_ortu',
+        'kecamatan_ortu',
+        'kota_kabupaten_ortu',
+        'provinsi_ortu',
         'program_studi_id',
         'id_prodi',
         'angkatan',
@@ -86,6 +92,21 @@ class Mahasiswa extends Model
         if ($this->kota_kabupaten) $parts[] = $this->kota_kabupaten;
         if ($this->provinsi) $parts[] = $this->provinsi;
         if ($this->kode_pos) $parts[] = $this->kode_pos;
+        return implode(', ', $parts);
+    }
+
+    /**
+     * Get formatted alamat ortu lengkap
+     */
+    public function getAlamatOrtuLengkapAttribute(): string
+    {
+        $parts = [];
+        if ($this->alamat_ortu) $parts[] = $this->alamat_ortu;
+        if ($this->rt_ortu && $this->rw_ortu) $parts[] = "RT {$this->rt_ortu} RW {$this->rw_ortu}";
+        if ($this->kelurahan_ortu) $parts[] = $this->kelurahan_ortu;
+        if ($this->kecamatan_ortu) $parts[] = $this->kecamatan_ortu;
+        if ($this->kota_kabupaten_ortu) $parts[] = $this->kota_kabupaten_ortu;
+        if ($this->provinsi_ortu) $parts[] = $this->provinsi_ortu;
         return implode(', ', $parts);
     }
 

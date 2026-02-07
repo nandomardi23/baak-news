@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\KalenderAkademik;
 use App\Models\Mahasiswa;
+use App\Models\Pejabat;
 use App\Models\ProgramStudi;
 use App\Models\SuratPengajuan;
 use App\Models\TahunAkademik;
@@ -20,6 +21,26 @@ class LandingController extends Controller
 
         return Inertia::render('Landing/Home', [
             'prodi' => $prodi,
+        ]);
+    }
+
+    public function profile(): Response
+    {
+        $pejabat = Pejabat::active()
+            ->where('jabatan', 'not like', '%Kaprodi%')
+            ->where('jabatan', 'not like', '%Program Studi%')
+            ->where('jabatan', 'not like', '%Ketua%') // Exclude Ketua Stikes
+            ->orderBy('id') // Simple ordering for now
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'nama' => $p->nama_lengkap,
+                'jabatan' => $p->jabatan,
+                'nip' => $p->nip,
+            ]);
+
+        return Inertia::render('Landing/Profile', [
+            'pejabat' => $pejabat,
         ]);
     }
 
@@ -90,6 +111,12 @@ class LandingController extends Controller
                 'nama_ibu' => $mahasiswa->nama_ibu,
                 'pekerjaan_ibu' => $mahasiswa->pekerjaan_ibu,
                 'alamat_ortu' => $mahasiswa->alamat_ortu,
+                'rt_ortu' => $mahasiswa->rt_ortu,
+                'rw_ortu' => $mahasiswa->rw_ortu,
+                'kelurahan_ortu' => $mahasiswa->kelurahan_ortu,
+                'kecamatan_ortu' => $mahasiswa->kecamatan_ortu,
+                'kota_kabupaten_ortu' => $mahasiswa->kota_kabupaten_ortu,
+                'provinsi_ortu' => $mahasiswa->provinsi_ortu,
             ],
             'existingPending' => $existingPending,
             'semesters' => $semesters,
@@ -120,11 +147,22 @@ class LandingController extends Controller
             'nama_ibu' => 'nullable|string|max:100',
             'pekerjaan_ibu' => 'nullable|string|max:100',
             'alamat_ortu' => 'nullable|string|max:500',
+            'rt_ortu' => 'nullable|string|max:10',
+            'rw_ortu' => 'nullable|string|max:10',
+            'kelurahan_ortu' => 'nullable|string|max:100',
+            'kecamatan_ortu' => 'nullable|string|max:100',
+            'kota_kabupaten_ortu' => 'nullable|string|max:100',
+            'provinsi_ortu' => 'nullable|string|max:100',
         ]);
 
         // Update mahasiswa data if provided
         $mahasiswaData = collect($validated)
-            ->only(['nama', 'tempat_lahir', 'tanggal_lahir', 'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi', 'no_hp', 'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu', 'alamat_ortu'])
+            ->only([
+                'nama', 'tempat_lahir', 'tanggal_lahir', 
+                'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi', 'no_hp', 
+                'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu', 
+                'alamat_ortu', 'rt_ortu', 'rw_ortu', 'kelurahan_ortu', 'kecamatan_ortu', 'kota_kabupaten_ortu', 'provinsi_ortu'
+            ])
             ->filter()
             ->toArray();
         

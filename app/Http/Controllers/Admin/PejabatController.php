@@ -37,6 +37,7 @@ class PejabatController extends Controller
         return Inertia::render('Admin/Pejabat/Index', [
             'pejabat' => $pejabat,
             'jabatanOptions' => $this->getJabatanOptions(),
+            'dosenOptions' => $this->getDosenOptions(),
         ]);
     }
 

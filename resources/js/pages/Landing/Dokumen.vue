@@ -64,6 +64,7 @@ const getBadgeClass = (badge: string) => {
                     </Link>
                     <div class="hidden md:flex items-center gap-4">
                         <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
+                        <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
                         <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
                     </div>
                 </div>

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 interface KalenderItem {
@@ -59,12 +59,10 @@ const groupedByMonth = computed(() => {
                             <p class="text-sm text-muted-foreground">{{ tahunAkademik?.nama }}</p>
                         </div>
                     </div>
-                    <a
-                        href="/"
-                        class="px-4 py-2 rounded-lg border hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm"
-                    >
-                        ← Kembali
-                    </a>
+                    <div class="flex items-center gap-4">
+                        <Link href="/" class="text-sm font-medium hover:text-blue-600 transition-colors">Home</Link>
+                        <Link href="/profil" class="text-sm font-medium hover:text-blue-600 transition-colors">Profil</Link>
+                    </div>
                 </div>
             </div>
         </header>

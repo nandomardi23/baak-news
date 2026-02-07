@@ -45,7 +45,7 @@ class Pejabat extends Model
         if ($this->gelar_depan) {
             $parts[] = $this->gelar_depan;
         }
-        $parts[] = $this->nama;
+        $parts[] = ucwords(strtolower($this->nama)); // Ensure Title Case for name
         if ($this->gelar_belakang) {
             $parts[] = $this->gelar_belakang;
         }
