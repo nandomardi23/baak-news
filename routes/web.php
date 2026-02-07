@@ -101,6 +101,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         // Letter Settings
         Route::get('surat', [\App\Http\Controllers\Admin\LetterSettingsController::class, 'show'])->name('surat');
         Route::post('surat', [\App\Http\Controllers\Admin\LetterSettingsController::class, 'update'])->name('surat.update');
+
+        // General Web Settings
+        Route::get('general', [\App\Http\Controllers\Admin\GeneralSettingsController::class, 'index'])->name('general');
+        Route::post('general', [\App\Http\Controllers\Admin\GeneralSettingsController::class, 'update'])->name('general.update');
     });
 
     // Sync routes (AJAX)

@@ -36,8 +36,8 @@ const { urlIsActive } = useActiveUrl();
 <template>
     <div class="px-4 py-6">
         <Heading
-            title="Settings"
-            description="Manage your profile and account settings"
+            title="Profile Settings"
+            description="Manage your account information and preferences"
         />
 
         <div class="flex flex-col lg:flex-row lg:space-x-12">
@@ -48,13 +48,15 @@ const { urlIsActive } = useActiveUrl();
                         :key="toUrl(item.href)"
                         variant="ghost"
                         :class="[
-                            'w-full justify-start',
-                            { 'bg-muted': urlIsActive(item.href) },
+                            'w-full justify-start rounded-xl mb-1',
+                            urlIsActive(item.href) 
+                                ? 'bg-blue-50 text-blue-700 font-medium' 
+                                : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900',
                         ]"
                         as-child
                     >
                         <Link :href="item.href">
-                            <component :is="item.icon" class="h-4 w-4" />
+                            <component :is="item.icon" class="h-4 w-4 mr-2" :class="urlIsActive(item.href) ? 'text-blue-600' : 'text-slate-400'" />
                             {{ item.title }}
                         </Link>
                     </Button>

@@ -1,9 +1,25 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import axios from 'axios';
+import { Button } from '@/components/ui/button';
+import {
+    DataTable,
+    TableHeader,
+    TableRow,
+    TableCell,
+} from '@/components/ui/datatable';
+import { 
+    RefreshCcw, 
+    BookOpen, 
+    Calendar, 
+    CheckCircle2, 
+    AlertCircle, 
+    Play,
+    Loader2
+} from 'lucide-vue-next';
 
 interface Semester {
     id: number;
@@ -68,7 +84,7 @@ async function syncNilaiSemester(semesterId: string, semesterName: string) {
         syncProgress.value[semesterId] = {
             synced: totalSynced,
             total: totalSynced,
-            message: `✅ Selesai! ${totalSynced} nilai berhasil disync`
+            message: `Selesai! ${totalSynced} nilai`
         };
         
         return totalSynced;
@@ -77,7 +93,7 @@ async function syncNilaiSemester(semesterId: string, semesterName: string) {
         syncProgress.value[semesterId] = {
             synced: totalSynced,
             total: 0,
-            message: '❌ Error'
+            message: 'Error'
         };
         throw error;
     } finally {
@@ -118,7 +134,7 @@ async function syncKrsSemester(semesterId: string, semesterName: string) {
         syncProgress.value[key] = {
             synced: totalSynced,
             total: totalSynced,
-            message: `✅ Selesai! ${totalSynced} KRS berhasil disync`
+            message: `Selesai! ${totalSynced} KRS`
         };
         
         return totalSynced;
@@ -127,7 +143,7 @@ async function syncKrsSemester(semesterId: string, semesterName: string) {
         syncProgress.value[key] = {
             synced: totalSynced,
             total: 0,
-            message: '❌ Error'
+            message: 'Error'
         };
         throw error;
     } finally {
@@ -183,155 +199,169 @@ async function syncAllSemesters() {
     <Head title="Tahun Akademik" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 p-6">
-            <div class="flex items-center justify-between flex-wrap gap-4">
-                <div>
-                    <h1 class="text-2xl font-bold">Tahun Akademik / Semester</h1>
-                    <p class="text-muted-foreground">Sync nilai per semester atau gunakan Auto Sync untuk semua semester sekaligus.</p>
-                </div>
-                <div class="flex gap-2">
-                    <button
-                        @click="syncAllSemesters"
-                        :disabled="autoSyncing"
-                        :class="[
-                            'px-6 py-3 rounded-lg font-medium transition-colors',
-                            autoSyncing
-                                ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800'
-                                : 'bg-emerald-600 text-white hover:bg-emerald-700'
-                        ]"
-                    >
-                        <span v-if="autoSyncing" class="flex items-center gap-2">
-                            <svg class="animate-spin h-5 w-5" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                            </svg>
-                            {{ autoSyncProgress.current }}/{{ autoSyncProgress.total }}
-                        </span>
-                        <span v-else>🚀 Auto Sync All</span>
-                    </button>
-                </div>
-            </div>
+        <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
             
-            <!-- Auto Sync Progress Banner -->
-            <div v-if="autoSyncing || autoSyncProgress.currentSemester" class="rounded-xl border p-4" :class="autoSyncError ? 'bg-red-50 border-red-200 dark:bg-red-900/20' : 'bg-blue-50 border-blue-200 dark:bg-blue-900/20'">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="font-medium" :class="autoSyncError ? 'text-red-800 dark:text-red-200' : 'text-blue-800 dark:text-blue-200'">
-                            {{ autoSyncError || autoSyncProgress.currentSemester }}
-                        </p>
-                        <p v-if="!autoSyncError && autoSyncing" class="text-sm text-blue-600 dark:text-blue-400">
-                            Total nilai tersync: {{ autoSyncProgress.totalSynced }}
-                        </p>
-                    </div>
-                    <div v-if="autoSyncing" class="text-sm text-blue-600 dark:text-blue-400">
-                        Semester {{ autoSyncProgress.current }} dari {{ autoSyncProgress.total }}
-                    </div>
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Tahun Akademik</h1>
+                    <p class="text-slate-500 mt-1">Kelola data tahun akademik dan sinkronisasi nilai/KRS.</p>
                 </div>
             </div>
 
-            <!-- Grid -->
-            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div
-                    v-for="sem in semesters"
-                    :key="sem.id"
-                    :class="[
-                        'rounded-xl border p-6 shadow-sm',
-                        sem.is_active ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-card'
-                    ]"
+            <!-- Auto Sync Progress Card -->
+            <transition
+                enter-active-class="transition ease-out duration-200"
+                enter-from-class="opacity-0 translateY-2"
+                enter-to-class="opacity-100 translateY-0"
+                leave-active-class="transition ease-in duration-150"
+                leave-from-class="opacity-100 translateY-0"
+                leave-to-class="opacity-0 translateY-2"
+            >
+                <div v-if="autoSyncing || autoSyncProgress.currentSemester" 
+                    class="rounded-xl border p-4 shadow-sm"
+                    :class="autoSyncError ? 'bg-red-50 border-red-200' : 'bg-blue-50 border-blue-100'"
                 >
-                    <div class="flex items-start justify-between mb-4">
-                        <div>
-                            <h3 class="font-semibold text-lg">{{ sem.nama_semester }}</h3>
-                            <p class="text-sm text-muted-foreground">ID: {{ sem.id_semester }}</p>
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full flex items-center justify-center shrink-0"
+                            :class="autoSyncError ? 'bg-red-100 text-red-600' : 'bg-blue-100 text-blue-600'">
+                            <AlertCircle v-if="autoSyncError" class="w-5 h-5" />
+                            <Loader2 v-else-if="autoSyncing" class="w-5 h-5 animate-spin" />
+                            <CheckCircle2 v-else class="w-5 h-5" />
                         </div>
-                        <span
-                            v-if="sem.is_active"
-                            class="px-2 py-1 bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 rounded-full text-xs font-medium"
-                        >
-                            Aktif
-                        </span>
-                    </div>
-                    <dl class="text-sm space-y-1 mb-4">
-                        <div class="flex justify-between">
-                            <dt class="text-muted-foreground">Periode</dt>
-                            <dd>{{ sem.tanggal_mulai || '-' }} s/d {{ sem.tanggal_selesai || '-' }}</dd>
+                        <div class="flex-1">
+                            <h4 class="font-semibold text-sm" 
+                                :class="autoSyncError ? 'text-red-900' : 'text-blue-900'">
+                                {{ autoSyncError ? 'Sync Gagal' : (autoSyncing ? 'Sedang Sinkronisasi Otomatis...' : 'Sinkronisasi Selesai') }}
+                            </h4>
+                            <p class="text-sm mt-0.5" 
+                                :class="autoSyncError ? 'text-red-700' : 'text-blue-700'">
+                                {{ autoSyncError || autoSyncProgress.currentSemester }}
+                            </p>
                         </div>
-                    </dl>
-                    
-                    <!-- Sync Buttons -->
-                    <div class="border-t pt-4 space-y-2">
-                        <button
-                            @click="syncKrsSemester(sem.id_semester, sem.nama_semester)"
-                            :disabled="syncingKrsStates[sem.id_semester] || autoSyncing"
-                            :class="[
-                                'w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                                syncingKrsStates[sem.id_semester] || autoSyncing
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800'
-                                    : 'bg-indigo-600 text-white hover:bg-indigo-700'
-                            ]"
-                        >
-                            <span v-if="syncingKrsStates[sem.id_semester]" class="flex items-center justify-center gap-2">
-                                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                Syncing KRS...
-                            </span>
-                            <span v-else>📚 Sync KRS</span>
-                        </button>
-
-                        <!-- KRS Progress -->
-                        <div v-if="syncProgress[sem.id_semester + '_krs']" class="text-xs text-center mb-2">
-                            <span :class="syncErrors[sem.id_semester + '_krs'] ? 'text-red-600' : 'text-muted-foreground'">
-                                {{ syncProgress[sem.id_semester + '_krs'].message }}
-                            </span>
-                             <div v-if="syncErrors[sem.id_semester + '_krs']" class="text-red-600">
-                                {{ syncErrors[sem.id_semester + '_krs'] }}
-                            </div>
-                        </div>
-
-                        <div class="border-t my-2"></div>
-
-                        <button
-                            @click="syncNilaiSemester(sem.id_semester, sem.nama_semester)"
-                            :disabled="syncingStates[sem.id_semester] || autoSyncing"
-                            :class="[
-                                'w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors',
-                                syncingStates[sem.id_semester] || autoSyncing
-                                    ? 'bg-gray-100 text-gray-400 cursor-not-allowed dark:bg-gray-800'
-                                    : 'bg-blue-600 text-white hover:bg-blue-700'
-                            ]"
-                        >
-                            <span v-if="syncingStates[sem.id_semester]" class="flex items-center justify-center gap-2">
-                                <svg class="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
-                                </svg>
-                                Syncing...
-                            </span>
-                            <span v-else>🔄 Sync Nilai</span>
-                        </button>
-                        
-                        <!-- Progress -->
-                        <div v-if="syncProgress[sem.id_semester]" class="mt-2 text-xs text-center">
-                            <span :class="syncErrors[sem.id_semester] ? 'text-red-600' : 'text-muted-foreground'">
-                                {{ syncProgress[sem.id_semester].message }}
-                            </span>
-                        </div>
-                        
-                        <!-- Error -->
-                        <div v-if="syncErrors[sem.id_semester]" class="mt-2 text-xs text-center text-red-600">
-                            {{ syncErrors[sem.id_semester] }}
+                        <div v-if="autoSyncing && !autoSyncError" class="text-right">
+                            <span class="text-2xl font-bold text-blue-700">{{ autoSyncProgress.current }}</span>
+                            <span class="text-sm text-blue-500">/{{ autoSyncProgress.total }}</span>
                         </div>
                     </div>
                 </div>
-            </div>
+            </transition>
 
-            <div v-if="semesters.length === 0" class="rounded-xl border bg-card p-12 text-center">
-                <p class="text-muted-foreground">Belum ada data semester. Silakan sync dari Neo Feeder.</p>
-            </div>
+            <!-- Standardized DataTable -->
+            <DataTable>
+                <!-- Toolbar Slot -->
+                <template #toolbar>
+                    <div class="flex items-center gap-2">
+                        <div class="h-8 w-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                            <Calendar class="w-4 h-4" />
+                        </div>
+                        <h3 class="text-base font-bold text-slate-700">Daftar Semester</h3>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto ml-auto">
+                        <Button
+                            @click="syncAllSemesters"
+                            :disabled="autoSyncing"
+                            variant="default"
+                            class="bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+                        >
+                            <Loader2 v-if="autoSyncing" class="w-4 h-4 mr-2 animate-spin" />
+                            <Play v-else class="w-4 h-4 mr-2" />
+                            {{ autoSyncing ? 'Processing...' : 'Auto Sync All' }}
+                        </Button>
+                    </div>
+                </template>
+
+                <!-- Table Header -->
+                <thead class="bg-slate-50 border-b border-slate-200">
+                    <tr>
+                        <TableHeader class="w-[80px] pl-6">ID</TableHeader>
+                        <TableHeader>Semester</TableHeader>
+                        <TableHeader>Periode Akademik</TableHeader>
+                        <TableHeader class="text-center w-[120px]">Status</TableHeader>
+                        <TableHeader class="text-right w-[250px] pr-6">Aksi Sinkronisasi</TableHeader>
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody class="divide-y divide-slate-100">
+                    <TableRow v-for="sem in semesters" :key="sem.id" class="group hover:bg-slate-50/50 transition-all duration-200">
+                        <TableCell class="font-mono text-xs text-slate-500 pl-6">{{ sem.id_semester }}</TableCell>
+                        <TableCell>
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-slate-900">{{ sem.nama_semester }}</span>
+                                <span class="text-xs text-slate-500 font-medium">Tahun {{ sem.tahun }}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell class="text-slate-600">
+                             <div class="flex items-center gap-3 text-sm font-medium">
+                                <span class="text-slate-700">{{ sem.tanggal_mulai || '-' }}</span>
+                                <span class="text-slate-300">→</span>
+                                <span class="text-slate-700">{{ sem.tanggal_selesai || '-' }}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell class="text-center">
+                            <span v-if="sem.is_active" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700 border border-emerald-200 shadow-sm">
+                                • Aktif
+                            </span>
+                            <span v-else class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-slate-100 text-slate-500 border border-slate-200">
+                                History
+                            </span>
+                        </TableCell>
+                        <TableCell class="text-right pr-6">
+                            <div class="flex flex-row gap-2 justify-end items-center">
+                                <!-- Status Messages (absolute or tooltip could be better, but sticky to button for now) -->
+                                
+                                <div class="flex items-center gap-2">
+                                     <!-- Sync KRS -->
+                                    <div class="relative">
+                                        <div v-if="syncProgress[sem.id_semester + '_krs']" class="absolute -top-5 right-0 whitespace-nowrap text-[10px] font-medium text-indigo-600 animate-pulse bg-indigo-50 px-1.5 py-0.5 rounded">
+                                            {{ syncProgress[sem.id_semester + '_krs'].message }}
+                                        </div>
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline"
+                                            :disabled="syncingKrsStates[sem.id_semester] || autoSyncing"
+                                            @click="syncKrsSemester(sem.id_semester, sem.nama_semester)"
+                                            class="h-8 text-xs font-medium border-slate-200 text-slate-700 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-200 transition-all shadow-sm"
+                                        >
+                                            <Loader2 v-if="syncingKrsStates[sem.id_semester]" class="w-3.5 h-3.5 mr-1.5 animate-spin text-indigo-600" />
+                                            <BookOpen v-else class="w-3.5 h-3.5 mr-1.5 text-indigo-500" />
+                                            Sync KRS
+                                        </Button>
+                                    </div>
+                                    
+                                     <!-- Sync Nilai -->
+                                    <div class="relative">
+                                        <div v-if="syncProgress[sem.id_semester]" class="absolute -top-5 right-0 whitespace-nowrap text-[10px] font-medium text-blue-600 animate-pulse bg-blue-50 px-1.5 py-0.5 rounded">
+                                            {{ syncProgress[sem.id_semester].message }}
+                                        </div>
+                                        <Button 
+                                            size="sm" 
+                                            variant="outline"
+                                            :disabled="syncingStates[sem.id_semester] || autoSyncing"
+                                            @click="syncNilaiSemester(sem.id_semester, sem.nama_semester)"
+                                            class="h-8 text-xs font-medium border-slate-200 text-slate-700 hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200 transition-all shadow-sm"
+                                        >
+                                            <Loader2 v-if="syncingStates[sem.id_semester]" class="w-3.5 h-3.5 mr-1.5 animate-spin text-blue-600" />
+                                            <RefreshCcw v-else class="w-3.5 h-3.5 mr-1.5 text-blue-500" />
+                                            Sync Nilai
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div v-if="syncErrors[sem.id_semester] || syncErrors[sem.id_semester + '_krs']" class="text-[10px] font-medium text-red-600 mt-1 text-right bg-red-50 px-2 py-1 rounded inline-block">
+                                {{ syncErrors[sem.id_semester] || syncErrors[sem.id_semester + '_krs'] }}
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                    
+                    <TableRow v-if="semesters.length === 0">
+                        <TableCell colspan="5" class="h-48 text-center text-slate-500">
+                            Belum ada data semester. Silakan lakukan sinkronisasi data referensi dari Neo Feeder.
+                        </TableCell>
+                    </TableRow>
+                </tbody>
+            </DataTable>
         </div>
     </AppLayout>
 </template>
-
-

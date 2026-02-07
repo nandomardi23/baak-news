@@ -36,95 +36,112 @@ const user = page.props.auth.user;
     <AppLayout :breadcrumbs="breadcrumbItems">
         <Head title="Profile settings" />
 
-        <h1 class="sr-only">Profile Settings</h1>
-
         <SettingsLayout>
-            <div class="flex flex-col space-y-6">
-                <HeadingSmall
-                    title="Profile information"
-                    description="Update your name and email address"
-                />
+            <div class="space-y-6">
+                <!-- Profile Information Card -->
+                <div class="bg-white p-6 sm:p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                     <div class="absolute top-0 right-0 p-4 opacity-10">
+                        <svg width="120" height="120" viewBox="0 0 24 24" fill="currentColor" class="text-blue-600">
+                             <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
+                        </svg>
+                    </div>
 
-                <Form
-                    v-bind="ProfileController.update.form()"
-                    class="space-y-6"
-                    v-slot="{ errors, processing, recentlySuccessful }"
-                >
-                    <div class="grid gap-2">
-                        <Label for="name">Name</Label>
-                        <Input
-                            id="name"
-                            class="mt-1 block w-full"
-                            name="name"
-                            :default-value="user.name"
-                            required
-                            autocomplete="name"
-                            placeholder="Full name"
+                    <div class="relative z-10">
+                        <HeadingSmall
+                            title="Profile Information"
+                            description="Update your account's profile information and email address."
+                            class="mb-6"
                         />
-                        <InputError class="mt-2" :message="errors.name" />
-                    </div>
 
-                    <div class="grid gap-2">
-                        <Label for="email">Email address</Label>
-                        <Input
-                            id="email"
-                            type="email"
-                            class="mt-1 block w-full"
-                            name="email"
-                            :default-value="user.email"
-                            required
-                            autocomplete="username"
-                            placeholder="Email address"
-                        />
-                        <InputError class="mt-2" :message="errors.email" />
-                    </div>
-
-                    <div v-if="mustVerifyEmail && !user.email_verified_at">
-                        <p class="-mt-4 text-sm text-muted-foreground">
-                            Your email address is unverified.
-                            <Link
-                                :href="send()"
-                                as="button"
-                                class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                            >
-                                Click here to resend the verification email.
-                            </Link>
-                        </p>
-
-                        <div
-                            v-if="status === 'verification-link-sent'"
-                            class="mt-2 text-sm font-medium text-green-600"
+                        <Form
+                            v-bind="ProfileController.update.form()"
+                            class="max-w-xl space-y-6"
+                            v-slot="{ errors, processing, recentlySuccessful }"
                         >
-                            A new verification link has been sent to your email
-                            address.
-                        </div>
-                    </div>
+                            <div class="grid gap-4">
+                                <div class="space-y-2">
+                                    <Label for="name" class="text-slate-600 font-medium">Full Name</Label>
+                                    <Input
+                                        id="name"
+                                        class="mt-1 block w-full px-4 py-2.5 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 bg-slate-50/50 focus:bg-white transition-all"
+                                        name="name"
+                                        :default-value="user.name"
+                                        required
+                                        autocomplete="name"
+                                        placeholder="Enter your full name"
+                                    />
+                                    <InputError :message="errors.name" />
+                                </div>
 
-                    <div class="flex items-center gap-4">
-                        <Button
-                            :disabled="processing"
-                            data-test="update-profile-button"
-                            >Save</Button
-                        >
+                                <div class="space-y-2">
+                                    <Label for="email" class="text-slate-600 font-medium">Email Address</Label>
+                                    <Input
+                                        id="email"
+                                        type="email"
+                                        class="mt-1 block w-full px-4 py-2.5 rounded-xl border-slate-200 focus:border-blue-500 focus:ring-blue-500 bg-slate-50/50 focus:bg-white transition-all"
+                                        name="email"
+                                        :default-value="user.email"
+                                        required
+                                        autocomplete="username"
+                                        placeholder="name@example.com"
+                                    />
+                                    <InputError :message="errors.email" />
+                                </div>
+                            </div>
 
-                        <Transition
-                            enter-active-class="transition ease-in-out"
-                            enter-from-class="opacity-0"
-                            leave-active-class="transition ease-in-out"
-                            leave-to-class="opacity-0"
-                        >
-                            <p
-                                v-show="recentlySuccessful"
-                                class="text-sm text-neutral-600"
-                            >
-                                Saved.
-                            </p>
-                        </Transition>
+                            <div v-if="mustVerifyEmail && !user.email_verified_at" class="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                                <p class="text-sm text-amber-800">
+                                    Your email address is unverified.
+                                    <Link
+                                        :href="send()"
+                                        as="button"
+                                        class="font-medium underline hover:text-amber-900"
+                                    >
+                                        Click here to resend the verification email.
+                                    </Link>
+                                </p>
+
+                                <div
+                                    v-if="status === 'verification-link-sent'"
+                                    class="mt-2 text-sm font-medium text-green-600"
+                                >
+                                    A new verification link has been sent to your email address.
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-4 pt-2">
+                                <Button
+                                    :disabled="processing"
+                                    data-test="update-profile-button"
+                                    class="bg-blue-600 hover:bg-blue-700 text-white rounded-xl px-6"
+                                >
+                                    Save Changes
+                                </Button>
+
+                                <Transition
+                                    enter-active-class="transition ease-in-out"
+                                    enter-from-class="opacity-0"
+                                    leave-active-class="transition ease-in-out"
+                                    leave-to-class="opacity-0"
+                                >
+                                    <p
+                                        v-show="recentlySuccessful"
+                                        class="text-sm text-green-600 font-medium flex items-center gap-1"
+                                    >
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                        Saved successfully.
+                                    </p>
+                                </Transition>
+                            </div>
+                        </Form>
                     </div>
-                </Form>
+                </div>
+
+                <!-- Delete Account Section -->
+                <div class="bg-white p-6 sm:p-8 rounded-2xl border border-red-100 shadow-sm">
+                    <DeleteUser />
+                </div>
             </div>
-
-            <DeleteUser />
         </SettingsLayout>
     </AppLayout>
 </template>

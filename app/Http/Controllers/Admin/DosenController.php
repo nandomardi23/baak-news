@@ -30,7 +30,15 @@ class DosenController extends Controller
             $query->active();
         }
 
-        $dosen = $query->orderBy('nama')
+        $sortField = $request->input('sort_field', 'nama');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        $allowedSorts = ['nidn', 'nip', 'nama', 'jabatan_fungsional', 'status_aktif'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'nama';
+        }
+
+        $dosen = $query->orderBy($sortField, $sortDirection)
             ->paginate(20)
             ->withQueryString()
             ->through(fn($item) => [

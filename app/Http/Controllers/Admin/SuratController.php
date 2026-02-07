@@ -34,7 +34,15 @@ class SuratController extends Controller
             });
         }
 
-        $pengajuan = $query->latest()
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        $allowedSorts = ['created_at', 'nomor_surat', 'jenis_surat', 'status'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'created_at';
+        }
+
+        $pengajuan = $query->orderBy($sortField, $sortDirection)
             ->paginate(20)
             ->through(fn($item) => [
                 'id' => $item->id,

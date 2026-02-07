@@ -1,8 +1,26 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Head, router } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    DataTable,
+    TableHeader,
+    TableRow,
+    TableCell,
+    Pagination
+} from '@/components/ui/datatable';
+import { Filter, X, Search, Eye, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next';
+import { watchDebounced } from '@vueuse/core';
 
 interface Dosen {
     id: number;
@@ -17,22 +35,24 @@ interface Dosen {
     prodi: string | null;
 }
 
-interface Filters {
-    search: string | null;
-    prodi: string | null;
-    status: string | null;
+interface PaginationData {
+    data: Dosen[];
+    links: any[];
+    current_page: number;
+    last_page: number;
+    total: number;
+    from: number;
+    to: number;
 }
 
 const props = defineProps<{
-    dosen: {
-        data: Dosen[];
-        links: any[];
-        current_page: number;
-        last_page: number;
-        total: number;
-    };
+    dosen: PaginationData;
     prodiList: Record<string, string>;
-    filters: Filters;
+    filters: {
+        search?: string;
+        prodi?: string;
+        status?: string;
+    };
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -41,34 +61,49 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const search = ref(props.filters.search || '');
-const selectedProdi = ref(props.filters.prodi || '');
-const selectedStatus = ref(props.filters.status || '');
+const selectedProdi = ref(props.filters.prodi || 'all');
+const selectedStatus = ref(props.filters.status || 'all');
+const sortField = ref('nama');
+const sortDirection = ref<'asc' | 'desc'>('asc');
 
 const applyFilters = () => {
     router.get('/admin/dosen', {
         search: search.value || undefined,
-        prodi: selectedProdi.value || undefined,
-        status: selectedStatus.value || undefined,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-    });
+        prodi: selectedProdi.value === 'all' ? undefined : selectedProdi.value,
+        status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
+        sort_field: sortField.value,
+        sort_direction: sortDirection.value
+    }, { preserveState: true, preserveScroll: true });
 };
 
-// Debounce search
-let searchTimeout: ReturnType<typeof setTimeout>;
-watch(search, () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(applyFilters, 500);
-});
+watchDebounced(
+    search,
+    () => { applyFilters(); },
+    { debounce: 500, maxWait: 1000 }
+);
 
-watch([selectedProdi, selectedStatus], applyFilters);
-
-const resetFilters = () => {
+const clearFilters = () => {
     search.value = '';
-    selectedProdi.value = '';
-    selectedStatus.value = '';
-    router.get('/admin/dosen');
+    selectedProdi.value = 'all';
+    selectedStatus.value = 'all';
+    sortField.value = 'nama';
+    sortDirection.value = 'asc';
+    applyFilters();
+};
+
+const sort = (field: string) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
+};
+
+const getStatusBadge = (status: string | null) => {
+    if (status === 'Aktif') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    return 'bg-gray-100 text-gray-700 border-gray-200';
 };
 </script>
 
@@ -76,128 +111,179 @@ const resetFilters = () => {
     <Head title="Data Dosen" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 p-6">
-            <div class="flex items-center justify-between">
+        <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 class="text-2xl font-bold">Data Dosen</h1>
-                    <p class="text-muted-foreground">
-                        Data dosen dari Neo Feeder (Total: {{ dosen.total }} dosen)
-                    </p>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Data Dosen</h1>
+                    <p class="text-slate-500 mt-1">Kelola data dosen, jabatan fungsional, dan status aktif.</p>
+                </div>
+                <div class="flex gap-2">
+                    <!-- Optional: Add Buttons here if needed -->
                 </div>
             </div>
 
-            <!-- Filters -->
-            <div class="rounded-xl border bg-card shadow-sm p-4">
-                <div class="flex flex-wrap gap-4 items-end">
-                    <div class="flex-1 min-w-[200px]">
-                        <label class="block text-sm font-medium mb-1">Cari</label>
-                        <input
-                            v-model="search"
-                            type="text"
-                            placeholder="Cari nama, NIDN, atau NIP..."
-                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        />
+            <!-- Standardized DataTable -->
+            <DataTable>
+                <!-- Toolbar Slot -->
+                <template #toolbar>
+                    <div class="flex items-center gap-2">
+                        <div class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Filter class="w-4 h-4" />
+                        </div>
+                        <h3 class="text-base font-bold text-slate-700">Filtering</h3>
                     </div>
-                    <div class="min-w-[200px]">
-                        <label class="block text-sm font-medium mb-1">Program Studi</label>
-                        <select
-                            v-model="selectedProdi"
-                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-                        >
-                            <option value="">Semua Prodi</option>
-                            <option v-for="(nama, id) in prodiList" :key="id" :value="id">{{ nama }}</option>
-                        </select>
-                    </div>
-                    <div class="min-w-[150px]">
-                        <label class="block text-sm font-medium mb-1">Status</label>
-                        <select
-                            v-model="selectedStatus"
-                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background"
-                        >
-                            <option value="">Semua Status</option>
-                            <option value="aktif">Aktif</option>
-                        </select>
-                    </div>
-                    <button
-                        @click="resetFilters"
-                        class="px-4 py-2 border rounded-lg hover:bg-muted"
-                    >
-                        Reset
-                    </button>
-                </div>
-            </div>
 
-            <!-- Table -->
-            <div class="rounded-xl border bg-card shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-muted/50">
-                            <tr>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Nama</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">NIDN</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">NIP</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Jabatan Fungsional</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Program Studi</th>
-                                <th class="px-6 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="item in dosen.data" :key="item.id" class="hover:bg-muted/50">
-                                <td class="px-6 py-4">
-                                    <div>
-                                        <p class="font-medium">{{ item.nama_lengkap }}</p>
-                                        <p class="text-sm text-muted-foreground">
-                                            {{ item.jenis_kelamin === 'L' ? 'Laki-laki' : item.jenis_kelamin === 'P' ? 'Perempuan' : '-' }}
-                                        </p>
-                                    </div>
-                                </td>
-                                <td class="px-6 py-4 text-sm">{{ item.nidn || '-' }}</td>
-                                <td class="px-6 py-4 text-sm">{{ item.nip || '-' }}</td>
-                                <td class="px-6 py-4 text-sm">{{ item.jabatan_fungsional || '-' }}</td>
-                                <td class="px-6 py-4 text-sm">{{ item.prodi || '-' }}</td>
-                                <td class="px-6 py-4">
-                                    <span
-                                        :class="item.status_aktif === 'Aktif' ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400'"
-                                        class="px-2 py-1 rounded-full text-xs font-medium"
-                                    >
-                                        {{ item.status_aktif || 'N/A' }}
-                                    </span>
-                                </td>
-                            </tr>
-                            <tr v-if="dosen.data.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center text-muted-foreground">
-                                    Tidak ada data dosen. Silakan sync dari Neo Feeder terlebih dahulu.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                    <div class="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
+                        
+                        <!-- Filter Button / Clear -->
+                        <Button 
+                            v-if="search || selectedProdi !== 'all' || selectedStatus !== 'all'"
+                            variant="ghost" 
+                            size="sm" 
+                            @click="clearFilters"
+                            class="text-red-600 hover:text-red-700 hover:bg-red-50 h-9 gap-1"
+                        >
+                            <X class="w-4 h-4" />
+                            Clear Filters
+                        </Button>
 
-                <!-- Pagination -->
-                <div v-if="dosen.last_page > 1" class="px-6 py-4 border-t flex items-center justify-between">
-                    <p class="text-sm text-muted-foreground">
-                        Halaman {{ dosen.current_page }} dari {{ dosen.last_page }}
-                    </p>
-                    <div class="flex gap-2">
-                        <template v-for="link in dosen.links" :key="link.label">
-                            <button
-                                v-if="link.url"
-                                @click="router.get(link.url)"
-                                :class="[
-                                    'px-3 py-1 rounded border text-sm',
-                                    link.active ? 'bg-primary text-primary-foreground' : 'hover:bg-muted'
-                                ]"
-                                v-html="link.label"
+                         <div v-if="search || selectedProdi !== 'all' || selectedStatus !== 'all'" class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+                        <!-- Prodi Filter -->
+                        <div class="w-full sm:w-48">
+                            <Select v-model="selectedProdi" @update:modelValue="applyFilters">
+                                <SelectTrigger class="h-9 w-full">
+                                    <SelectValue placeholder="Pilih Prodi" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Prodi</SelectItem>
+                                    <SelectItem v-for="(nama, id) in prodiList" :key="id" :value="String(id)">
+                                        {{ nama }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <!-- Status Filter -->
+                        <div class="w-full sm:w-36">
+                            <Select v-model="selectedStatus" @update:modelValue="applyFilters">
+                                <SelectTrigger class="h-9 w-full">
+                                    <SelectValue placeholder="Pilih Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Status</SelectItem>
+                                    <SelectItem value="aktif">Aktif</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <!-- Search Input -->
+                        <div class="relative w-full sm:w-64">
+                            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                                v-model="search"
+                                type="text"
+                                placeholder="Cari Nama / NIDN / NIP..."
+                                class="pl-9 h-9 w-full focus-visible:ring-1"
                             />
+                        </div>
+                    </div>
+                </template>
+
+                <!-- Table Header -->
+                <thead class="bg-slate-50/50">
+                    <tr>
+                        <TableHeader @click="sort('nama')" class="cursor-pointer hover:bg-slate-100">
+                            Nama Dosen
+                            <ArrowUp v-if="sortField === 'nama' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'nama' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader @click="sort('nidn')" class="cursor-pointer hover:bg-slate-100">
+                            NIDN
+                            <ArrowUp v-if="sortField === 'nidn' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'nidn' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader @click="sort('nip')" class="cursor-pointer hover:bg-slate-100">
+                            NIP
+                            <ArrowUp v-if="sortField === 'nip' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'nip' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader @click="sort('jabatan_fungsional')" class="cursor-pointer hover:bg-slate-100">
+                            Jabatan Fungsional
+                            <ArrowUp v-if="sortField === 'jabatan_fungsional' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'jabatan_fungsional' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader>Program Studi</TableHeader>
+                        <TableHeader @click="sort('status_aktif')" class="cursor-pointer hover:bg-slate-100 text-center">
+                            Status
+                            <ArrowUp v-if="sortField === 'status_aktif' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'status_aktif' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <!-- Aksi column temporarily removed or kept if needed. The wireframe has no explicit actions but standard requires it. Assuming 'Detail' view exists or will exist. The user didn't ask for Edit/Delete on Dosen yet, but Detail is usually safe. -->
+                         <!-- Wait, Dosen controller doesn't seem to have a show method in the view_file output, but web.php shows it uses Resource controller? No, it uses [DosenController::class, 'index']. Let me check web.php again. -->
+                         <!-- Route::get('dosen', [\App\Http\Controllers\Admin\DosenController::class, 'index'])->name('dosen.index'); -->
+                         <!-- Only index is defined! So no show/edit/delete routes for Dosen. I should omit the Aksi column for now or keep it empty/future-proof. -->
+                         <!-- Actually, standardizing implied adding features. But if the route doesn't exist, the link will break. -->
+                         <!-- I will OMIT the Action column for now to avoid broken links, or added it but disable the button. -->
+                         <!-- Let's check if I can add a Detail route later. For now, I will NOT include the Aksi column to be safe, as it wasn't requested explicitly and no route exists. -->
+                    </tr>
+                </thead>
+
+                <!-- Table Body -->
+                <tbody>
+                    <TableRow v-for="item in dosen.data" :key="item.id">
+                        <TableCell>
+                            <div class="flex flex-col">
+                                <span class="font-bold text-slate-800">{{ item.nama_lengkap }}</span>
+                                <span class="text-xs text-slate-500">{{ item.jenis_kelamin === 'L' ? 'Laki-laki' : item.jenis_kelamin === 'P' ? 'Perempuan' : '-' }}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell class="font-mono text-slate-600 text-sm">{{ item.nidn || '-' }}</TableCell>
+                        <TableCell class="font-mono text-slate-600 text-sm">{{ item.nip || '-' }}</TableCell>
+                        <TableCell>{{ item.jabatan_fungsional || '-' }}</TableCell>
+                        <TableCell>{{ item.prodi || '-' }}</TableCell>
+                        <TableCell class="text-center">
                             <span
-                                v-else
-                                class="px-3 py-1 text-sm text-muted-foreground"
-                                v-html="link.label"
-                            />
-                        </template>
-                    </div>
-                </div>
-            </div>
+                                :class="getStatusBadge(item.status_aktif)"
+                                class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border capitalize"
+                            >
+                                {{ item.status_aktif || 'N/A' }}
+                            </span>
+                        </TableCell>
+                    </TableRow>
+                    
+                    <!-- Empty State -->
+                    <TableRow v-if="dosen.data.length === 0">
+                        <TableCell colspan="6" class="h-64 text-center">
+                            <div class="flex flex-col items-center justify-center text-slate-500">
+                                <div class="bg-slate-100 p-4 rounded-full mb-3">
+                                    <Search class="h-6 w-6 text-slate-400" />
+                                </div>
+                                <p class="font-medium text-slate-900">Tidak ada data dosen ditemukan</p>
+                                <p class="text-sm">Silakan sync dari Neo Feeder atau ubah filter.</p>
+                                <Button 
+                                    variant="link" 
+                                    class="mt-2 text-blue-600" 
+                                    @click="clearFilters"
+                                >
+                                    Reset Filter
+                                </Button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                </tbody>
+
+                <!-- Pagination Slot -->
+                <template #pagination>
+                    <Pagination :pagination="dosen" />
+                </template>
+            </DataTable>
         </div>
     </AppLayout>
 </template>

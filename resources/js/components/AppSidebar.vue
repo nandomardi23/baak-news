@@ -70,29 +70,31 @@ const navGroups = [
             { title: 'Log Aktivitas', href: '/admin/logs', icon: History },
         ],
     },
+    {
+        label: 'Pengaturan Sistem',
+        items: [
+            { title: 'Pengaturan Umum', href: '/admin/settings/general', icon: Settings },
+            { title: 'Sync Neo Feeder', href: '/admin/settings/neofeeder', icon: RefreshCw },
+        ],
+    },
 ];
 
 const footerNavItems: NavItem[] = [
     {
-        title: 'Sync Neo Feeder',
-        href: '/admin/settings/neofeeder',
-        icon: RefreshCw,
-    },
-    {
-        title: 'Pengaturan',
+        title: 'Profile',
         href: '/settings/profile',
-        icon: Settings,
+        icon: UserCog,
     },
 ];
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset">
-        <SidebarHeader>
+    <Sidebar collapsible="icon" class="border-r border-slate-100 bg-white">
+        <SidebarHeader class="p-4 pb-2">
             <SidebarMenu>
                 <SidebarMenuItem>
-                    <SidebarMenuButton size="lg" as-child>
-                        <Link href="/admin">
+                    <SidebarMenuButton size="lg" as-child class="hover:bg-transparent data-[state=open]:bg-transparent hover:no-underline p-0">
+                        <Link href="/admin" class="flex items-center gap-2">
                             <AppLogo />
                         </Link>
                     </SidebarMenuButton>
@@ -100,11 +102,11 @@ const footerNavItems: NavItem[] = [
             </SidebarMenu>
         </SidebarHeader>
 
-        <SidebarContent>
+        <SidebarContent class="py-2">
             <NavGrouped :groups="navGroups" />
         </SidebarContent>
 
-        <SidebarFooter>
+        <SidebarFooter class="p-4 border-t border-slate-50">
             <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>

@@ -103,6 +103,7 @@ class LandingController extends Controller
             'keperluan' => 'required_if:jenis_surat,aktif_kuliah|nullable|string|max:255',
             'tahun_akademik_id' => 'required_if:jenis_surat,krs,khs|nullable|exists:tahun_akademik,id',
             'jenis_transkrip' => 'required_if:jenis_surat,transkrip|nullable|in:reguler,rpl',
+            'nama' => 'required|string|max:255', // Allow name correction
             'tempat_lahir' => 'nullable|string|max:100',
             'tanggal_lahir' => 'nullable|date',
             'alamat' => 'nullable|string|max:500',
@@ -123,10 +124,16 @@ class LandingController extends Controller
 
         // Update mahasiswa data if provided
         $mahasiswaData = collect($validated)
-            ->only(['tempat_lahir', 'tanggal_lahir', 'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi', 'no_hp', 'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu', 'alamat_ortu'])
+            ->only(['nama', 'tempat_lahir', 'tanggal_lahir', 'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi', 'no_hp', 'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu', 'alamat_ortu'])
             ->filter()
             ->toArray();
+        
         if (!empty($mahasiswaData)) {
+            // Enforce Title Case for name if present
+            if (isset($mahasiswaData['nama'])) {
+                $mahasiswaData['nama'] = \Illuminate\Support\Str::title(strtolower($mahasiswaData['nama']));
+            }
+            
             $mahasiswa->update($mahasiswaData);
         }
 

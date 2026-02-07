@@ -30,7 +30,15 @@ class AkademikController extends Controller
             });
         }
 
-        $mataKuliah = $query->orderBy('kode_matkul')
+        $sortField = $request->input('sort_field', 'kode_matkul');
+        $sortDirection = $request->input('sort_direction', 'asc');
+        $allowedSorts = ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'sks_teori', 'sks_praktek'];
+        
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'kode_matkul';
+        }
+
+        $mataKuliah = $query->orderBy($sortField, $sortDirection)
             ->paginate(20)
             ->through(fn($mk) => [
                 'id' => $mk->id,

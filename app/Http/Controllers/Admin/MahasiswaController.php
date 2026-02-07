@@ -34,7 +34,20 @@ class MahasiswaController extends Controller
             $query->where('status_mahasiswa', $request->status);
         }
 
-        $mahasiswa = $query->orderBy('nama')
+        if ($request->filled('status')) {
+            $query->where('status_mahasiswa', $request->status);
+        }
+
+        $sortField = $request->input('sort_field', 'nama');
+        $sortDirection = $request->input('sort_direction', 'asc');
+        
+        // whitelist sort fields to prevent SQL injection
+        $allowedSorts = ['nim', 'nama', 'angkatan', 'ipk', 'status_mahasiswa'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'nama';
+        }
+
+        $mahasiswa = $query->orderBy($sortField, $sortDirection)
             ->paginate(20)
             ->through(fn($item) => [
                 'id' => $item->id,

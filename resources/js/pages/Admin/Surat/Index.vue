@@ -3,6 +3,25 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import {
+    DataTable,
+    TableHeader,
+    TableRow,
+    TableCell,
+    Pagination
+} from '@/components/ui/datatable';
+import { Filter, X, Search, Printer, Trash2, Eye, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
+import { watchDebounced } from '@vueuse/core';
 
 interface Mahasiswa {
     nim: string;
@@ -32,16 +51,18 @@ interface Pengajuan {
     created_at: string;
 }
 
-interface Pagination {
+interface PaginationData {
     data: Pengajuan[];
     links: any[];
     current_page: number;
     last_page: number;
+    from: number;
+    to: number;
     total: number;
 }
 
 const props = defineProps<{
-    pengajuan: Pagination;
+    pengajuan: PaginationData;
     filters: {
         status?: string;
         jenis?: string;
@@ -55,31 +76,87 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const search = ref(props.filters.search || '');
-const selectedStatus = ref(props.filters.status || '');
-const selectedJenis = ref(props.filters.jenis || '');
+const selectedStatus = ref(props.filters.status || 'all');
+const selectedJenis = ref(props.filters.jenis || 'all');
+const sortField = ref('created_at');
+const sortDirection = ref<'asc' | 'desc'>('desc');
 
 const applyFilters = () => {
     router.get('/admin/surat', {
         search: search.value || undefined,
-        status: selectedStatus.value || undefined,
-        jenis: selectedJenis.value || undefined,
-    }, { preserveState: true });
+        status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
+        jenis: selectedJenis.value === 'all' ? undefined : selectedJenis.value,
+        sort_field: sortField.value,
+        sort_direction: sortDirection.value
+    }, { preserveState: true, preserveScroll: true });
+};
+
+watchDebounced(
+    search,
+    () => { applyFilters(); },
+    { debounce: 500, maxWait: 1000 }
+);
+
+const clearFilters = () => {
+    search.value = '';
+    selectedStatus.value = 'all';
+    selectedJenis.value = 'all';
+    sortField.value = 'created_at';
+    sortDirection.value = 'desc';
+    applyFilters();
+};
+
+const sort = (field: string) => {
+    if (sortField.value === field) {
+        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+    } else {
+        sortField.value = field;
+        sortDirection.value = 'asc';
+    }
+    applyFilters();
 };
 
 const getBadgeClass = (badge: string) => {
     const classes: Record<string, string> = {
-        warning: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
-        success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
-        danger: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
-        info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+        warning: 'bg-amber-100 text-amber-800 border-amber-200',
+        success: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+        danger: 'bg-red-100 text-red-800 border-red-200',
+        info: 'bg-blue-100 text-blue-800 border-blue-200',
     };
     return classes[badge] || 'bg-gray-100 text-gray-800';
 };
 
 const deleteSurat = (id: number) => {
-    if (confirm('Hapus pengajuan surat ini?')) {
-        router.delete(`/admin/surat/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: "Data pengajuan surat akan dihapus permanen!",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        customClass: {
+            popup: 'rounded-xl',
+            confirmButton: 'rounded-lg px-4 py-2',
+            cancelButton: 'rounded-lg px-4 py-2'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/surat/${id}`, {
+                onSuccess: () => {
+                    Swal.fire({
+                        title: 'Berhasil!',
+                        text: 'Pengajuan surat berhasil dihapus.',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        customClass: { popup: 'rounded-xl' }
+                    });
+                }
+            });
+        }
+    });
 };
 </script>
 
@@ -87,163 +164,205 @@ const deleteSurat = (id: number) => {
     <Head title="Pengajuan Surat" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 p-6">
-            <div>
-                <h1 class="text-2xl font-bold">Pengajuan Surat</h1>
-                <p class="text-muted-foreground">Total: {{ pengajuan.total }} pengajuan</p>
+        <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
+            
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Pengajuan Surat</h1>
+                    <p class="text-slate-500 mt-1">Kelola permohonan surat akademik mahasiswa.</p>
+                </div>
             </div>
 
-            <!-- Filters -->
-            <div class="flex flex-wrap gap-4 items-end">
-                <div class="flex-1 min-w-[200px]">
-                    <label class="block text-sm font-medium mb-1">Cari</label>
-                    <input
-                        v-model="search"
-                        type="text"
-                        placeholder="Nama atau NIM..."
-                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                        @keyup.enter="applyFilters"
-                    />
-                </div>
-                <div class="w-40">
-                    <label class="block text-sm font-medium mb-1">Jenis Surat</label>
-                    <select
-                        v-model="selectedJenis"
-                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="">Semua</option>
-                        <option value="aktif_kuliah">Surat Aktif Kuliah</option>
-                        <option value="krs">KRS</option>
-                        <option value="khs">KHS</option>
-                        <option value="transkrip">Transkrip</option>
-                    </select>
-                </div>
-                <div class="w-36">
-                    <label class="block text-sm font-medium mb-1">Status</label>
-                    <select
-                        v-model="selectedStatus"
-                        class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
-                    >
-                        <option value="">Semua</option>
-                        <option value="pending">Pending</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="printed">Printed</option>
-                    </select>
-                </div>
-                <button
-                    @click="applyFilters"
-                    class="px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90"
-                >
-                    Filter
-                </button>
-            </div>
-
-            <!-- Table -->
-            <div class="rounded-xl border bg-card shadow-sm overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead class="bg-muted/50">
-                            <tr>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Nomor</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Mahasiswa</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Jenis</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Pejabat</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Status</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Tanggal</th>
-                                <th class="px-4 py-3 text-left text-sm font-medium text-muted-foreground">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y">
-                            <tr v-for="item in pengajuan.data" :key="item.id" class="hover:bg-muted/50">
-                                <td class="px-4 py-4 font-mono text-sm">{{ item.nomor_surat || '-' }}</td>
-                                <td class="px-4 py-4">
-                                    <div>
-                                        <p class="font-medium">{{ item.mahasiswa.nama }}</p>
-                                        <p class="text-sm text-muted-foreground">{{ item.mahasiswa.nim }}</p>
-                                    </div>
-                                </td>
-                                <td class="px-4 py-4 text-sm">{{ item.jenis_surat_label }}</td>
-                                <td class="px-4 py-4">
-                                    <div v-if="item.pejabat">
-                                        <p class="text-sm font-medium">{{ item.pejabat.nama }}</p>
-                                        <p class="text-xs text-muted-foreground">{{ item.pejabat.jabatan }}</p>
-                                    </div>
-                                    <span v-else class="text-sm text-muted-foreground">-</span>
-                                </td>
-                                <td class="px-4 py-4">
-                                    <span :class="getBadgeClass(item.status_badge)" class="px-2 py-1 rounded-full text-xs font-medium">
-                                        {{ item.status_label }}
-                                    </span>
-                                </td>
-                                <td class="px-4 py-4 text-sm text-muted-foreground">{{ item.created_at }}</td>
-                                <td class="px-4 py-4">
-                                    <div class="flex items-center gap-1">
-                                        <!-- Detail -->
-                                        <Link
-                                            :href="`/admin/surat/${item.id}`"
-                                            class="p-2 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 text-blue-600 dark:text-blue-400 transition"
-                                            title="Detail"
-                                        >
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                            </svg>
-                                        </Link>
-                                        <!-- Print (only if approved/printed) -->
-                                        <a
-                                            v-if="item.status === 'approved' || item.status === 'printed'"
-                                            :href="`/admin/surat/${item.id}/print`"
-                                            target="_blank"
-                                            class="p-2 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition"
-                                            title="Cetak"
-                                        >
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
-                                            </svg>
-                                        </a>
-                                        <!-- Delete -->
-                                        <button
-                                            @click="deleteSurat(item.id)"
-                                            class="p-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 transition"
-                                            title="Hapus"
-                                        >
-                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                            </svg>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr v-if="pengajuan.data.length === 0">
-                                <td colspan="6" class="px-6 py-12 text-center text-muted-foreground">
-                                    Tidak ada pengajuan
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Pagination -->
-                <div v-if="pengajuan.last_page > 1" class="px-6 py-4 border-t flex items-center justify-between">
-                    <p class="text-sm text-muted-foreground">
-                        Halaman {{ pengajuan.current_page }} dari {{ pengajuan.last_page }}
-                    </p>
-                    <div class="flex gap-2">
-                        <Link
-                            v-for="link in pengajuan.links"
-                            :key="link.label"
-                            :href="link.url || '#'"
-                            :class="[
-                                'px-3 py-1 rounded text-sm',
-                                link.active ? 'bg-primary text-primary-foreground' : 'border hover:bg-muted',
-                                !link.url ? 'opacity-50 cursor-not-allowed' : ''
-                            ]"
-                            v-html="link.label"
-                        />
+             <!-- Standardized DataTable -->
+            <DataTable>
+                <!-- Toolbar Slot -->
+                <template #toolbar>
+                    <div class="flex items-center gap-2">
+                         <div class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                            <Filter class="w-4 h-4" />
+                        </div>
+                        <h3 class="text-base font-bold text-slate-700">Filtering</h3>
                     </div>
-                </div>
-            </div>
+
+                    <div class="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
+                         <!-- Filter Button / Clear -->
+                        <Button 
+                            v-if="search || selectedJenis !== 'all' || selectedStatus !== 'all'"
+                            variant="ghost" 
+                            size="sm" 
+                            @click="clearFilters"
+                            class="text-red-600 hover:text-red-700 hover:bg-red-50 h-9 gap-1"
+                        >
+                            <X class="w-4 h-4" />
+                            Clear Filters
+                        </Button>
+
+                         <div v-if="search || selectedJenis !== 'all' || selectedStatus !== 'all'" class="h-6 w-px bg-slate-200 mx-1 hidden sm:block"></div>
+
+                        <!-- Jenis Filter -->
+                        <div class="w-full sm:w-48">
+                            <Select v-model="selectedJenis" @update:modelValue="applyFilters">
+                                <SelectTrigger class="h-9 w-full">
+                                    <SelectValue placeholder="Pilih Jenis" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Jenis</SelectItem>
+                                    <SelectItem value="aktif_kuliah">Surat Aktif Kuliah</SelectItem>
+                                    <SelectItem value="krs">KRS</SelectItem>
+                                    <SelectItem value="khs">KHS</SelectItem>
+                                    <SelectItem value="transkrip">Transkrip</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                         <!-- Status Filter -->
+                        <div class="w-full sm:w-36">
+                            <Select v-model="selectedStatus" @update:modelValue="applyFilters">
+                                <SelectTrigger class="h-9 w-full">
+                                    <SelectValue placeholder="Pilih Status" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Status</SelectItem>
+                                    <SelectItem value="pending">Pending</SelectItem>
+                                    <SelectItem value="approved">Approved</SelectItem>
+                                    <SelectItem value="rejected">Rejected</SelectItem>
+                                    <SelectItem value="printed">Printed</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <!-- Search Input -->
+                        <div class="relative w-full sm:w-64">
+                            <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+                            <Input
+                                v-model="search"
+                                type="text"
+                                placeholder="Cari Nama / NIM..."
+                                class="pl-9 h-9 w-full focus-visible:ring-1"
+                            />
+                        </div>
+                    </div>
+                </template>
+
+                 <!-- Table Header -->
+                <thead class="bg-slate-50/50">
+                    <tr>
+                        <TableHeader @click="sort('nomor_surat')" class="cursor-pointer hover:bg-slate-100">
+                            Nomor Surat
+                            <ArrowUp v-if="sortField === 'nomor_surat' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'nomor_surat' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader @click="sort('created_at')" class="cursor-pointer hover:bg-slate-100 text-left">
+                            Mahasiswa
+                            <ArrowUp v-if="sortField === 'created_at' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'created_at' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader @click="sort('jenis_surat')" class="cursor-pointer hover:bg-slate-100">
+                            Jenis Surat
+                            <ArrowUp v-if="sortField === 'jenis_surat' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'jenis_surat' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader>Pejabat Penanda Tangan</TableHeader>
+                        <TableHeader @click="sort('status')" class="cursor-pointer hover:bg-slate-100">
+                            Status
+                            <ArrowUp v-if="sortField === 'status' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'status' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader @click="sort('created_at')" class="cursor-pointer hover:bg-slate-100">
+                            Tanggal
+                            <ArrowUp v-if="sortField === 'created_at' && sortDirection === 'asc'" class="ml-2 h-3 w-3" />
+                            <ArrowDown v-else-if="sortField === 'created_at' && sortDirection === 'desc'" class="ml-2 h-3 w-3" />
+                            <ArrowUpDown v-else class="ml-2 h-3 w-3 opacity-50" />
+                        </TableHeader>
+                        <TableHeader class="text-right">Aksi</TableHeader>
+                    </tr>
+                </thead>
+
+                 <!-- Table Body -->
+                <tbody>
+                    <TableRow v-for="item in pengajuan.data" :key="item.id">
+                        <TableCell class="font-mono text-slate-600">{{ item.nomor_surat || '-' }}</TableCell>
+                        <TableCell>
+                             <div class="flex flex-col">
+                                <span class="font-bold text-slate-800">{{ item.mahasiswa.nama }}</span>
+                                <span class="text-xs text-slate-500">{{ item.mahasiswa.nim }}</span>
+                            </div>
+                        </TableCell>
+                        <TableCell>{{ item.jenis_surat_label }}</TableCell>
+                         <TableCell>
+                            <div v-if="item.pejabat" class="flex flex-col">
+                                <span class="font-medium text-slate-800">{{ item.pejabat.nama }}</span>
+                                <span class="text-xs text-slate-500">{{ item.pejabat.jabatan }}</span>
+                            </div>
+                            <span v-else class="text-slate-400">-</span>
+                        </TableCell>
+                        <TableCell>
+                            <span :class="getBadgeClass(item.status_badge)" class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold border">
+                                {{ item.status_label }}
+                            </span>
+                        </TableCell>
+                        <TableCell class="text-slate-500">{{ item.created_at }}</TableCell>
+                        <TableCell class="text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <!-- Detail -->
+                                <Link
+                                    :href="`/admin/surat/${item.id}`"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-slate-100 hover:text-blue-600 transition-colors"
+                                    title="Detail"
+                                >
+                                    <component :is="Eye" class="h-4 w-4" />
+                                </Link>
+                                <!-- Print (only if approved/printed) -->
+                                <a
+                                    v-if="item.status === 'approved' || item.status === 'printed'"
+                                    :href="`/admin/surat/${item.id}/print`"
+                                    target="_blank"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-emerald-50 hover:text-emerald-600 transition-colors"
+                                    title="Cetak"
+                                >
+                                    <component :is="Printer" class="h-4 w-4" />
+                                </a>
+                                <!-- Delete -->
+                                <button
+                                    @click="deleteSurat(item.id)"
+                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                                    title="Hapus"
+                                >
+                                    <component :is="Trash2" class="h-4 w-4" />
+                                </button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+
+                    <!-- Empty State -->
+                     <TableRow v-if="pengajuan.data.length === 0">
+                        <TableCell colspan="7" class="h-64 text-center">
+                             <div class="flex flex-col items-center justify-center text-slate-500">
+                                <div class="bg-slate-100 p-4 rounded-full mb-3">
+                                    <Search class="h-6 w-6 text-slate-400" />
+                                </div>
+                                <p class="font-medium text-slate-900">Tidak ada pengajuan ditemukan</p>
+                                <Button 
+                                    variant="link" 
+                                    class="mt-2 text-blue-600" 
+                                    @click="clearFilters"
+                                >
+                                    Reset Filter
+                                </Button>
+                            </div>
+                        </TableCell>
+                    </TableRow>
+                </tbody>
+
+                <!-- Pagination Slot -->
+                <template #pagination>
+                     <Pagination :pagination="pengajuan" />
+                </template>
+            </DataTable>
         </div>
     </AppLayout>
 </template>

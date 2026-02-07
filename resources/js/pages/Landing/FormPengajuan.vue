@@ -44,6 +44,7 @@ const form = useForm({
     keperluan: '',
     tahun_akademik_id: '' as string | number,
     jenis_transkrip: props.mahasiswa.jenis_program === 'rpl' ? 'rpl' : 'reguler',
+    nama: props.mahasiswa.nama, // Add editable name
     tempat_lahir: props.mahasiswa.tempat_lahir || '',
     tanggal_lahir: props.mahasiswa.tanggal_lahir || '',
     alamat: props.mahasiswa.alamat || '',
@@ -87,16 +88,16 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
 <template>
     <Head :title="pageTitle" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50/30 text-slate-800">
+    <div class="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30 text-slate-800">
         <!-- Navbar -->
         <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex justify-between h-16 items-center">
                     <Link href="/" class="flex items-center gap-3 group">
-                        <div class="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white group-hover:shadow-blue-500/40 transition">
+                        <div class="w-10 h-10 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white group-hover:shadow-blue-500/40 transition">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                         </div>
-                        <span class="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600">SHT-BAAK</span>
+                        <span class="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-700 to-indigo-600">SHT-BAAK</span>
                     </Link>
                     <!-- Mobile Menu Button -->
                     <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="md:hidden p-2 rounded-lg hover:bg-slate-100">
@@ -129,7 +130,7 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
             </Link>
 
             <!-- Warning if pending exists -->
-            <div v-if="existingPending" class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-6 shadow-sm">
+            <div v-if="existingPending" class="bg-linear-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-5 mb-6 shadow-sm">
                 <div class="flex items-start gap-4">
                     <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center shrink-0">
                         <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
@@ -145,7 +146,7 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
             <div class="bg-white rounded-3xl p-6 sm:p-8 border border-slate-200/60 shadow-xl shadow-slate-200/50">
                 <!-- Header -->
                 <div class="flex items-center gap-4 mb-8 pb-6 border-b border-slate-100">
-                    <div class="w-14 h-14 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
+                    <div class="w-14 h-14 bg-linear-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
                         <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                     </div>
                     <div>
@@ -155,29 +156,52 @@ const submit = () => { form.post(`/pengajuan/${props.mahasiswa.id}`); };
                 </div>
 
                 <!-- Data Mahasiswa Card -->
-                <div class="bg-gradient-to-br from-slate-50 to-blue-50/50 rounded-2xl p-5 sm:p-6 mb-8 border border-slate-100">
-                    <div class="flex items-center gap-3 mb-4">
+                <div class="bg-linear-to-br from-slate-50 to-blue-50/50 rounded-2xl p-5 sm:p-6 mb-8 border border-slate-100">
+                    <div class="flex items-center gap-3 mb-6">
                         <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
                         </div>
                         <h3 class="font-bold text-slate-800">Data Mahasiswa</h3>
                     </div>
-                    <div class="grid grid-cols-2 gap-4 text-sm">
+                    
+                    <div class="grid sm:grid-cols-2 gap-5">
+                        <!-- Nama (Editable) -->
                         <div class="col-span-2 sm:col-span-1">
-                            <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1">Nama</span>
-                            <span class="text-slate-900 font-bold text-base">{{ mahasiswa.nama }}</span>
+                            <label class="block text-slate-500 text-xs font-bold uppercase tracking-wider mb-2">Nama Lengkap <span class="text-blue-500 ml-1 text-[10px] normal-case tracking-normal bg-blue-50 px-2 py-0.5 rounded-full border border-blue-100">Bisa dikoreksi</span></label>
+                            <input v-model="form.nama" type="text" 
+                                class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 font-bold focus:outline-none focus:ring-2 focus:ring-blue-500 transition shadow-sm"
+                                placeholder="Nama sesuai KTM"/>
+                            <p v-if="form.errors.nama" class="text-red-500 text-sm mt-1">{{ form.errors.nama }}</p>
                         </div>
+
+                        <!-- NIM (Read-only) -->
                         <div>
-                            <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1">NIM</span>
-                            <span class="text-slate-900 font-mono font-bold">{{ mahasiswa.nim }}</span>
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">NIM</label>
+                            <div class="relative">
+                                <input :value="mahasiswa.nim" type="text" readonly
+                                    class="w-full px-4 py-3 rounded-xl bg-slate-100/50 border border-slate-200 text-slate-600 font-mono font-medium focus:outline-none cursor-not-allowed"/>
+                                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
                         </div>
+
+                        <!-- Prodi (Read-only) -->
                         <div>
-                            <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1">Program Studi</span>
-                            <span class="text-slate-700 font-medium">{{ mahasiswa.prodi }}</span>
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Program Studi</label>
+                            <div class="relative">
+                                <input :value="mahasiswa.prodi" type="text" readonly
+                                    class="w-full px-4 py-3 rounded-xl bg-slate-100/50 border border-slate-200 text-slate-600 font-medium focus:outline-none cursor-not-allowed"/>
+                                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
                         </div>
+
+                        <!-- Angkatan (Read-only) -->
                         <div>
-                            <span class="text-slate-400 text-xs font-semibold uppercase tracking-wider block mb-1">Angkatan</span>
-                            <span class="text-slate-700 font-medium">{{ mahasiswa.angkatan }}</span>
+                            <label class="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">Angkatan</label>
+                            <div class="relative">
+                                <input :value="mahasiswa.angkatan" type="text" readonly
+                                    class="w-full px-4 py-3 rounded-xl bg-slate-100/50 border border-slate-200 text-slate-600 font-medium focus:outline-none cursor-not-allowed"/>
+                                <svg class="w-4 h-4 text-slate-400 absolute right-4 top-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                            </div>
                         </div>
                     </div>
                 </div>
