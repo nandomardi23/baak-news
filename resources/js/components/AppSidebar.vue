@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import NavFooter from '@/components/NavFooter.vue';
 import NavGrouped from '@/components/NavGrouped.vue';
 import NavUser from '@/components/NavUser.vue';
 import {
@@ -17,7 +16,6 @@ import {
     LayoutGrid,
     Users,
     FileText,
-    UserCog,
     Shield,
     Settings,
     RefreshCw,
@@ -78,14 +76,6 @@ const navGroups = [
         ],
     },
 ];
-
-const footerNavItems: NavItem[] = [
-    {
-        title: 'Profile',
-        href: '/settings/profile',
-        icon: UserCog,
-    },
-];
 </script>
 
 <template>
@@ -107,7 +97,6 @@ const footerNavItems: NavItem[] = [
         </SidebarContent>
 
         <SidebarFooter class="p-4 border-t border-slate-50">
-            <NavFooter :items="footerNavItems" />
             <NavUser />
         </SidebarFooter>
     </Sidebar>
