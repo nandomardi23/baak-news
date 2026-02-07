@@ -126,7 +126,7 @@ const handleExport = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Status</SelectItem>
-                                    <SelectItem value="A">Aktif</SelectItem> // Assuming 'A' is code, but display text used in badge. Check controller if strictly 'A' or 'Aktif'
+                                    <SelectItem value="A">Aktif</SelectItem>
                                     <SelectItem value="L">Lulus</SelectItem>
                                     <SelectItem value="C">Cuti</SelectItem>
                                     <SelectItem value="N">Non-Aktif</SelectItem>

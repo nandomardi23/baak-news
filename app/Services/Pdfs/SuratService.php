@@ -14,54 +14,148 @@ class SuratService extends BasePdfService
         $mahasiswa->load(['programStudi']);
         $nomorSurat = $dataTambahan['nomor_surat'] ?? null;
         
-        // Check for PDF template
-        $templatePath = storage_path('app/public/template-surat/template.pdf');
+        // Check for PDF template from database or file system
+        // The TemplateDesignerController saves as: template-surat/type_timestamp.pdf
+        // We want the latest 'surat' type template.
         
-        if (file_exists($templatePath)) {
+        $templatePath = null;
+        
+        // Try DB first
+        $dbTemplate = \App\Models\LetterTemplate::where('type', 'surat')
+            ->where('is_active', true)
+            ->latest()
+            ->first();
+
+        if ($dbTemplate && file_exists(storage_path('app/public/' . $dbTemplate->file_path))) {
+            $templatePath = storage_path('app/public/' . $dbTemplate->file_path);
+        } else {
+             // Fallback to glob
+            $files = glob(storage_path('app/public/template-surat/surat_*.pdf'));
+            if (!empty($files)) {
+                usort($files, function ($a, $b) {
+                    return filemtime($b) - filemtime($a);
+                });
+                $templatePath = $files[0];
+            }
+        }
+        
+        if ($templatePath && file_exists($templatePath)) {
             $this->AddPage();
             $this->setSourceFile($templatePath);
             $templateId = $this->importPage(1);
-            $this->useTemplate($templateId);
+            $this->useTemplate($templateId, 0, 0, null, null, true);
         } else {
             $this->AddPage();
             $this->addHeaderFromSuratService();
         }
 
-        $this->SetFont('Arial', 'BU', 12);
-        $this->SetY(45);
-        $this->Cell(0, 7, 'SURAT KETERANGAN AKTIF KULIAH', 0, 1, 'C');
+        // Title
         $this->SetFont('Arial', '', 11);
-        $this->Cell(0, 5, 'Nomor: ' . ($nomorSurat ?? '......./......./......./' . date('Y')), 0, 1, 'C');
+        $this->SetY(38); // Adjusted Y again from 42 to 38
+        $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
         
-        $this->Ln(10);
-        $this->SetFont('Arial', '', 11);
-        $this->MultiCell(0, 6, "Yang bertanda tangan di bawah ini,  Ketua Sekolah Tinggi Ilmu Kesehatan (STIKes) Hang Tuah Tanjungpinang, dengan ini menerangkan bahwa :", 0, 'J');
+        $romanMonth = $this->getRomanMonth((int) date('n'));
+        $defaultNomor = 'Sket /       /' . $romanMonth . '/' . date('Y');
         
-        $this->Ln(5);
-        $this->addDataRow('Nama', $mahasiswa->nama);
-        $this->addDataRow('NIM', $mahasiswa->nim);
-        $this->addDataRow('Tempat / Tgl @Lahir', $mahasiswa->ttl);
-        $this->addDataRow('Program Studi', $mahasiswa->programStudi?->nama_prodi);
-        $this->addDataRow('Semester', $this->getSemesterRoman($mahasiswa));
-        $this->addDataRow('Alamat', $mahasiswa->alamat_lengkap);
+        $displayNomor = $nomorSurat;
+        if (empty($displayNomor)) {
+            $displayNomor = $defaultNomor;
+        } elseif (str_starts_with($displayNomor, '/')) {
+            // If nomor is just suffix like /II/2026, prepend Sket
+            $displayNomor = 'Sket /       ' . $displayNomor;
+        }
 
-        $this->Ln(5);
-        $this->MultiCell(0, 6, "Adalah benar mahasiswa Sekolah Tinggi Ilmu Kesehatan (STIKes) Hang Tuah Tanjungpinang dan masih aktif mengikuti perkuliahan pada Tahun Akademik " . date('Y') . "/" . (date('Y') + 1) . ".", 0, 'J');
+        $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
         
-        $this->Ln(5);
-        $this->MultiCell(0, 6, "Orang tua / Wali mahasiswa tersebut adalah :", 0, 'J');
-        
-        $this->Ln(5);
-        $this->addDataRow('Nama', $mahasiswa->nama_ayah ?: $mahasiswa->nama_ibu);
-        $this->addDataRow('NIP / NRP', $dataTambahan['nip_ortu'] ?? '-');
-        $this->addDataRow('Pangkat / Gol', $dataTambahan['pangkat_ortu'] ?? '-');
-        $this->addDataRow('Instansi / Pekerjaan', $mahasiswa->pekerjaan_ayah ?: $mahasiswa->pekerjaan_ibu);
+        $this->Ln(15); // Increased from 8 to 15 (approx 2 enters)
 
-        $this->Ln(5);
-        $this->MultiCell(0, 6, "Surat keterangan ini diberikan kepada yang bersangkutan untuk dapat dipergunakan sebagaimana mestinya.", 0, 'J');
+        // Student Data
+        $startX = 30; // Left margin for labels
+        $labelWidth = 40;
         
-        $this->Ln(5);
-        $this->addCustomSignature($customSigner, 'Ketua');
+        $fields = [
+            'Nama' => $mahasiswa->nama,
+            'Nim' => $mahasiswa->nim,
+            'Tempat/Tgl Lahir' => $mahasiswa->ttl,
+            'Jenis Kelamin' => $mahasiswa->jenis_kelamin == 'L' ? 'Laki-laki' : 'Perempuan',
+            'Alamat' => $mahasiswa->alamat_lengkap
+        ];
+
+        foreach ($fields as $label => $value) {
+             $this->SetX($startX);
+             $this->Cell($labelWidth, 6, $label, 0, 0);
+             $this->Cell(5, 6, ':', 0, 0);
+             
+             // Handle multi-line value alignment (hanging indent)
+             $currentX = $this->GetX();
+             $originalMargin = $this->lMargin;
+             
+             $this->SetLeftMargin($currentX);
+             $this->MultiCell(100, 6, $value, 0, 'L'); // Limit width to 100mm
+             $this->SetLeftMargin($originalMargin);
+        }
+
+        $this->Ln(8);
+        $this->SetX($startX);
+        $this->Cell(0, 6, 'Anak dari :', 0, 1);
+
+        // Parents Data
+        $parentFields = [
+            'Nama Ayah' => $mahasiswa->nama_ayah,
+            'Pekerjaan' => $mahasiswa->pekerjaan_ayah,
+            'Nama Ibu' => $mahasiswa->nama_ibu,
+            'Pekerjaan' => $mahasiswa->pekerjaan_ibu,
+            'Alamat' => $mahasiswa->alamat_ortu ?? $mahasiswa->alamat_lengkap // Fallback
+        ];
+
+        foreach ($parentFields as $label => $value) {
+            $this->SetX($startX);
+            $this->Cell($labelWidth, 6, $label, 0, 0);
+            $this->Cell(5, 6, ':', 0, 0);
+            
+            // Handle multi-line value alignment (hanging indent)
+            $currentX = $this->GetX();
+            $originalMargin = $this->lMargin;
+            
+            $this->SetLeftMargin($currentX);
+            $this->MultiCell(100, 6, $value ?? '-', 0, 'L'); // Limit width to 100mm
+            $this->SetLeftMargin($originalMargin);
+        }
+
+        $this->Ln(8);
+        $this->SetX($startX); // Align with data ($startX = 30)
+        // Match right edge of data: Start 30 + Width 145 = 175 (Data value ends at 75 + 100 = 175)
+        $this->MultiCell(145, 6, "        Adalah benar yang bersangkutan mahasiswa semester " . $this->getSemesterRoman($mahasiswa) . " Program Studi " . ($mahasiswa->programStudi?->nama_prodi ?? '-') . " Stikes Hang Tuah Tanjungpinang.", 0, 'J');
+
+        // Signature
+        $this->Ln(15);
+        
+        $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
+        $bs = [
+             1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+             'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        $tanggalStr = date('j') . ' ' . $bs[(int)date('n')] . ' ' . date('Y');
+
+        $this->SetX(120);
+        $this->Cell(60, 5, $kota . ', ' . $tanggalStr, 0, 1, 'C');
+        
+        $this->SetX(120);
+        $this->Cell(60, 5, Setting::getValue('kop_nama_kampus', 'Stikes Hang Tuah Tanjungpinang'), 0, 1, 'C');
+
+        $this->SetX(120);
+        $this->Cell(60, 5, 'Ketua', 0, 1, 'C');
+        
+        $this->Ln(25);
+        
+        // Signer Name & NIK
+        $this->SetX(120);
+        $signerName = $customSigner?->nama_lengkap ?? 'apt. Dra. Mila Abdullah, M.M';
+        $signerNik = $customSigner?->nik ?? $customSigner?->nidn ?? '12060';
+
+        $this->Cell(60, 5, $signerName, 0, 1, 'C');
+        $this->SetX(120);
+        $this->Cell(60, 5, 'NIK: ' . $signerNik, 0, 1, 'C');
 
         $filename = 'surat_aktif_kuliah_' . $mahasiswa->nim . '_' . date('YmdHis') . '.pdf';
         $path = storage_path('app/public/surat/' . $filename);
@@ -71,15 +165,6 @@ class SuratService extends BasePdfService
         $this->Output('F', $path);
         
         return $filename;
-    }
-
-    protected function addDataRow(string $label, ?string $value): void
-    {
-        $this->SetFont('Arial', '', 11);
-        $this->Cell(10, 6, '', 0, 0);
-        $this->Cell(45, 6, $label, 0, 0);
-        $this->Cell(5, 6, ':', 0, 0);
-        $this->MultiCell(0, 6, $value ?? '-', 0, 'L');
     }
 
     protected function addHeaderFromSuratService(): void

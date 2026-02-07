@@ -95,7 +95,13 @@ class Mahasiswa extends Model
     public function getTtlAttribute(): string
     {
         if ($this->tempat_lahir && $this->tanggal_lahir) {
-            return $this->tempat_lahir . ', ' . $this->tanggal_lahir->format('d F Y');
+            $months = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            ];
+            $monthName = $months[$this->tanggal_lahir->format('n')] ?? $this->tanggal_lahir->format('F');
+            return $this->tempat_lahir . ', ' . $this->tanggal_lahir->format('d') . ' ' . $monthName . ' ' . $this->tanggal_lahir->format('Y');
         }
         return '-';
     }
