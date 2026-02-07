@@ -2,7 +2,17 @@
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
+
+interface Dosen {
+    id: number;
+    nama: string;
+    nama_lengkap: string;
+    nip: string | null;
+    nidn: string | null;
+    gelar_depan: string | null;
+    gelar_belakang: string | null;
+}
 
 interface Pejabat {
     id?: number;
@@ -18,11 +28,13 @@ interface Pejabat {
     periode_akhir: string | null;
     tandatangan_path: string | null;
     is_active: boolean;
+    dosen_id: number | null;
 }
 
 const props = defineProps<{
     pejabat?: Pejabat;
     jabatanOptions: string[];
+    dosenOptions: Dosen[];
 }>();
 
 const isEditing = computed(() => !!props.pejabat?.id);
@@ -40,6 +52,21 @@ const form = useForm({
     periode_akhir: props.pejabat?.periode_akhir || '',
     tandatangan: null as File | null,
     is_active: props.pejabat?.is_active ?? true,
+    dosen_id: props.pejabat?.dosen_id || null,
+});
+
+// Watch for Dosen selection to auto-fill data
+watch(() => form.dosen_id, (newVal) => {
+    if (newVal) {
+        const selectedDosen = props.dosenOptions.find(d => d.id === newVal);
+        if (selectedDosen) {
+            form.nama = selectedDosen.nama;
+            form.nip = selectedDosen.nip || form.nip;
+            form.nidn = selectedDosen.nidn || form.nidn;
+            form.gelar_depan = selectedDosen.gelar_depan || form.gelar_depan;
+            form.gelar_belakang = selectedDosen.gelar_belakang || form.gelar_belakang;
+        }
+    }
 });
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -81,6 +108,24 @@ const handleFileChange = (event: Event) => {
 
             <div class="rounded-xl border bg-card shadow-sm p-6 max-w-2xl">
                 <form @submit.prevent="submit" class="space-y-6">
+                    
+                    <!-- Dosen Selection -->
+                    <div class="p-4 bg-muted/50 rounded-lg border">
+                        <label class="block text-sm font-medium mb-2">Ambil Data dari Dosen (Opsional)</label>
+                        <select
+                            v-model="form.dosen_id"
+                            class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-white"
+                        >
+                            <option :value="null">-- Tidak / Manual --</option>
+                            <option v-for="dosen in dosenOptions" :key="dosen.id" :value="dosen.id">
+                                {{ dosen.nama_lengkap }} ({{ dosen.nidn || dosen.nip || '-' }})
+                            </option>
+                        </select>
+                        <p class="text-xs text-muted-foreground mt-1">
+                            Memilih dosen akan otomatis mengisi Nama, Golongan, dan Gelar. Anda tetap bisa mengeditnya setelah dipilih.
+                        </p>
+                    </div>
+
                     <div class="grid md:grid-cols-2 gap-6">
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium mb-2">Nama <span class="text-red-500">*</span></label>

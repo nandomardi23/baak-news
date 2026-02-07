@@ -44,6 +44,7 @@ class PejabatController extends Controller
     {
         return Inertia::render('Admin/Pejabat/Form', [
             'jabatanOptions' => $this->getJabatanOptions(),
+            'dosenOptions' => $this->getDosenOptions(),
         ]);
     }
 
@@ -62,6 +63,7 @@ class PejabatController extends Controller
             'periode_akhir' => 'nullable|date|after:periode_awal',
             'tandatangan' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
             'is_active' => 'boolean',
+            'dosen_id' => 'nullable|exists:dosen,id',
         ]);
 
         if ($request->hasFile('tandatangan')) {
@@ -94,8 +96,10 @@ class PejabatController extends Controller
                 'periode_akhir' => $pejabat->periode_akhir?->format('Y-m-d'),
                 'tandatangan_path' => $pejabat->tandatangan_path,
                 'is_active' => $pejabat->is_active,
+                'dosen_id' => $pejabat->dosen_id,
             ],
             'jabatanOptions' => $this->getJabatanOptions(),
+            'dosenOptions' => $this->getDosenOptions(),
         ]);
     }
 
@@ -114,6 +118,7 @@ class PejabatController extends Controller
             'periode_akhir' => 'nullable|date|after:periode_awal',
             'tandatangan' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
             'is_active' => 'boolean',
+            'dosen_id' => 'nullable|exists:dosen,id',
         ]);
 
         if ($request->hasFile('tandatangan')) {
@@ -164,5 +169,22 @@ class PejabatController extends Controller
         sort($merged);
 
         return array_values($merged);
+    }
+
+    private function getDosenOptions(): array
+    {
+        return \App\Models\Dosen::active()
+            ->orderBy('nama')
+            ->get()
+            ->map(fn($dosen) => [
+                'id' => $dosen->id,
+                'nama' => $dosen->nama,
+                'nama_lengkap' => $dosen->nama_lengkap, // Assuming accessor exists
+                'nip' => $dosen->nip,
+                'nidn' => $dosen->nidn,
+                'gelar_depan' => $dosen->gelar_depan,
+                'gelar_belakang' => $dosen->gelar_belakang,
+            ])
+            ->toArray();
     }
 }

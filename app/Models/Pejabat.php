@@ -22,6 +22,7 @@ class Pejabat extends Model
         'periode_akhir',
         'tandatangan_path',
         'is_active',
+        'dosen_id',
     ];
 
     protected $casts = [
@@ -29,6 +30,11 @@ class Pejabat extends Model
         'periode_akhir' => 'date',
         'is_active' => 'boolean',
     ];
+
+    public function dosen(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Dosen::class, 'dosen_id');
+    }
 
     /**
      * Get full name with titles
