@@ -16,10 +16,22 @@ class KartuUjianService extends BasePdfService
     public function generate(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): string
     {
         $this->AddPage('P', 'A4');
-        $this->SetMargins(15, 15, 15);
+        $this->SetMargins(0, 0, 0); // Zero margins
+        $this->SetAutoPageBreak(false);
+
+        // Check for template
+        $templatePath = $this->getLatestTemplate('kartu_ujian');
+        $useTemplate = false;
+
+        if ($templatePath) {
+            $this->setSourceFile($templatePath);
+            $tplIdx = $this->importPage(1);
+            $this->useTemplate($tplIdx, 0, 0, null, null, true);
+            $useTemplate = true;
+        }
         
-        $this->addKopSurat();
-        $this->addCard($mahasiswa, $tahunAkademik, true);
+        // Render single card at top position
+        $this->addDesignCard($mahasiswa, $tahunAkademik, 0, $useTemplate);
         
         $filename = 'kartu_ujian_' . $mahasiswa->nim . '_' . $tahunAkademik->id_semester . '.pdf';
         $path = storage_path('app/public/surat/' . $filename);
@@ -30,27 +42,53 @@ class KartuUjianService extends BasePdfService
     }
 
     /**
-     * Generate batch kartu ujian for multiple students (3 per page)
+     * Generate batch kartu ujian for multiple students
+     * Layout: 2 Cards per A4 Page (Portrait) - Full Bleed
      */
     public function generateBatch(Collection $mahasiswaList, TahunAkademik $tahunAkademik): string
     {
-        $cardsPerPage = 3;
+        $cardsPerPage = 1;
         $cardCount = 0;
         
+        // Settings for layout A4
+        $cardHeight = 148.5; // Irrelevant if 1 per page, but keeping for logic
+        $marginTop = 0; 
+
+        // Check for template
+        $templatePath = $this->getLatestTemplate('kartu_ujian');
+        $tplIdx = null;
+
+        if ($templatePath) {
+            $this->setSourceFile($templatePath);
+            $tplIdx = $this->importPage(1);
+        }
+        
         foreach ($mahasiswaList as $mahasiswa) {
-            // Add new page every 3 cards
+            // Add new page for each card (cardsPerPage=1) -> $cardCount % 1 == 0 (always true)
+            // But logic was: if ($cardCount % $cardsPerPage === 0) -> AddPage
+            
             if ($cardCount % $cardsPerPage === 0) {
                 $this->AddPage('P', 'A4');
-                $this->SetMargins(10, 10, 10);
+                $this->SetMargins(0, 0, 0); 
+                $this->SetAutoPageBreak(false);
             }
             
-            // Calculate Y position for this card (each card ~90mm height)
-            $cardHeight = 90;
-            $cardIndex = $cardCount % $cardsPerPage;
-            $startY = 10 + ($cardIndex * $cardHeight);
+            // Calculate Y position
+            $positionIndex = $cardCount % $cardsPerPage;
+            $startY = $marginTop + ($positionIndex * $cardHeight);
             
+            // Draw Template Background
+            if ($tplIdx) {
+                // But code was drawing it per card? 
+                // " $this->useTemplate($tplIdx, 0, $startY, 210); "
+                // If template IS the card design, then yes.
+                // Let's stick to previous logic just updating size.
+                $this->useTemplate($tplIdx, 0, $startY, 215); 
+            }
+
+            // Draw Card Content
             $this->SetY($startY);
-            $this->addCompactCard($mahasiswa, $tahunAkademik);
+            $this->addDesignCard($mahasiswa, $tahunAkademik, $startY, !!$tplIdx);
             
             $cardCount++;
         }
@@ -64,174 +102,296 @@ class KartuUjianService extends BasePdfService
     }
 
     /**
-     * Add a full-size card with signature (single student per page)
+     * Helper to get latest template file
      */
-    private function addCard(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, bool $includeSignature = true): void
+    private function getLatestTemplate(string $type): ?string 
     {
-        // Title
-        $this->SetFont('Arial', 'B', 14);
-        $this->Cell(0, 8, 'KARTU PESERTA UJIAN', 0, 1, 'C');
-        $this->SetFont('Arial', '', 11);
-        $this->Cell(0, 6, 'Semester: ' . $tahunAkademik->nama_semester, 0, 1, 'C');
-        $this->Ln(5);
-        
-        // Student Info Block
-        $this->SetFont('Arial', '', 10);
-        $col1 = 30; $separator = 5; $col2 = 70;
-        
-        // Row 1
-        $this->Cell($col1, 6, 'NIM', 0, 0);
-        $this->Cell($separator, 6, ':', 0, 0);
-        $this->Cell($col2, 6, $mahasiswa->nim, 0, 0);
-        
-        $photoY = $this->GetY();
-        
-        $this->Cell($col1, 6, 'Program Studi', 0, 0);
-        $this->Cell($separator, 6, ':', 0, 0);
-        $this->Cell(0, 6, $mahasiswa->programStudi?->nama_prodi ?? '-', 0, 1);
-        
-        // Row 2
-        $this->Cell($col1, 6, 'Nama', 0, 0);
-        $this->Cell($separator, 6, ':', 0, 0);
-        $this->Cell($col2, 6, $mahasiswa->nama, 0, 0);
-        $this->Cell($col1, 6, 'Angkatan', 0, 0);
-        $this->Cell($separator, 6, ':', 0, 0);
-        $angkatan = $mahasiswa->angkatan ?? (strlen($mahasiswa->nim) >= 2 ? '20' . substr($mahasiswa->nim, 0, 2) : '-');
-        $this->Cell(0, 6, $angkatan, 0, 1);
-        
-        // Drawing a small box for Photo placeholder
-        $this->Rect(160, $photoY - 2, 25, 30);
-        $this->SetXY(160, $photoY + 12);
-        $this->SetFont('Arial', 'I', 8);
-        $this->Cell(25, 5, 'FOTO 3x4', 0, 0, 'C');
-        
-        $this->SetXY(15, $photoY + 12);
-        $this->Ln(15);
-        
-        // Subjects Table
-        $this->SetFont('Arial', 'B', 10);
-        $this->SetFillColor(230, 230, 230);
-        $this->Cell(10, 8, 'No', 1, 0, 'C', true);
-        $this->Cell(30, 8, 'Kode', 1, 0, 'C', true);
-        $this->Cell(95, 8, 'Mata Kuliah', 1, 0, 'C', true);
-        $this->Cell(45, 8, 'Paraf Pengawas', 1, 1, 'C', true);
-        
-        $krs = $mahasiswa->krs()
-            ->where('tahun_akademik_id', $tahunAkademik->id)
-            ->with('details.mataKuliah')
-            ->first();
-        
-        $this->SetFont('Arial', '', 10);
-        $no = 1;
-        
-        if ($krs && $krs->details->count() > 0) {
-            foreach ($krs->details as $detail) {
-                $mk = $detail->mataKuliah;
-                $row = [
-                    ['text' => (string)$no++, 'width' => 10, 'align' => 'C'],
-                    ['text' => $mk->kode_matkul ?? '-', 'width' => 30, 'align' => 'C'],
-                    ['text' => $mk->nama_matkul ?? '-', 'width' => 95, 'align' => 'L'],
-                    ['text' => '', 'width' => 45, 'align' => 'C'],
-                ];
-                $this->addRow($row, 8);
-            }
-        } else {
-            $this->Cell(180, 10, 'Belum ada data KRS / Peserta Ujian', 1, 1, 'C');
-        }
-        
-        // Notes
-        $this->Ln(5);
-        $this->SetFont('Arial', 'I', 9);
-        $this->MultiCell(0, 5, "Catatan:\n1. Kartu ini wajib dibawa saat mengikuti ujian.\n2. Mahasiswa wajib berpakaian rapi dan sopan sesuai ketentuan.\n3. Harap hadir 15 menit sebelum ujian dimulai.", 0, 'L');
-        
-        if ($includeSignature) {
-            // Signature
-            $signerId = Setting::getValue('signer_krs');
-            $signer = Pejabat::find($signerId) ?? Pejabat::active()->where('jabatan', 'like', '%Kaprodi%')->first();
-            $this->addCustomSignature($signer, 'Ketua Program Studi');
-        }
+        $dir = storage_path('app/public/template-surat');
+        if (!is_dir($dir)) return null;
+
+        $files = glob($dir . '/' . $type . '_*.pdf');
+        if (empty($files)) return null;
+
+        usort($files, function ($a, $b) {
+            return filemtime($b) - filemtime($a);
+        });
+
+        return $files[0];
     }
 
     /**
-     * Add a compact card for batch printing (3 cards per A4 page)
+     * Draw a rounded rectangle
      */
-    private function addCompactCard(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): void
+    private function RoundedRect(float $x, float $y, float $w, float $h, float $r, string $style = ''): void
+    {
+        $k = $this->k;
+        $hp = $this->h;
+        
+        if ($style == 'F') {
+            $op = 'f';
+        } elseif ($style == 'FD' || $style == 'DF') {
+            $op = 'B';
+        } else {
+            $op = 'S';
+        }
+        
+        $MyArc = 4 / 3 * (sqrt(2) - 1);
+        $this->_out(sprintf('%.2F %.2F m', ($x + $r) * $k, ($hp - $y) * $k));
+        
+        $xc = $x + $w - $r;
+        $yc = $y + $r;
+        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - $y) * $k));
+        $this->_Arc($xc + $r * $MyArc, $yc - $r, $xc + $r, $yc - $r * $MyArc, $xc + $r, $yc);
+        
+        $xc = $x + $w - $r;
+        $yc = $y + $h - $r;
+        $this->_out(sprintf('%.2F %.2F l', ($x + $w) * $k, ($hp - $yc) * $k));
+        $this->_Arc($xc + $r, $yc + $r * $MyArc, $xc + $r * $MyArc, $yc + $r, $xc, $yc + $r);
+        
+        $xc = $x + $r;
+        $yc = $y + $h - $r;
+        $this->_out(sprintf('%.2F %.2F l', $xc * $k, ($hp - ($y + $h)) * $k));
+        $this->_Arc($xc - $r * $MyArc, $yc + $r, $xc - $r, $yc + $r * $MyArc, $xc - $r, $yc);
+        
+        $xc = $x + $r;
+        $yc = $y + $r;
+        $this->_out(sprintf('%.2F %.2F l', ($x) * $k, ($hp - $yc) * $k));
+        $this->_Arc($xc - $r, $yc - $r * $MyArc, $xc - $r * $MyArc, $yc - $r, $xc, $yc - $r);
+        
+        $this->_out($op);
+    }
+    
+    private function _Arc(float $x1, float $y1, float $x2, float $y2, float $x3, float $y3): void
+    {
+        $h = $this->h;
+        $this->_out(sprintf('%.2F %.2F %.2F %.2F %.2F %.2F c',
+            $x1 * $this->k,
+            ($h - $y1) * $this->k,
+            $x2 * $this->k,
+            ($h - $y2) * $this->k,
+            $x3 * $this->k,
+            ($h - $y3) * $this->k));
+    }
+
+    /**
+     * Draw individual card with custom design
+     */
+    private function addDesignCard(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, float $startY, bool $useTemplate = false): void
     {
         $startX = 10;
-        $cardWidth = 190;
         
-        // Draw border for the card
-        $cardStartY = $this->GetY();
+        // ---------------------------------------------------------
+        // 1. Header Section (SKIP IF TEMPLATE)
+        // ---------------------------------------------------------
+        if (!$useTemplate) {
+            // Logo
+            $logoPath = public_path('images/logo.png');
+            if (!file_exists($logoPath)) {
+                $logoPath = storage_path('app/public/logo.png');
+            }
+
+            if (file_exists($logoPath)) {
+                $this->Image($logoPath, $startX + 5, $startY + 5, 20); 
+            } else {
+                $this->Rect($startX + 5, $startY + 5, 20, 20);
+                $this->SetXY($startX + 5, $startY + 12);
+                $this->SetFont('Arial', 'I', 6);
+                $this->Cell(20, 4, 'LOGO', 0, 0, 'C');
+            }
+
+            // Header Text
+            $this->SetY($startY + 5);
+            $this->SetX($startX);
+            $this->SetFont('Arial', 'I', 9);
+            $this->Cell(0, 5, 'Bidang Administrasi Akademik Kemahasiswaan', 0, 1, 'C');
+            $this->SetFont('Arial', 'B', 12);
+            $this->Cell(0, 6, 'SEKOLAH TINGGI ILMU KESEHATAN HANG TUAH', 0, 1, 'C');
+            $this->Cell(0, 6, 'TANJUNGPINANG KEPULAUAN RIAU', 0, 1, 'C');
+            $this->SetFont('Arial', '', 7);
+            $this->Cell(0, 4, 'Jl. WR. Supratman, Kelurahan Air Raja, Kecamatan Tanjungpinang Timur, Kota Tanjungpinang,', 0, 1, 'C');
+            $this->Cell(0, 4, 'Kepulauan Riau. Tlp (0771) 4440071', 0, 1, 'C');
+            
+            // Thick Line
+            $this->SetLineWidth(0.5);
+            $this->Line($startX, $startY + 32, $startX + 190, $startY + 32);
+            $this->SetLineWidth(0.2); 
+        }
+
+        // ---------------------------------------------------------
+        // 2. Student Info (ALWAYS PRINT Labels & Data)
+        // ---------------------------------------------------------
+        // ---------------------------------------------------------
+        // 2. Student Info (ALWAYS PRINT Labels & Data)
+        // ---------------------------------------------------------
+        // Lowered by request
+        $infoY = $startY + 41; 
+        $this->SetY($infoY);
+        $this->SetFont('Arial', '', 11); // Increased from 9 to 11
         
-        // Mini header with logo placeholder
-        $this->SetFont('Arial', 'B', 8);
+        $fields = [
+            'NAMA' => strtoupper($mahasiswa->nama),
+            'NIM' => $mahasiswa->nim,
+            'PRODI' => $mahasiswa->programStudi?->nama_prodi ?? '-',
+            'SEMESTER' => $tahunAkademik->nama_semester, 
+        ];
+        
+        foreach ($fields as $label => $value) {
+            $this->SetX($startX + 10);
+            $this->Cell(25, 7, $label, 0, 0); // Height 6->7
+            $this->Cell(3, 7, ':', 0, 0);     // Height 6->7
+            
+            // Value
+            $currentX = $this->GetX();
+            $currentY = $this->GetY();
+            $this->Cell(80, 7, $value, 0, 1); // Height 6->7
+            
+            // Dashed Line (Always print)
+            $lineY = $currentY + 6.5; // Adjusted for height 7
+            $this->SetLineWidth(0.1);
+            for ($i = $currentX; $i < ($currentX + 80); $i += 2) {
+                $this->Line($i, $lineY, $i+1, $lineY);
+            }
+        }
+
+        // "Kartu Ujian" Box (ALWAYS PRINT) - with rounded corners
+        $boxX = 150;
+        $boxY = $infoY;
+        $this->SetFillColor(220, 220, 220); 
+        $this->RoundedRect($boxX, $boxY, 40, 12, 2, 'DF'); // Radius 2mm
+        $this->SetXY($boxX, $boxY);
+        $this->SetFont('Arial', 'B', 12); // Font 10->12
+        $this->Cell(40, 12, 'Kartu Ujian', 0, 0, 'C');
+
+        // ---------------------------------------------------------
+        // 3. Exam Table (ALWAYS PRINT with Headers & Borders)
+        // ---------------------------------------------------------
+        $tableY = $infoY + 35; // Increased spacing
+        $this->SetY($tableY);
         $this->SetX($startX);
-        $this->Cell($cardWidth, 5, 'SEKOLAH TINGGI ILMU KESEHATAN HANG TUAH - KARTU PESERTA UJIAN', 1, 1, 'C');
         
-        // Student Info - Compact 2 column layout
-        $this->SetFont('Arial', '', 8);
-        $col1 = 20; $sep = 3; $col2 = 45; $col3 = 25; $col4 = 45;
+        $cols = [
+            ['w' => 10, 't' => 'NO'],   // Width adjusted for bigger font
+            ['w' => 45, 't' => 'TANGGAL'],
+            ['w' => 93, 't' => 'MATA KULIAH'], // Adjusted to keep total width ~190
+            ['w' => 42, 't' => 'PARAF'], 
+        ];
+
+        // Header (Always Print)
+        $this->SetFillColor(0, 191, 255); 
+        $this->SetTextColor(0, 0, 0); 
+        $this->SetFont('Arial', 'B', 10); // Font 8->10
+        foreach ($cols as $col) {
+            $this->Cell($col['w'], 7, $col['t'], 1, 0, 'C', true); // Height 6->7
+        }
+        $this->Ln();
         
-        $this->SetX($startX);
-        $this->Cell($col1, 5, 'NIM', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->Cell($col2, 5, $mahasiswa->nim, 0, 0);
-        $this->Cell($col3, 5, 'Prodi', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->Cell(0, 5, substr($mahasiswa->programStudi?->nama_prodi ?? '-', 0, 25), 0, 1);
-        
-        $this->SetX($startX);
-        $this->Cell($col1, 5, 'Nama', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->Cell($col2, 5, substr($mahasiswa->nama, 0, 30), 0, 0);
-        $this->Cell($col3, 5, 'Semester', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->Cell(0, 5, $tahunAkademik->nama_semester, 0, 1);
-        
-        // Compact subjects table
-        $this->SetFont('Arial', 'B', 7);
-        $this->SetFillColor(230, 230, 230);
-        $this->SetX($startX);
-        $this->Cell(8, 5, 'No', 1, 0, 'C', true);
-        $this->Cell(25, 5, 'Kode', 1, 0, 'C', true);
-        $this->Cell(80, 5, 'Mata Kuliah', 1, 0, 'C', true);
-        $this->Cell(35, 5, 'Hari/Tanggal', 1, 0, 'C', true);
-        $this->Cell(42, 5, 'Paraf Pengawas', 1, 1, 'C', true);
+        // Data Rows
+        $this->SetFillColor(255, 255, 255); 
+        $this->SetFont('Arial', '', 10); // Font 8->10
+        $this->SetTextColor(0, 0, 0);
         
         $krs = $mahasiswa->krs()
             ->where('tahun_akademik_id', $tahunAkademik->id)
             ->with('details.mataKuliah')
             ->first();
-        
-        $this->SetFont('Arial', '', 7);
-        $no = 1;
-        $maxRows = 8; // Limit rows to fit in compact card
+            
+        $maxRows = 8;
+        $rowCount = 0;
+        $border = 1; // Always use border
         
         if ($krs && $krs->details->count() > 0) {
-            foreach ($krs->details->take($maxRows) as $detail) {
+            foreach ($krs->details as $index => $detail) {
+                if ($rowCount >= $maxRows) break;
+                
                 $mk = $detail->mataKuliah;
                 $this->SetX($startX);
-                $this->Cell(8, 5, $no++, 1, 0, 'C');
-                $this->Cell(25, 5, $mk->kode_matkul ?? '-', 1, 0, 'C');
-                $this->Cell(80, 5, substr($mk->nama_matkul ?? '-', 0, 45), 1, 0, 'L');
-                $this->Cell(35, 5, '', 1, 0, 'C');
-                $this->Cell(42, 5, '', 1, 1, 'C');
+                
+                $this->Cell($cols[0]['w'], 7, $index + 1, $border, 0, 'C'); // Height 6->7
+                $this->Cell($cols[1]['w'], 7, '', $border, 0, 'C'); 
+                $this->Cell($cols[2]['w'], 7, substr($mk->nama_matkul ?? '-', 0, 50), $border, 0, 'L');
+                $this->Cell($cols[3]['w'], 7, '', $border, 1, 'C'); 
+                $rowCount++;
             }
-        } else {
-            $this->SetX($startX);
-            $this->Cell($cardWidth, 5, 'Belum ada data KRS', 1, 1, 'C');
         }
         
-        // Compact notes and signature line
-        $this->SetFont('Arial', 'I', 6);
+        // Fill remaining rows
+        while ($rowCount < $maxRows) {
+            $this->SetX($startX);
+            $this->Cell($cols[0]['w'], 7, $rowCount + 1, 1, 0, 'C');
+            $this->Cell($cols[1]['w'], 7, '', 1, 0, 'C');
+            $this->Cell($cols[2]['w'], 7, '', 1, 0, 'L');
+            $this->Cell($cols[3]['w'], 7, '', 1, 1, 'C');
+            $rowCount++;
+        }
+
+        // ---------------------------------------------------------
+        // 4. Footer & Signature (ALWAYS PRINT)
+        // ---------------------------------------------------------
+        $footerY = $this->GetY() + 5;
+        $this->SetY($footerY);
         $this->SetX($startX);
-        $this->Cell(100, 4, 'Catatan: Kartu ini wajib dibawa saat ujian', 0, 0, 'L');
+        $this->SetFont('Arial', 'B', 9); // Font 7->9
+        $this->Cell(20, 5, 'Catatan :', 0, 1);
+        $this->SetFont('Arial', '', 9); // Font 7->9
         
-        $this->SetFont('Arial', '', 7);
-        $this->Cell(90, 4, 'Tanda Tangan Mahasiswa: ________________', 0, 1, 'R');
+        $notes = [
+             chr(149) . " Kartu Ujian harap dibawa setiap kali ujian",
+             chr(149) . " Bagi Peserta yang tidak membawa kartu ujian tidak diperkenankan",
+             "   mengikuti ujian",
+             chr(149) . " Peserta di wajibkan menggunakan Seragam dan Atribut lengkap"
+        ];
         
-        // Draw bottom border line
-        $this->Line($startX, $this->GetY(), $startX + $cardWidth, $this->GetY());
-        $this->Ln(2);
+        foreach ($notes as $note) {
+            $this->SetX($startX);
+            $this->Cell(0, 4.5, $note, 0, 1); // Height 3.5->4.5
+        }
+        
+        // Signature
+        $sigY = $this->GetY() + 14; // Increased spacing (approx 2 enters)
+        if ($sigY < $startY + 110) $sigY = $startY + 110;
+
+        // City & Date
+        $this->SetXY(140, $sigY);
+        $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
+        
+        // Indonesian month names
+        $bulanIndo = [
+            1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+        ];
+        $tanggal = date('d') . ' ' . $bulanIndo[(int)date('n')] . ' ' . date('Y');
+        
+        $this->SetFont('Arial', '', 10); 
+        $this->Cell(50, 5, $kota . ', ' . $tanggal, 0, 1, 'C'); 
+
+        $this->SetX(140);
+        $this->SetFont('Arial', '', 10); 
+        $this->Cell(50, 5, 'Ka. BAAK', 0, 1, 'C'); 
+
+        // Name
+        $this->SetXY(140, $sigY + 25); // Adjusted to +25 for font size 10
+        $this->SetFont('Arial', 'U', 10); 
+        $kaBaak = Pejabat::where('jabatan', 'like', '%BAAK%')->first();
+        $this->Cell(50, 5, $kaBaak?->nama_lengkap ?? 'Budi Prasetyo, S.Kom', 0, 1, 'C'); 
+        
+        // NIK
+        $this->SetX(140);
+        $this->SetFont('Arial', '', 10); 
+        $this->Cell(50, 5, 'NIK : ' . ($kaBaak?->nidn ?? $kaBaak?->nip ?? '11074'), 0, 1, 'C'); 
+
+        // Batas Potong (Cut Line)
+        $cutY = $this->GetY() + 10; // Dynamic spacing 10mm after NIK
+        $this->SetY($cutY);
+        $this->SetFont('Arial', 'I', 8);
+        $this->SetTextColor(150, 150, 150);
+        
+        // Draw dashed line
+        $this->SetLineWidth(0.2);
+        // Dash pattern: 2mm line, 1mm space
+        for ($i = 5; $i < 205; $i += 3) {
+             $this->Line($i, $cutY, $i + 2, $cutY);
+        }
+        $this->Text(10, $cutY - 1, 'Batas Potong / Cut Here');
+        $this->SetTextColor(0, 0, 0); // Reset color
     }
 }

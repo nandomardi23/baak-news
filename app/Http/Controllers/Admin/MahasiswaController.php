@@ -245,7 +245,7 @@ class MahasiswaController extends Controller
             
             $path = storage_path('app/public/surat/' . $filename);
             
-            return response()->download($path, $filename, ['Content-Type' => 'application/pdf']);
+            return response()->file($path, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             \Log::error("Error generating batch kartu ujian", [
                 'semester' => $tahunAkademik->id,
@@ -281,7 +281,7 @@ class MahasiswaController extends Controller
                 return response('PDF file not found', 500);
             }
             
-            return response()->download($path, $filename, ['Content-Type' => 'application/pdf']);
+            return response()->file($path, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             \Log::error("Error generating {$type} PDF", [
                 'mahasiswa' => $mahasiswa->nim,
