@@ -5,11 +5,13 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import type { DefineComponent } from 'vue';
 import { createApp, h } from 'vue';
 import { initializeTheme } from './composables/useAppearance';
-
-// @ts-ignore
-import { ZiggyVue } from '../../vendor/tightenco/ziggy/dist/vue.m';
+import { ZiggyVue } from 'ziggy-js';
+import { route } from 'ziggy-js';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Expose route globally
+window.route = route;
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
