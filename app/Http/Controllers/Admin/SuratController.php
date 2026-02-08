@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Mahasiswa;
 use App\Models\SuratPengajuan;
 use App\Models\TahunAkademik;
@@ -109,6 +110,8 @@ class SuratController extends Controller
     {
         $surat->approve(auth()->id());
 
+        ActivityLog::log('approved', "Menyetujui pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}", $surat);
+
         return back()->with('success', 'Surat berhasil disetujui');
     }
 
@@ -119,6 +122,8 @@ class SuratController extends Controller
         ]);
 
         $surat->reject(auth()->id(), $request->catatan);
+
+        ActivityLog::log('rejected', "Menolak pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}", $surat);
 
         return back()->with('success', 'Surat ditolak');
     }
@@ -207,7 +212,10 @@ class SuratController extends Controller
 
     public function destroy(SuratPengajuan $surat): RedirectResponse
     {
+        $description = "Menghapus pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}";
         $surat->delete();
+
+        ActivityLog::log('deleted', $description);
 
         return redirect()->route('admin.surat.index')
             ->with('success', 'Pengajuan surat berhasil dihapus');

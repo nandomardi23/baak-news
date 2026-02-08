@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Pejabat;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -74,7 +75,9 @@ class PejabatController extends Controller
 
         unset($validated['tandatangan']);
 
-        Pejabat::create($validated);
+        $pejabat = Pejabat::create($validated);
+
+        ActivityLog::log('created', "Menambahkan pejabat baru: {$pejabat->nama_lengkap} ({$pejabat->jabatan})", $pejabat);
 
         return redirect()->route('admin.pejabat.index')
             ->with('success', 'Pejabat berhasil ditambahkan');
@@ -135,17 +138,23 @@ class PejabatController extends Controller
 
         $pejabat->update($validated);
 
+        ActivityLog::log('updated', "Memperbarui data pejabat: {$pejabat->nama_lengkap} ({$pejabat->jabatan})", $pejabat);
+
         return redirect()->route('admin.pejabat.index')
             ->with('success', 'Pejabat berhasil diperbarui');
     }
 
     public function destroy(Pejabat $pejabat): RedirectResponse
     {
+        $description = "Menghapus pejabat: {$pejabat->nama_lengkap} ({$pejabat->jabatan})";
+
         if ($pejabat->tandatangan_path) {
             Storage::disk('public')->delete($pejabat->tandatangan_path);
         }
 
         $pejabat->delete();
+
+        ActivityLog::log('deleted', $description);
 
         return redirect()->route('admin.pejabat.index')
             ->with('success', 'Pejabat berhasil dihapus');

@@ -26,7 +26,7 @@ const handleSearch = () => {
 
     <div class="min-h-screen bg-white text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 relative overflow-hidden">
         <!-- Background Decoration (Pemanis) -->
-        <div class="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-blue-50 via-white to-transparent -z-10 pointer-events-none"></div>
+        <div class="absolute top-0 inset-x-0 h-[600px] bg-linear-to-b from-blue-50 via-white to-transparent -z-10 pointer-events-none"></div>
         <div class="absolute -top-40 -left-20 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl -z-10"></div>
         <div class="absolute top-20 right-0 w-[500px] h-[500px] bg-cyan-400/5 rounded-full blur-3xl -z-10"></div>
 
@@ -39,7 +39,7 @@ const handleSearch = () => {
                         <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                         </div>
-                        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-blue-500">SHT-BAAK</h1>
+                        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-700 to-blue-500">SHT-BAAK</h1>
                     </div>
                     
                     <!-- Desktop Menu -->
@@ -105,7 +105,7 @@ const handleSearch = () => {
                 </span>
                 <h1 class="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
                     Selamat Datang di<br />
-                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-cyan-500">
+                    <span class="bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-cyan-500">
                         Biro Administrasi Akademik
                     </span>
                 </h1>
@@ -162,7 +162,7 @@ const handleSearch = () => {
                 
                 <div class="grid md:grid-cols-4 gap-8 relative">
                     <!-- Connector Line (Hidden on mobile) -->
-                    <div class="hidden md:block absolute top-[2.5rem] left-0 right-0 h-0.5 bg-gradient-to-r from-blue-100 via-blue-200 to-blue-100 -z-10"></div>
+                    <div class="hidden md:block absolute top-[2.5rem] left-0 right-0 h-0.5 bg-linear-to-r from-blue-100 via-blue-200 to-blue-100 -z-10"></div>
                     
                     <!-- Step 1 -->
                     <div class="relative group">

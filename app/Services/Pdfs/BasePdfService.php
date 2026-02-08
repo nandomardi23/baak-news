@@ -196,7 +196,7 @@ abstract class BasePdfService extends Fpdi
         // Let's rely on the mahasiswa->semester_ke field if available, or calculate it.
         
         // Check if we have global semester calc
-        $ta = \App\Models\TahunAkademik::where('is_active', true)->first();
+        $ta = TahunAkademik::where('is_active', true)->first();
         if ($ta) {
             $num = $this->getMahasiswaSemester($mahasiswa, $ta);
             return $this->getRomanMonth($num); // Reuse roman function for 1-12

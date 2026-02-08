@@ -21,7 +21,7 @@ const isMobileMenuOpen = ref(false);
 
     <div class="min-h-screen bg-white text-slate-800 font-sans selection:bg-blue-100 selection:text-blue-900 relative overflow-hidden">
         <!-- Background Decoration (Pemanis) -->
-        <div class="absolute top-0 inset-x-0 h-[400px] bg-gradient-to-b from-blue-50 via-white to-transparent -z-10 pointer-events-none"></div>
+        <div class="absolute top-0 inset-x-0 h-[400px] bg-linear-to-b from-blue-50 via-white to-transparent -z-10 pointer-events-none"></div>
         <div class="absolute -top-40 -left-20 w-96 h-96 bg-blue-400/10 rounded-full blur-3xl -z-10"></div>
         <div class="absolute top-20 right-0 w-[500px] h-[500px] bg-cyan-400/5 rounded-full blur-3xl -z-10"></div>
 
@@ -34,7 +34,7 @@ const isMobileMenuOpen = ref(false);
                         <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                         </div>
-                        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-blue-500">SHT-BAAK</h1>
+                        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-700 to-blue-500">SHT-BAAK</h1>
                     </Link>
                     
                     <!-- Desktop Menu -->
@@ -167,7 +167,7 @@ const isMobileMenuOpen = ref(false);
                 <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     <div v-for="p in pejabat" :key="p.id" class="bg-white rounded-2xl p-6 border border-slate-200 hover:shadow-lg transition group">
                         <div class="flex items-center gap-4">
-                            <div class="w-16 h-16 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center text-blue-600 text-xl font-bold border-2 border-white shadow-sm shrink-0">
+                            <div class="w-16 h-16 bg-linear-to-br from-blue-100 to-indigo-100 rounded-full flex items-center justify-center text-blue-600 text-xl font-bold border-2 border-white shadow-sm shrink-0">
                                 {{ p.nama.substring(0, 1) }}
                             </div>
                             <div>
