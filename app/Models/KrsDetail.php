@@ -14,11 +14,18 @@ class KrsDetail extends Model
         'mata_kuliah_id',
         'id_kelas_kuliah',
         'nama_kelas',
+        'dosen_id',
+        'nama_dosen',
     ];
 
     public function krs(): BelongsTo
     {
         return $this->belongsTo(Krs::class, 'krs_id');
+    }
+
+    public function dosen(): BelongsTo
+    {
+        return $this->belongsTo(Dosen::class, 'dosen_id');
     }
 
     public function mataKuliah(): BelongsTo

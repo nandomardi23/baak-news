@@ -285,5 +285,17 @@ class NeoFeederService
             'limit' => 1000,
         ]);
     }
+
+    /**
+     * Get Dosen Pengajar Kelas Kuliah
+     * Used to find out who teaches a specific class
+     */
+    public function getDosenPengajarKelasKuliah(string $idKelasKuliah): ?array
+    {
+        return $this->request('GetDosenPengajarKelasKuliah', [
+            'filter' => "id_kelas_kuliah = '{$idKelasKuliah}'",
+            'limit' => 10, // Usually only 1-2 lecturers per class
+        ]);
+    }
 }
 

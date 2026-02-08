@@ -125,8 +125,8 @@ class KrsService extends BasePdfService
                 $mk = $detail->mataKuliah;
                 $sks = $mk->sks_mata_kuliah ?? 0;
                 
-                // Placeholder for Dosen
-                $dosen = '-'; 
+                // Dosen Information
+                $dosen = $detail->nama_dosen ?? $detail->dosen?->nama ?? '-'; 
                 
                 $row = [
                     ['text' => $no++ . '.', 'width' => $cols['no'], 'align' => 'C'],
@@ -182,18 +182,26 @@ class KrsService extends BasePdfService
         $this->Ln(20);
         
         // Attempt to find PA if possible, otherwise placeholder
-        $signerId = Setting::getValue('signer_krs');
-        $signer = $customSigner;
-        
-        if (!$signer && $signerId) {
-             $signer = Pejabat::find($signerId);
+        $signer = $mahasiswa->dosenWali;
+        $isDosen = true; // Flag to handle property differences
+
+        if (!$signer) {
+            $isDosen = false;
+            $signerId = Setting::getValue('signer_krs');
+            $signer = $customSigner;
+            
+            if (!$signer && $signerId) {
+                 $signer = Pejabat::find($signerId);
+            }
         }
 
         // Only display if signer is found, otherwise dots
         if ($signer) {
+            $namaSigner = $isDosen ? $signer->nama : $signer->nama_lengkap;
+            
             $this->SetFont('Arial', 'BU', 9);
             $this->SetX(130);
-            $this->Cell(50, 5, strtoupper($signer->nama_lengkap), 0, 1, 'C');
+            $this->Cell(50, 5, strtoupper($namaSigner), 0, 1, 'C');
             
             $this->SetFont('Arial', '', 9);
             $this->SetX(130);

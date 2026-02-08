@@ -38,6 +38,7 @@ interface Mahasiswa {
     status: string | null;
     ipk: number | null;
     sks_tempuh: number | null;
+    dosen_wali: string | null;
 }
 
 interface KrsDetail {
@@ -45,6 +46,7 @@ interface KrsDetail {
     nama: string;
     sks: number;
     kelas: string;
+    nama_dosen: string | null;
 }
 
 interface Krs {
@@ -75,6 +77,7 @@ const props = defineProps<{
     tahunAkademik: TahunAkademik[];
     krs: Krs[];
     nilai: NilaiGroup[];
+    dosen: { id: number; nama: string }[];
 }>();
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -89,7 +92,7 @@ const selectedSemester = ref<number | null>(null);
 const isSyncing = ref(false);
 
 const syncDetail = () => {
-    if (!confirm('Update data biodata (termasuk orang tua) dari Neo Feeder?')) return;
+    if (!confirm('Update data biodata (termasmasuk orang tua) dari Neo Feeder?')) return;
     
     isSyncing.value = true;
     router.post('/admin/sync/mahasiswa/detail', { 
@@ -111,6 +114,22 @@ const syncKrs = () => {
         preserveScroll: true,
         onFinish: () => {
             isSyncingKrs.value = false;
+        },
+    });
+};
+
+const isEditingDosenWali = ref(false);
+import { useForm } from '@inertiajs/vue3';
+
+const dosenWaliForm = useForm({
+    dosen_wali_id: '' as string | number,
+});
+
+const saveDosenWali = () => {
+    dosenWaliForm.patch(`/admin/mahasiswa/${props.mahasiswa.id}`, {
+        onSuccess: () => {
+            isEditingDosenWali.value = false;
+            dosenWaliForm.reset();
         },
     });
 };
@@ -230,6 +249,39 @@ const syncKrs = () => {
                                     -
                                 </div>
                             </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Dosen Wali</label>
+                                <div class="p-2 bg-blue-50 border border-blue-200 rounded text-blue-700 font-medium">
+                                    {{ mahasiswa.dosen_wali || '-' }}
+                                    <button @click="isEditingDosenWali = true" class="ml-2 text-blue-600 hover:text-blue-800 text-xs font-semibold">
+                                        (Edit)
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                </div>
+
+                <!-- Dosen Wali Edit Modal -->
+                <div v-if="isEditingDosenWali" class="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+                    <div class="bg-white rounded-lg shadow-lg w-full max-w-md p-6">
+                        <h3 class="text-lg font-bold mb-4">Edit Dosen Wali</h3>
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Pilih Dosen Wali</label>
+                            <select v-model="dosenWaliForm.dosen_wali_id" class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="" disabled>-- Pilih Dosen --</option>
+                                <option v-for="d in dosen" :key="d.id" :value="d.id">
+                                    {{ d.nama }}
+                                </option>
+                            </select>
+                        </div>
+                        <div class="flex justify-end gap-2">
+                            <button @click="isEditingDosenWali = false" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded">Batal</button>
+                            <button @click="saveDosenWali" :disabled="dosenWaliForm.processing" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50">
+                                {{ dosenWaliForm.processing ? 'Menyimpan...' : 'Simpan' }}
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -435,6 +487,7 @@ const syncKrs = () => {
                                 <th class="px-4 py-2 text-left text-sm font-medium">Mata Kuliah</th>
                                 <th class="px-4 py-2 text-center text-sm font-medium">SKS</th>
                                 <th class="px-4 py-2 text-center text-sm font-medium">Kelas</th>
+                                <th class="px-4 py-2 text-left text-sm font-medium">Dosen Pengajar</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y">
@@ -444,6 +497,7 @@ const syncKrs = () => {
                                 <td class="px-4 py-2 text-sm">{{ detail.nama }}</td>
                                 <td class="px-4 py-2 text-sm text-center">{{ detail.sks }}</td>
                                 <td class="px-4 py-2 text-sm text-center">{{ detail.kelas }}</td>
+                                <td class="px-4 py-2 text-sm text-gray-600">{{ detail.nama_dosen || '-' }}</td>
                             </tr>
                         </tbody>
                     </table>

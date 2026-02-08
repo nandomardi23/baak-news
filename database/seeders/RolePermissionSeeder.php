@@ -41,6 +41,28 @@ class RolePermissionSeeder extends Seeder
 
             // User Management
             'manage users',
+
+            // Dosen
+            'view dosen',
+            'sync dosen',
+
+            // Akademik
+            'view prodi',
+            'sync prodi',
+            'view semester',
+            'sync semester',
+            'view matakuliah',
+            'sync matakuliah',
+
+            // Kalender Akademik
+            'view kalender',
+            'create kalender',
+            'edit kalender',
+            'delete kalender',
+
+            // Settings
+            'view settings',
+            'edit settings',
         ];
 
         foreach ($permissions as $permission) {
@@ -63,6 +85,21 @@ class RolePermissionSeeder extends Seeder
             'approve surat',
             'reject surat',
             'print surat',
+            
+            // Dosen
+            'view dosen',
+            'sync dosen',
+
+            // Akademik
+            'view prodi',
+            'sync prodi',
+            'view semester',
+            'sync semester',
+            'view matakuliah',
+            'sync matakuliah',
+
+            // Kalender
+            'view kalender',
         ]);
 
         // Create default admin user

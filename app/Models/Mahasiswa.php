@@ -55,6 +55,7 @@ class Mahasiswa extends Model
         'id_registrasi_mahasiswa',
         'ipk',
         'sks_tempuh',
+        'dosen_wali_id',
     ];
 
     protected $casts = [
@@ -62,6 +63,11 @@ class Mahasiswa extends Model
         'ipk' => 'decimal:2',
         'sks_tempuh' => 'integer',
     ];
+
+    public function dosenWali(): BelongsTo
+    {
+        return $this->belongsTo(Dosen::class, 'dosen_wali_id');
+    }
 
     public function programStudi(): BelongsTo
     {

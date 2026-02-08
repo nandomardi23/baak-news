@@ -52,6 +52,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('mahasiswa/kartu-ujian/batch/print', [MahasiswaController::class, 'printBatchKartuUjian'])->name('mahasiswa.kartu_ujian.batch');
     Route::get('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'show'])->name('mahasiswa.show');
     Route::post('mahasiswa/{mahasiswa}/sync-krs', [MahasiswaController::class, 'syncKrs'])->name('mahasiswa.sync.krs');
+    Route::patch('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'update'])->name('mahasiswa.update');
     Route::get('mahasiswa/{mahasiswa}/krs/{tahunAkademik}/print', [MahasiswaController::class, 'printKrs'])->name('mahasiswa.krs.print');
     Route::get('mahasiswa/{mahasiswa}/khs/{tahunAkademik}/print', [MahasiswaController::class, 'printKhs'])->name('mahasiswa.khs.print');
     Route::get('mahasiswa/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [MahasiswaController::class, 'printKartuUjian'])->name('mahasiswa.kartu_ujian.print');

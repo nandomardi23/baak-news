@@ -156,6 +156,7 @@ class NeoFeederSyncService
         }
 
         // Fetch all mahasiswa at once (no filter)
+        $dosenMap = Dosen::pluck('id', 'id_dosen')->toArray();
         $response = $this->neoFeeder->getMahasiswa();
 
 
@@ -178,6 +179,7 @@ class NeoFeederSyncService
                     'program_studi_id' => $prodiId,
                     'id_prodi' => $item['id_prodi'] ?? null,
                     'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'] ?? null,
+                    'dosen_wali_id' => $dosenMap[$item['id_dosen_wali'] ?? ''] ?? null,
                     // angkatan tidak ada di API, gunakan 4 digit awal id_periode (format: 20231 = 2023)
                     'angkatan' => $item['angkatan'] ?? (isset($item['id_periode']) ? substr($item['id_periode'], 0, 4) : null),
                     'status_mahasiswa' => $item['id_status_mahasiswa'] ?? 'A',
@@ -786,12 +788,42 @@ class NeoFeederSyncService
                      }
                      
                      if ($mk) {
-                        KrsDetail::create([
+                        $krsDetail = KrsDetail::create([
                              'krs_id' => $krs->id,
                              'mata_kuliah_id' => $mk->id,
                              'id_kelas_kuliah' => $idKelas,
                              'nama_kelas' => $namaKelas,
                         ]);
+
+                        // Fetch Dosen Pengajar if Kelas is set
+                        if ($idKelas && $krsDetail) {
+                            try {
+                                $dosenResponse = $this->neoFeeder->getDosenPengajarKelasKuliah($idKelas);
+                                if ($dosenResponse && !empty($dosenResponse['data'])) {
+                                    // Usually ambil dosen pertama (urutan 1)
+                                    $ajar = $dosenResponse['data'][0];
+                                    $idDosen = $ajar['id_dosen'] ?? null;
+                                    
+                                    if ($idDosen) {
+                                        // Cari local dosen
+                                        $localDosen = Dosen::where('id_dosen', $idDosen)->first();
+                                        if ($localDosen) {
+                                            $krsDetail->update([
+                                                'dosen_id' => $localDosen->id,
+                                                'nama_dosen' => $localDosen->nama_lengkap // Use accessor if avail or nama
+                                            ]);
+                                        } else {
+                                            // Fallback just name
+                                            $krsDetail->update([
+                                                'nama_dosen' => $ajar['nama_dosen'] ?? null
+                                            ]);
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                // Ignore error fetching dosen, continue
+                            }
+                        }
                      }
                 }
                 

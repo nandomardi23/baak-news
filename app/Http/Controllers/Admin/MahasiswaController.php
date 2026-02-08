@@ -57,7 +57,7 @@ class MahasiswaController extends Controller
 
     public function show(Mahasiswa $mahasiswa): Response
     {
-        $mahasiswa->load(['programStudi', 'nilai.mataKuliah', 'nilai.tahunAkademik', 'krs.details.mataKuliah', 'krs.tahunAkademik']);
+        $mahasiswa->load(['programStudi', 'dosenWali', 'nilai.mataKuliah', 'nilai.tahunAkademik', 'krs.details.mataKuliah', 'krs.details.dosen', 'krs.tahunAkademik']);
 
         // Filter: Semesters with Nilai OR Krs
         $semesterIds = $mahasiswa->nilai->pluck('tahun_akademik_id')
@@ -90,6 +90,7 @@ class MahasiswaController extends Controller
                 'status' => $mahasiswa->status_mahasiswa,
                 'ipk' => $mahasiswa->ipk !== null ? (float) $mahasiswa->ipk : null,
                 'sks_tempuh' => $mahasiswa->sks_tempuh,
+                'dosen_wali' => $mahasiswa->dosenWali?->nama_lengkap ?? $mahasiswa->dosenWali?->nama,
             ],
             'tahunAkademik' => $tahunAkademik->map(fn($ta) => [
                 'id' => $ta->id,
@@ -106,6 +107,7 @@ class MahasiswaController extends Controller
                     'nama' => $d->mataKuliah?->nama_matkul,
                     'sks' => $d->mataKuliah?->sks_mata_kuliah,
                     'kelas' => $d->nama_kelas,
+                    'nama_dosen' => $d->nama_dosen ?? $d->dosen?->nama,
                 ]),
             ]),
             'nilai' => $mahasiswa->nilai
@@ -122,7 +124,24 @@ class MahasiswaController extends Controller
                         'nilai_indeks' => $n->nilai_indeks !== null ? (float) $n->nilai_indeks : null,
                     ]),
                 ])->values(),
+            'dosen' => \App\Models\Dosen::select('id', 'nama', 'gelar_depan', 'gelar_belakang')->orderBy('nama')->get()->map(fn($d) => [
+                'id' => $d->id,
+                'nama' => $d->nama_lengkap
+            ]),
         ]);
+    }
+
+    public function update(Request $request, Mahasiswa $mahasiswa): \Illuminate\Http\RedirectResponse
+    {
+        $validated = $request->validate([
+            'dosen_wali_id' => 'required|exists:dosen,id',
+        ]);
+
+        $mahasiswa->update([
+             'dosen_wali_id' => $validated['dosen_wali_id']
+        ]);
+
+        return redirect()->back()->with('success', 'Berhasil memperbarui Dosen Wali.');
     }
 
     public function printKrs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
