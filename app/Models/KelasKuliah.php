@@ -23,6 +23,9 @@ class KelasKuliah extends Model
         'nama_mata_kuliah',
         'sks',
         'kapasitas',
+        'dosen_id',
+        'id_dosen',
+        'nama_dosen',
     ];
 
     /**

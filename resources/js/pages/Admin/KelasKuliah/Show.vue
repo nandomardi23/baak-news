@@ -144,7 +144,7 @@ const breadcrumbs: BreadcrumbItem[] = [
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{{ index + 1 }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{{ mhs.nim || '-' }}</td>
                                     <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-900">{{ mhs.nama || '-' }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{{ mhs.nama_dosen || '-' }}</td>
+                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{{ mhs.nama_dosen || kelasKuliah.dosen_pengajar || '-' }}</td>
                                 </tr>
                             </tbody>
                         </table>

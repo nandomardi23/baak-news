@@ -30,6 +30,8 @@ return new class extends Migration
             $table->foreignId('mata_kuliah_id')->constrained('mata_kuliah')->cascadeOnDelete();
             $table->string('id_kelas_kuliah')->nullable();
             $table->string('nama_kelas')->nullable();
+            $table->foreignId('dosen_id')->nullable()->constrained('dosen')->nullOnDelete();
+            $table->string('nama_dosen')->nullable();
             $table->timestamps();
             
             $table->index('krs_id');

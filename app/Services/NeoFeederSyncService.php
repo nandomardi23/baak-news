@@ -988,35 +988,44 @@ class NeoFeederSyncService
 
     /**
      * Sync Dosen Pengajar (Lecturer for each class)
-     * Updates nama_dosen and dosen_id in krs_detail based on id_kelas_kuliah
+     * Updates dosen_id and nama_dosen in kelas_kuliah table
+     * Syncs ALL kelas kuliah, not just those in KRS
      * Supports pagination with offset
      * 
      * @return array
      */
     public function syncDosenPengajar(int $offset = 0, int $limit = 100): array
     {
-        // Get unique id_kelas_kuliah that has missing nama_dosen
-        $allKelasIds = KrsDetail::whereNotNull('id_kelas_kuliah')
-            ->whereNull('nama_dosen')
-            ->distinct()
+        // Get ALL kelas kuliah that need dosen info (nama_dosen is null)
+        $allKelasIds = KelasKuliah::whereNull('nama_dosen')
+            ->whereNotNull('id_kelas_kuliah')
             ->pluck('id_kelas_kuliah')
             ->toArray();
 
         $totalAll = count($allKelasIds);
 
         if ($totalAll === 0) {
+            // Check if there are any kelas at all
+            $existingCount = KelasKuliah::count();
             return [
                 'total' => 0,
                 'synced' => 0,
                 'failed' => 0,
                 'errors' => [],
                 'total_all' => 0,
+                'existing_count' => $existingCount,
                 'offset' => $offset,
                 'next_offset' => null,
                 'has_more' => false,
                 'progress' => 100,
+                'message' => $existingCount > 0 
+                    ? 'Semua kelas sudah memiliki data dosen pengajar' 
+                    : 'Tidak ada kelas kuliah. Sync Kelas Kuliah terlebih dahulu.',
             ];
         }
+
+        // Build map for dosen lookup
+        $dosenMap = Dosen::pluck('id', 'id_dosen')->toArray();
 
         // Get batch of kelas IDs
         $kelasIds = array_slice($allKelasIds, $offset, $limit);
@@ -1034,42 +1043,43 @@ class NeoFeederSyncService
                     $data = $response['data'][0];
                     $idDosen = $data['id_dosen'] ?? null;
                     $namaDosen = $data['nama_dosen'] ?? null;
-                    $namaKelas = $data['nama_kelas_kuliah'] ?? null;
 
                     if ($namaDosen) {
                         // Find local dosen ID if exists
-                        $localDosen = null;
-                        if ($idDosen) {
-                            $localDosen = Dosen::where('id_dosen', $idDosen)->first();
-                        }
+                        $localDosenId = $dosenMap[$idDosen] ?? null;
 
-                        $updateData = [
-                            'nama_dosen' => $namaDosen,
-                        ];
-                        
-                        if ($localDosen) {
-                            $updateData['dosen_id'] = $localDosen->id;
-                        }
+                        // Update kelas_kuliah table
+                        KelasKuliah::where('id_kelas_kuliah', $idKelas)
+                            ->update([
+                                'id_dosen' => $idDosen,
+                                'dosen_id' => $localDosenId,
+                                'nama_dosen' => $namaDosen,
+                            ]);
 
-                        if ($namaKelas) {
-                            $updateData['nama_kelas'] = $namaKelas;
-                        }
-
+                        // Also update KRS Detail if exists (for backward compatibility)
                         KrsDetail::where('id_kelas_kuliah', $idKelas)
-                            ->update($updateData);
+                            ->whereNull('nama_dosen')
+                            ->update([
+                                'dosen_id' => $localDosenId,
+                                'nama_dosen' => $namaDosen,
+                            ]);
                             
                         $synced++;
                     }
+                } else {
+                    // Mark as checked (set nama_dosen to empty string)
+                    KelasKuliah::where('id_kelas_kuliah', $idKelas)
+                        ->update(['nama_dosen' => '']);
                 }
             } catch (\Exception $e) {
                 $failed++;
                 $errors[] = "Kelas $idKelas: " . $e->getMessage();
-                // Rate limit protection
+                // Rate limit protection on error
                 usleep(500000); // 500ms
             }
 
             // Simple rate limiting to avoid overwhelming Feeder
-            usleep(100000); // 100ms
+            usleep(50000); // 50ms between requests
         }
 
         $nextOffset = $offset + $limit;
@@ -1104,13 +1114,11 @@ class NeoFeederSyncService
         $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
         $semesterMap = TahunAkademik::pluck('id', 'id_semester')->toArray();
 
-        // Get total count on first request
+        // Always get total count for accurate pagination
         $totalAll = 0;
-        if ($offset === 0) {
-            $countResponse = $this->neoFeeder->getCountKelasKuliah();
-            if ($countResponse && isset($countResponse['data'])) {
-                $totalAll = (int) ($countResponse['data'] ?? 0);
-            }
+        $countResponse = $this->neoFeeder->getCountKelasKuliah();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = (int) ($countResponse['data'] ?? 0);
         }
 
         // Fetch classes from API
@@ -1183,9 +1191,10 @@ class NeoFeederSyncService
         
         gc_collect_cycles();
 
-        $hasMore = $totalFromApi === $limit; // If we got exactly limit records, there might be more
-        $nextOffset = $hasMore ? $offset + $limit : null;
-        $progress = $totalAll > 0 ? min(100, round(($offset + $totalFromApi) / $totalAll * 100)) : 100;
+        // More reliable has_more check using total count
+        $nextOffset = $offset + $totalFromApi;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($totalFromApi === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
 
         return [
             'total' => $totalFromApi,
@@ -1195,7 +1204,7 @@ class NeoFeederSyncService
             'skipped' => $skipped,
             'errors' => $allErrors,
             'offset' => $offset,
-            'next_offset' => $nextOffset,
+            'next_offset' => $hasMore ? $nextOffset : null,
             'has_more' => $hasMore,
             'total_all' => $totalAll,
             'progress' => $progress,

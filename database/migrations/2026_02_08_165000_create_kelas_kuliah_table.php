@@ -25,6 +25,11 @@ return new class extends Migration
             $table->string('nama_mata_kuliah')->nullable();
             $table->integer('sks')->nullable();
             $table->integer('kapasitas')->nullable();
+            
+            $table->foreignId('dosen_id')->nullable()->constrained('dosen')->nullOnDelete();
+            $table->string('id_dosen')->nullable()->index();
+            $table->string('nama_dosen')->nullable();
+
             $table->timestamps();
             
             $table->index(['id_semester', 'id_prodi']);

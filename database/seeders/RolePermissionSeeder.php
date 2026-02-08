@@ -104,7 +104,7 @@ class RolePermissionSeeder extends Seeder
 
         // Create default admin user
         $admin = User::firstOrCreate(
-            ['email' => 'admin@stikesht-tpi.ac.id'],
+            ['email' => 'admin@example.com'],
             [
                 'name' => 'Administrator',
                 'password' => bcrypt('password'),
@@ -114,7 +114,7 @@ class RolePermissionSeeder extends Seeder
 
         // Create staff user
         $staff = User::firstOrCreate(
-            ['email' => 'baak@stikesht-tpi.ac.id'],
+            ['email' => 'baak@example.com'],
             [
                 'name' => 'Staff BAAK',
                 'password' => bcrypt('password'),

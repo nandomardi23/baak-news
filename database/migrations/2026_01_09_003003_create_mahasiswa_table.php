@@ -26,8 +26,17 @@ return new class extends Migration
             $table->string('kode_pos')->nullable();
             $table->string('no_hp')->nullable();
             $table->string('email')->nullable();
+            $table->text('alamat_ortu')->nullable();
+            $table->string('rt_ortu')->nullable();
+            $table->string('rw_ortu')->nullable();
+            $table->string('kelurahan_ortu')->nullable();
+            $table->string('kecamatan_ortu')->nullable();
+            $table->string('kota_kabupaten_ortu')->nullable();
+            $table->string('provinsi_ortu')->nullable();
             $table->string('nama_ayah')->nullable();
+            $table->string('pekerjaan_ayah')->nullable();
             $table->string('nama_ibu')->nullable();
+            $table->string('pekerjaan_ibu')->nullable();
             $table->foreignId('program_studi_id')->nullable()->constrained('program_studi')->nullOnDelete();
             $table->string('id_prodi')->nullable()->comment('ID Prodi dari Neo Feeder');
             $table->string('angkatan')->nullable();
@@ -35,6 +44,16 @@ return new class extends Migration
             $table->string('id_registrasi_mahasiswa')->nullable()->comment('ID Registrasi dari Neo Feeder');
             $table->decimal('ipk', 4, 2)->nullable();
             $table->integer('sks_tempuh')->nullable();
+            
+            $table->string('dusun')->nullable();
+            $table->string('nik')->nullable();
+            $table->string('nisn')->nullable();
+            $table->string('npwp')->nullable();
+            $table->string('kewarganegaraan')->nullable();
+            $table->string('telepon')->nullable();
+
+            $table->foreignId('dosen_wali_id')->nullable()->constrained('dosen')->nullOnDelete();
+            
             $table->timestamps();
             
             $table->index('nim');

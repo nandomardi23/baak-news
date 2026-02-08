@@ -13,12 +13,15 @@ return new class extends Migration
             $table->string('nama');
             $table->string('nip')->nullable();
             $table->string('nidn')->nullable();
+            $table->string('nik', 16)->nullable();
             $table->string('jabatan'); // Ketua, Wakil Ketua, Kaprodi, dll
+            $table->string('pangkat_golongan')->nullable();
             $table->string('gelar_depan')->nullable();
             $table->string('gelar_belakang')->nullable();
             $table->date('periode_awal')->nullable();
             $table->date('periode_akhir')->nullable();
             $table->string('tandatangan_path')->nullable();
+            $table->foreignId('dosen_id')->nullable()->constrained('dosen')->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
         });
