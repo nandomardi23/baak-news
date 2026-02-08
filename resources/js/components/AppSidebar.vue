@@ -30,6 +30,7 @@ import {
     UserPlus,
     Cog,
     IdCard,
+    Building2,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -45,6 +46,7 @@ const navGroups = [
         items: [
             { title: 'Mahasiswa', href: '/admin/mahasiswa', icon: Users },
             { title: 'Dosen', href: '/admin/dosen', icon: GraduationCap },
+            { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah', icon: Building2 },
             { title: 'Mata Kuliah', href: '/admin/akademik/matakuliah', icon: BookOpen },
             { title: 'Semester', href: '/admin/akademik/semester', icon: Calendar },
             { title: 'Program Studi', href: '/admin/akademik/prodi', icon: School },

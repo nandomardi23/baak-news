@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Dosen;
+use App\Models\KelasKuliah;
 use App\Models\Mahasiswa;
 use App\Models\MataKuliah;
 use App\Models\Nilai;
@@ -984,5 +985,220 @@ class NeoFeederSyncService
              'progress' => $progress,
         ];
     }
-}
 
+    /**
+     * Sync Dosen Pengajar (Lecturer for each class)
+     * Updates nama_dosen and dosen_id in krs_detail based on id_kelas_kuliah
+     * Supports pagination with offset
+     * 
+     * @return array
+     */
+    public function syncDosenPengajar(int $offset = 0, int $limit = 100): array
+    {
+        // Get unique id_kelas_kuliah that has missing nama_dosen
+        $allKelasIds = KrsDetail::whereNotNull('id_kelas_kuliah')
+            ->whereNull('nama_dosen')
+            ->distinct()
+            ->pluck('id_kelas_kuliah')
+            ->toArray();
+
+        $totalAll = count($allKelasIds);
+
+        if ($totalAll === 0) {
+            return [
+                'total' => 0,
+                'synced' => 0,
+                'failed' => 0,
+                'errors' => [],
+                'total_all' => 0,
+                'offset' => $offset,
+                'next_offset' => null,
+                'has_more' => false,
+                'progress' => 100,
+            ];
+        }
+
+        // Get batch of kelas IDs
+        $kelasIds = array_slice($allKelasIds, $offset, $limit);
+        $batchCount = count($kelasIds);
+
+        $synced = 0;
+        $failed = 0;
+        $errors = [];
+
+        foreach ($kelasIds as $idKelas) {
+            try {
+                $response = $this->neoFeeder->getDosenPengajarKelasKuliah($idKelas);
+                
+                if ($response && !empty($response['data'])) {
+                    $data = $response['data'][0];
+                    $idDosen = $data['id_dosen'] ?? null;
+                    $namaDosen = $data['nama_dosen'] ?? null;
+                    $namaKelas = $data['nama_kelas_kuliah'] ?? null;
+
+                    if ($namaDosen) {
+                        // Find local dosen ID if exists
+                        $localDosen = null;
+                        if ($idDosen) {
+                            $localDosen = Dosen::where('id_dosen', $idDosen)->first();
+                        }
+
+                        $updateData = [
+                            'nama_dosen' => $namaDosen,
+                        ];
+                        
+                        if ($localDosen) {
+                            $updateData['dosen_id'] = $localDosen->id;
+                        }
+
+                        if ($namaKelas) {
+                            $updateData['nama_kelas'] = $namaKelas;
+                        }
+
+                        KrsDetail::where('id_kelas_kuliah', $idKelas)
+                            ->update($updateData);
+                            
+                        $synced++;
+                    }
+                }
+            } catch (\Exception $e) {
+                $failed++;
+                $errors[] = "Kelas $idKelas: " . $e->getMessage();
+                // Rate limit protection
+                usleep(500000); // 500ms
+            }
+
+            // Simple rate limiting to avoid overwhelming Feeder
+            usleep(100000); // 100ms
+        }
+
+        $nextOffset = $offset + $limit;
+        $hasMore = $nextOffset < $totalAll;
+        $progress = min(100, round(($offset + $batchCount) / $totalAll * 100));
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'failed' => $failed,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'batch_count' => $batchCount,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
+    }
+
+    /**
+     * Sync Kelas Kuliah (Classes) from Neo Feeder
+     * Fetches all classes and stores in kelas_kuliah table
+     * Supports pagination with offset
+     * 
+     * @return array
+     */
+    public function syncKelasKuliah(int $offset = 0, int $limit = 2000): array
+    {
+        // Build maps for lookups
+        $matkulMap = MataKuliah::pluck('id', 'id_matkul')->toArray();
+        $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
+        $semesterMap = TahunAkademik::pluck('id', 'id_semester')->toArray();
+
+        // Get total count on first request
+        $totalAll = 0;
+        if ($offset === 0) {
+            $countResponse = $this->neoFeeder->getCountKelasKuliah();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = (int) ($countResponse['data'] ?? 0);
+            }
+        }
+
+        // Fetch classes from API
+        $response = $this->neoFeeder->getAllKelasKuliah($limit, $offset);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API (timeout/connection error)');
+        }
+        
+        if (isset($response['error_code']) && $response['error_code'] != 0) {
+            throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
+        }
+
+        $data = $response['data'] ?? [];
+        $totalFromApi = count($data);
+        $totalSynced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $allErrors = [];
+
+        foreach ($data as $index => $item) {
+            try {
+                $idKelasKuliah = $item['id_kelas_kuliah'] ?? null;
+                if (!$idKelasKuliah) {
+                    $skipped++;
+                    continue;
+                }
+
+                $matkulId = $matkulMap[$item['id_matkul'] ?? ''] ?? null;
+                $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
+                $semesterId = $semesterMap[$item['id_semester'] ?? ''] ?? null;
+
+                $kelas = KelasKuliah::updateOrCreate(
+                    ['id_kelas_kuliah' => $idKelasKuliah],
+                    [
+                        'id_matkul' => $item['id_matkul'] ?? null,
+                        'mata_kuliah_id' => $matkulId,
+                        'id_prodi' => $item['id_prodi'] ?? null,
+                        'program_studi_id' => $prodiId,
+                        'id_semester' => $item['id_semester'] ?? null,
+                        'tahun_akademik_id' => $semesterId,
+                        'nama_kelas_kuliah' => $item['nama_kelas_kuliah'] ?? null,
+                        'kode_mata_kuliah' => $item['kode_mata_kuliah'] ?? null,
+                        'nama_mata_kuliah' => $item['nama_mata_kuliah'] ?? null,
+                        'sks' => $item['sks_mk'] ?? $item['sks'] ?? null,
+                        'kapasitas' => $item['kapasitas'] ?? null,
+                    ]
+                );
+
+                if ($kelas->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($kelas->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                
+                $totalSynced++;
+            } catch (\Exception $e) {
+                $namaKelas = $item['nama_kelas_kuliah'] ?? 'Unknown';
+                $allErrors[] = "Kelas {$namaKelas}: " . $e->getMessage();
+            }
+            
+            // Garbage collection every 100 records
+            if ($index % 100 === 0 && $index > 0) {
+                gc_collect_cycles();
+            }
+        }
+        
+        gc_collect_cycles();
+
+        $hasMore = $totalFromApi === $limit; // If we got exactly limit records, there might be more
+        $nextOffset = $hasMore ? $offset + $limit : null;
+        $progress = $totalAll > 0 ? min(100, round(($offset + $totalFromApi) / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $totalFromApi,
+            'synced' => $totalSynced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $allErrors,
+            'offset' => $offset,
+            'next_offset' => $nextOffset,
+            'has_more' => $hasMore,
+            'total_all' => $totalAll,
+            'progress' => $progress,
+        ];
+    }
+}

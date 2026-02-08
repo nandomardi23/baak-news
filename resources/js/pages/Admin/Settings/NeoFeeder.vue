@@ -58,6 +58,8 @@ const syncStates = reactive<Record<string, { loading: boolean; result: SyncResul
     nilai: { loading: false, result: null },
     krs: { loading: false, result: null },
     aktivitas: { loading: false, result: null },
+    kelaskuliah: { loading: false, result: null },
+    dosenpengajar: { loading: false, result: null },
 });
 
 // Accumulated counters for paginated syncs
@@ -66,6 +68,8 @@ const accumulatedStats = reactive<Record<string, { synced: number; failed: numbe
     nilai: { synced: 0, failed: 0 },
     krs: { synced: 0, failed: 0 },
     aktivitas: { synced: 0, failed: 0 },
+    kelaskuliah: { synced: 0, failed: 0 },
+    dosenpengajar: { synced: 0, failed: 0 },
 });
 
 // Sync All State
@@ -74,7 +78,7 @@ const currentSyncIndex = ref(-1);
 const syncAllProgress = ref(0);
 const syncAllErrors = ref<string[]>([]);
 
-const syncOrder = ['prodi', 'semester', 'matakuliah', 'mahasiswa', 'dosen', 'biodata', 'nilai', 'krs', 'aktivitas'];
+const syncOrder = ['prodi', 'semester', 'matakuliah', 'mahasiswa', 'dosen', 'biodata', 'nilai', 'krs', 'aktivitas', 'kelaskuliah', 'dosenpengajar'];
 
 const submit = () => {
     form.post('/admin/settings/neofeeder');
@@ -121,7 +125,7 @@ const testConnection = async () => {
 
 const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
     const state = syncStates[type];
-    const paginatedTypes = ['biodata', 'nilai', 'aktivitas', 'krs'];
+    const paginatedTypes = ['biodata', 'nilai', 'aktivitas', 'krs', 'kelaskuliah', 'dosenpengajar'];
     const isPaginated = paginatedTypes.includes(type);
     
     state.loading = true;
@@ -136,9 +140,15 @@ const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
     }
 
     try {
+        // Map type to correct route path
+        const routeMapping: Record<string, string> = {
+            'dosenpengajar': 'dosen-pengajar',
+            'kelaskuliah': 'kelas-kuliah',
+        };
+        const routePath = routeMapping[type] || type;
         const url = isPaginated
-            ? `/admin/sync/${type}?offset=${offset}`
-            : `/admin/sync/${type}`;
+            ? `/admin/sync/${routePath}?offset=${offset}`
+            : `/admin/sync/${routePath}`;
             
         const payload: any = {};
 
@@ -298,6 +308,20 @@ const syncTypes = [
         description: 'IPK dan SKS tempuh',
         icon: '📈',
         color: 'from-fuchsia-500 to-pink-500',
+    },
+    {
+        type: 'kelaskuliah',
+        label: 'Kelas Kuliah',
+        description: 'Data kelas kuliah per semester',
+        icon: '🏫',
+        color: 'from-teal-500 to-cyan-500',
+    },
+    {
+        type: 'dosenpengajar',
+        label: 'Dosen Pengajar',
+        description: 'Data dosen pengajar per kelas',
+        icon: '👨‍🏫',
+        color: 'from-rose-500 to-red-500',
     },
 ];
 

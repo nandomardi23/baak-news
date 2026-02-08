@@ -297,5 +297,126 @@ class NeoFeederService
             'limit' => 10, // Usually only 1-2 lecturers per class
         ]);
     }
+
+    /**
+     * Get Kelas Kuliah (Classes) by Semester
+     * Used to sync all classes for a specific semester
+     */
+    public function getKelasKuliah(string $idSemester, int $limit = 2000, int $offset = 0): ?array
+    {
+        return $this->request('GetListKelasKuliah', [
+            'filter' => "id_semester = '{$idSemester}'",
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get All Kelas Kuliah (no filter)
+     * Used for full sync
+     */
+    public function getAllKelasKuliah(int $limit = 2000, int $offset = 0): ?array
+    {
+        return $this->request('GetListKelasKuliah', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Detail Kelas Kuliah
+     * Used to get detailed information about a specific class
+     */
+    public function getDetailKelasKuliah(string $idKelasKuliah): ?array
+    {
+        return $this->request('GetDetailKelasKuliah', [
+            'id_kelas_kuliah' => $idKelasKuliah,
+        ]);
+    }
+
+    /**
+     * Get Peserta Kelas Kuliah (Students enrolled in a class)
+     * Used to get list of students in a specific class
+     */
+    public function getPesertaKelasKuliah(string $idKelasKuliah): ?array
+    {
+        return $this->request('GetPesertaKelasKuliah', [
+            'filter' => "id_kelas_kuliah = '{$idKelasKuliah}'",
+            'limit' => 500,
+        ]);
+    }
+
+    /**
+     * Get Count of Kelas Kuliah
+     * Used to get total count for pagination
+     */
+    public function getCountKelasKuliah(): ?array
+    {
+        return $this->request('GetCountKelasKuliah', []);
+    }
+
+    /**
+     * Get Count of Mahasiswa
+     */
+    public function getCountMahasiswa(): ?array
+    {
+        return $this->request('GetCountMahasiswa', []);
+    }
+
+    /**
+     * Get Count of Dosen
+     */
+    public function getCountDosen(): ?array
+    {
+        return $this->request('GetCountDosen', []);
+    }
+
+    /**
+     * Get Count of Mata Kuliah
+     */
+    public function getCountMataKuliah(): ?array
+    {
+        return $this->request('GetCountMataKuliah', []);
+    }
+
+    /**
+     * Get Count of Nilai Perkuliahan
+     */
+    public function getCountNilaiPerkuliahan(): ?array
+    {
+        return $this->request('GetCountNilaiPerkuliahanKelas', []);
+    }
+
+    /**
+     * Get Count of Perkuliahan Mahasiswa (for Aktivitas/KRS)
+     */
+    public function getCountPerkuliahanMahasiswa(): ?array
+    {
+        return $this->request('GetCountPerkuliahanMahasiswa', []);
+    }
+
+    /**
+     * Get Count of Dosen Pengajar Kelas Kuliah
+     */
+    public function getCountDosenPengajar(): ?array
+    {
+        return $this->request('GetCountDosenPengajarKelasKuliah', []);
+    }
+
+    /**
+     * Get Count of Program Studi
+     */
+    public function getCountProdi(): ?array
+    {
+        return $this->request('GetCountProdi', []);
+    }
+
+    /**
+     * Get Count of Biodata Mahasiswa
+     */
+    public function getCountBiodataMahasiswa(): ?array
+    {
+        return $this->request('GetCountBiodataMahasiswa', []);
+    }
 }
 

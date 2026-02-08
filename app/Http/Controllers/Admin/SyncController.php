@@ -462,6 +462,65 @@ class SyncController extends Controller
     }
 
     /**
+     * Sync Kelas Kuliah (Classes)
+     */
+    public function syncKelasKuliah(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncKelasKuliah($offset, 2000);
+
+            return $this->successResponse('Kelas Kuliah', $result['total'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'],
+                'updated' => $result['updated'],
+                'skipped' => $result['skipped'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'total_all' => $result['total_all'] ?? 0,
+                'progress' => $result['progress'] ?? 100,
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Kelas Kuliah Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Dosen Pengajar (Lecturer for each class)
+     */
+    public function syncDosenPengajar(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(1800);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncDosenPengajar($offset, 100);
+
+            return $this->successResponse('Dosen Pengajar', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => 0,
+                'updated' => $result['synced'],
+                'skipped' => 0,
+                'failed' => $result['failed'],
+                'batch_size' => $result['batch_count'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Dosen Pengajar Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
      * Build success response with optional detailed stats
      */
     private function successResponse(string $type, int $total, int $synced, array $errors, ?array $extras = null): JsonResponse
