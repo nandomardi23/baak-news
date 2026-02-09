@@ -64,7 +64,12 @@ const syncStates = reactive<Record<string, { loading: boolean; result: SyncResul
 
 // Accumulated counters for paginated syncs
 const accumulatedStats = reactive<Record<string, { synced: number; failed: number }>>({
+    prodi: { synced: 0, failed: 0 },
+    semester: { synced: 0, failed: 0 },
+    matakuliah: { synced: 0, failed: 0 },
+    mahasiswa: { synced: 0, failed: 0 },
     biodata: { synced: 0, failed: 0 },
+    dosen: { synced: 0, failed: 0 },
     nilai: { synced: 0, failed: 0 },
     krs: { synced: 0, failed: 0 },
     aktivitas: { synced: 0, failed: 0 },
@@ -125,8 +130,9 @@ const testConnection = async () => {
 
 const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
     const state = syncStates[type];
-    const paginatedTypes = ['biodata', 'nilai', 'aktivitas', 'krs', 'kelaskuliah', 'dosenpengajar'];
-    const isPaginated = paginatedTypes.includes(type);
+    // All sync types now support pagination
+    const isPaginated = true;
+    
     
     state.loading = true;
     
@@ -663,13 +669,41 @@ const connectionStatus = computed(() => {
                                         >
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
-                                        <span>{{ syncStates[sync.type].loading ? 'Syncing...' : 'Sync' }}</span>
+                                        <span v-if="syncStates[sync.type].loading && syncStates[sync.type].result?.data?.progress">
+                                            {{ syncStates[sync.type].result?.data?.progress }}%
+                                        </span>
+                                        <span v-else>{{ syncStates[sync.type].loading ? 'Syncing...' : 'Sync' }}</span>
                                     </button>
 
-                                    <!-- Result -->
-                                    <div v-if="syncStates[sync.type].result" class="mt-3">
+                                    <!-- Live Progress Bar (shown during syncing) -->
+                                    <div v-if="syncStates[sync.type].loading && syncStates[sync.type].result?.data" class="mt-3 space-y-2">
+                                        <!-- Total Count Display -->
+                                        <div v-if="syncStates[sync.type].result?.data?.total_from_api" 
+                                            class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
+                                            <span class="text-indigo-600 dark:text-indigo-400 font-medium text-xs">
+                                                📊 Total dari API: {{ syncStates[sync.type].result?.data?.total_from_api }} data
+                                            </span>
+                                        </div>
+                                        
                                         <!-- Progress Bar -->
-                                        <div v-if="['biodata', 'nilai', 'aktivitas', 'krs'].includes(sync.type) && syncStates[sync.type].result?.data?.progress" class="mb-2">
+                                        <div class="space-y-1">
+                                            <div class="flex justify-between text-xs">
+                                                <span class="text-muted-foreground">Progress</span>
+                                                <span class="font-bold text-indigo-600">{{ syncStates[sync.type].result?.data?.progress || 0 }}%</span>
+                                            </div>
+                                            <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
+                                                <div 
+                                                    :class="['h-2 rounded-full transition-all bg-linear-to-r', sync.color]"
+                                                    :style="{ width: (syncStates[sync.type].result?.data?.progress || 0) + '%' }"
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Result (shown after sync complete) -->
+                                    <div v-if="syncStates[sync.type].result && !syncStates[sync.type].loading" class="mt-3">
+                                        <!-- Final Progress Bar -->
+                                        <div v-if="syncStates[sync.type].result?.data?.progress" class="mb-2">
                                             <div class="flex justify-between text-xs mb-1">
                                                 <span class="text-muted-foreground">Progress</span>
                                                 <span class="font-medium">{{ syncStates[sync.type].result?.data?.progress }}%</span>

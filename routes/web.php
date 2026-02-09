@@ -132,28 +132,4 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
 require __DIR__.'/settings.php';
 
-// Temporary Debug Route
-Route::get('/debug-mapping', function () {
-    $service = app(\App\Services\NeoFeederService::class);
-    
-    // Get a random student with id_registrasi_mahasiswa
-    $mhs = \App\Models\Mahasiswa::whereNotNull('id_registrasi_mahasiswa')->inRandomOrder()->first();
-    
-    if (!$mhs) {
-        return "No student found with id_registrasi_mahasiswa";
-    }
-    
-    echo "<h1>Debug Data Aktivitas Kuliah</h1>";
-    echo "<h3>Mahasiswa: {$mhs->nama} ({$mhs->nim})</h3>";
-    echo "<p>ID Registrasi: {$mhs->id_registrasi_mahasiswa}</p>";
-    echo "<p>Fetching from Neo Feeder... (May take up to 60s)</p>";
-    
-    try {
-        $response = $service->getAktivitasKuliahMahasiswa($mhs->id_registrasi_mahasiswa);
-        
-        echo "<h3>Raw Response:</h3>";
-        dd($response);
-    } catch (\Exception $e) {
-        dd($e);
-    }
-});
+

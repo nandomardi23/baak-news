@@ -118,13 +118,13 @@ class NeoFeederService
     }
 
     /**
-     * Get list of mahasiswa (all, no filter - API doesn't support id_prodi filter)
+     * Get list of mahasiswa with pagination
      */
-    public function getMahasiswa(): ?array
+    public function getMahasiswa(int $limit = 2000, int $offset = 0): ?array
     {
         return $this->request('GetListMahasiswa', [
-            'limit' => 10000,
-            'offset' => 0,
+            'limit' => $limit,
+            'offset' => $offset,
         ]);
     }
 
@@ -149,28 +149,35 @@ class NeoFeederService
     }
 
     /**
-     * Get Program Studi list
+     * Get Program Studi list with pagination
      */
-    public function getProdi(): ?array
+    public function getProdi(int $limit = 100, int $offset = 0): ?array
     {
-        return $this->request('GetProdi');
+        return $this->request('GetProdi', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
     }
 
     /**
-     * Get Semester list
+     * Get Semester list with pagination
      */
-    public function getSemester(): ?array
+    public function getSemester(int $limit = 100, int $offset = 0): ?array
     {
-        return $this->request('GetSemester');
+        return $this->request('GetSemester', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
     }
 
     /**
-     * Get Mata Kuliah list (all, no filter - API doesn't support id_prodi filter)
+     * Get Mata Kuliah list with pagination
      */
-    public function getMataKuliah(): ?array
+    public function getMataKuliah(int $limit = 2000, int $offset = 0): ?array
     {
         return $this->request('GetListMataKuliah', [
-            'limit' => 10000,
+            'limit' => $limit,
+            'offset' => $offset,
         ]);
     }
 
@@ -246,12 +253,13 @@ class NeoFeederService
     }
 
     /**
-     * Get list of dosen (all, no filter)
+     * Get list of dosen with pagination
      */
-    public function getDosen(): ?array
+    public function getDosen(int $limit = 500, int $offset = 0): ?array
     {
         return $this->request('GetListDosen', [
-            'limit' => 10000,
+            'limit' => $limit,
+            'offset' => $offset,
         ]);
     }
 
@@ -417,6 +425,14 @@ class NeoFeederService
     public function getCountBiodataMahasiswa(): ?array
     {
         return $this->request('GetCountBiodataMahasiswa', []);
+    }
+
+    /**
+     * Get Count of Semester
+     */
+    public function getCountSemester(): ?array
+    {
+        return $this->request('GetCountSemester', []);
     }
 }
 

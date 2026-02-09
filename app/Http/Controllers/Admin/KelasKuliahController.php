@@ -78,18 +78,17 @@ class KelasKuliahController extends Controller
         ]);
     }
 
-    public function show(KelasKuliah $kelasKuliah): Response
+    public function show(KelasKuliah $kelasKuliah, NeoFeederService $neoFeeder): Response
     {
         $kelasKuliah->load([
             'programStudi', 
             'mataKuliah', 
             'tahunAkademik', 
             'dosenPengajar',
-            'krsDetails.krs.mahasiswa'
+            'krsDetails.krs.mahasiswa.programStudi'
         ]);
 
         // Get Peserta List from local KRS data
-        // This is much faster than fetching from API every time
         $peserta = $kelasKuliah->krsDetails->map(fn($krsDetail) => [
             'id' => $krsDetail->id,
             'nim' => $krsDetail->krs?->mahasiswa?->nim,
@@ -97,6 +96,24 @@ class KelasKuliahController extends Controller
             'angkatan' => $krsDetail->krs?->mahasiswa?->angkatan,
             'prodi' => $krsDetail->krs?->mahasiswa?->programStudi?->nama_prodi,
         ])->filter(fn($m) => $m['nim'] !== null)->values();
+
+        // If no local data, try fetching from API
+        if ($peserta->isEmpty() && $kelasKuliah->id_kelas_kuliah) {
+            try {
+                $apiResponse = $neoFeeder->getPesertaKelasKuliah($kelasKuliah->id_kelas_kuliah);
+                if ($apiResponse && !empty($apiResponse['data'])) {
+                    $peserta = collect($apiResponse['data'])->map(fn($item) => [
+                        'id' => $item['id_registrasi_mahasiswa'] ?? null,
+                        'nim' => $item['nim'] ?? null,
+                        'nama' => $item['nama_mahasiswa'] ?? null,
+                        'angkatan' => $item['angkatan'] ?? null,
+                        'prodi' => $item['nama_program_studi'] ?? null,
+                    ])->values();
+                }
+            } catch (\Exception $e) {
+                // Ignore API errors, just show empty
+            }
+        }
 
         return Inertia::render('Admin/KelasKuliah/Show', [
             'kelasKuliah' => [
@@ -123,6 +140,7 @@ class KelasKuliahController extends Controller
             ],
         ]);
     }
+
 
     public function destroy(KelasKuliah $kelasKuliah)
     {

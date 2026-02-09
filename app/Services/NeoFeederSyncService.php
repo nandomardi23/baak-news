@@ -23,94 +23,311 @@ class NeoFeederSyncService
     }
 
     /**
-     * Sync Program Studi
+     * Sync Program Studi with pagination
+     * Uses GetCount first, then fetches data with progress
      *
-     * @return array{total: int, synced: int, inserted: int, updated: int, skipped: int, errors: array}
+     * @return array
      */
-    public function syncProdi(): array
+    public function syncProdi(int $offset = 0, int $limit = 100): array
     {
-        $response = $this->neoFeeder->getProdi();
-        return $this->processResponse($response, 'Program Studi', function ($item) {
-            $existing = ProgramStudi::where('id_prodi', $item['id_prodi'])->first();
-            
-            $data = [
-                'kode_prodi' => $item['kode_program_studi'] ?? '',
-                'nama_prodi' => $item['nama_program_studi'] ?? '',
-                'jenjang' => $item['jenjang_pendidikan'] ?? '',
-                'jenis_program' => $item['jenis_program'] ?? 'reguler',
-                'is_active' => true,
-            ];
-            
-            if (!$existing) {
-                ProgramStudi::create(array_merge(['id_prodi' => $item['id_prodi']], $data));
-                return 'inserted';
-            }
-            
-            // Check if any data changed
-            $hasChanges = false;
-            foreach ($data as $key => $value) {
-                if ($existing->$key != $value) {
-                    $hasChanges = true;
-                    break;
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountProdi();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getProdi($limit, $offset);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        if (isset($response['error_code']) && $response['error_code'] != 0) {
+            throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $item) {
+            try {
+                $existing = ProgramStudi::where('id_prodi', $item['id_prodi'])->first();
+                
+                $itemData = [
+                    'kode_prodi' => $item['kode_program_studi'] ?? '',
+                    'nama_prodi' => $item['nama_program_studi'] ?? '',
+                    'jenjang' => $item['jenjang_pendidikan'] ?? '',
+                    'jenis_program' => $item['jenis_program'] ?? 'reguler',
+                    'is_active' => true,
+                ];
+                
+                if (!$existing) {
+                    ProgramStudi::create(array_merge(['id_prodi' => $item['id_prodi']], $itemData));
+                    $inserted++;
+                } else {
+                    $hasChanges = false;
+                    foreach ($itemData as $key => $value) {
+                        if ($existing->$key != $value) {
+                            $hasChanges = true;
+                            break;
+                        }
+                    }
+                    
+                    if ($hasChanges) {
+                        $existing->update($itemData);
+                        $updated++;
+                    } else {
+                        $skipped++;
+                    }
                 }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "Prodi {$item['nama_program_studi']}: " . $e->getMessage();
             }
-            
-            if ($hasChanges) {
-                $existing->update($data);
-                return 'updated';
-            }
-            
-            return 'skipped';
-        }, 'nama_program_studi');
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
     }
 
     /**
-     * Sync Semester
-     *
-     * @return array{total: int, synced: int, errors: array}
+     * Helper to extract count from various API response formats
      */
-    public function syncSemester(): array
+    protected function extractCount($data): int
     {
-        $response = $this->neoFeeder->getSemester();
+        if (is_array($data)) {
+            if (isset($data[0]) && is_array($data[0])) {
+                $first = $data[0];
+                return (int) ($first['total'] ?? $first['count'] ?? $first['record'] ?? $first['jumlah'] ?? 0);
+            }
+            return (int) ($data['total'] ?? $data['count'] ?? $data['record'] ?? $data['jumlah'] ?? 0);
+        }
+        return (int) $data;
+    }
+
+    /**
+     * Sync Semester with pagination
+     * Uses GetCount first, then fetches data with progress
+     *
+     * @return array
+     */
+    public function syncSemester(int $offset = 0, int $limit = 100): array
+    {
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountSemester();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getSemester($limit, $offset);
         
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        if (isset($response['error_code']) && $response['error_code'] != 0) {
+            throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
+        }
+
         // Calculate filter range
         $currentYear = date('Y');
         $maxSemesterId = ($currentYear + 1) . '3';
         $minSemesterId = '20151';
 
-        return $this->processResponse($response, 'Semester', function ($item) use ($minSemesterId, $maxSemesterId) {
-            $idSemester = $item['id_semester'] ?? '';
-            
-            // Filter garbage/future data
-            if ($idSemester < $minSemesterId || $idSemester > $maxSemesterId) {
-                return; // Skip this item
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $item) {
+            try {
+                $idSemester = $item['id_semester'] ?? '';
+                
+                // Filter garbage/future data
+                if ($idSemester < $minSemesterId || $idSemester > $maxSemesterId) {
+                    $skipped++;
+                    continue;
+                }
+
+                $namaSemester = $item['nama_semester'] ?? '';
+                preg_match('/(\d{4})/', $namaSemester, $matches);
+                $tahun = $matches[1] ?? 0;
+                $sem = str_contains(strtolower($namaSemester), 'ganjil') ? 'ganjil' : 'genap';
+
+                $semester = TahunAkademik::updateOrCreate(
+                    ['id_semester' => $item['id_semester']],
+                    [
+                        'nama_semester' => $namaSemester,
+                        'tahun' => $tahun,
+                        'semester' => $sem,
+                        'is_active' => $item['a_periode_aktif'] ?? 0,
+                        'tanggal_mulai' => $item['tanggal_mulai'] ?? null,
+                        'tanggal_selesai' => $item['tanggal_selesai'] ?? null,
+                    ]
+                );
+
+                if ($semester->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($semester->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "Semester {$item['id_semester']}: " . $e->getMessage();
+            }
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
+    }
+
+    /**
+     * Sync Mata Kuliah with pagination
+     * Uses GetCount first, then fetches data with progress
+     *
+     * @return array
+     */
+    public function syncMataKuliah(int $offset = 0, int $limit = 2000): array
+    {
+        // Build a map of id_prodi => local ProgramStudi id
+        $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
+        
+        if (empty($prodiMap)) {
+            throw new \Exception('Tidak ada Program Studi. Sync Program Studi terlebih dahulu.');
+        }
+
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountMataKuliah();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getMataKuliah($limit, $offset);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        if (isset($response['error_code']) && $response['error_code'] != 0) {
+            throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $index => $item) {
+            try {
+                $prodiId = $prodiMap[$item['id_prodi']] ?? null;
+                
+                $mk = MataKuliah::updateOrCreate(
+                    ['id_matkul' => $item['id_matkul']],
+                    [
+                        'kode_matkul' => $item['kode_mata_kuliah'] ?? '',
+                        'nama_matkul' => $item['nama_mata_kuliah'] ?? '',
+                        'sks_mata_kuliah' => (int) ($item['sks_mata_kuliah'] ?? 0),
+                        'sks_tatap_muka' => (int) ($item['sks_tatap_muka'] ?? 0),
+                        'sks_praktek' => (int) ($item['sks_praktek'] ?? 0),
+                        'sks_praktek_lapangan' => (int) ($item['sks_praktek_lapangan'] ?? 0),
+                        'sks_simulasi' => (int) ($item['sks_simulasi'] ?? 0),
+                        'program_studi_id' => $prodiId,
+                        'id_prodi' => $item['id_prodi'] ?? null,
+                    ]
+                );
+
+                if ($mk->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($mk->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "MataKuliah {$item['nama_mata_kuliah']}: " . $e->getMessage();
             }
 
-            $namaSemester = $item['nama_semester'] ?? '';
-            preg_match('/(\d{4})/', $namaSemester, $matches);
-            $tahun = $matches[1] ?? 0;
-            $sem = str_contains(strtolower($namaSemester), 'ganjil') ? 'ganjil' : 'genap';
+            // Garbage collection every 500 records
+            if ($index % 500 === 0 && $index > 0) {
+                gc_collect_cycles();
+            }
+        }
 
-            TahunAkademik::updateOrCreate(
-                ['id_semester' => $item['id_semester']],
-                [
-                    'nama_semester' => $namaSemester,
-                    'tahun' => $tahun,
-                    'semester' => $sem,
-                    'is_active' => $item['a_periode_aktif'] ?? 0,
-                    'tanggal_mulai' => $item['tanggal_mulai'] ?? null,
-                    'tanggal_selesai' => $item['tanggal_selesai'] ?? null,
-                ]
-            );
-        }, 'id_semester');
+        gc_collect_cycles();
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
     }
 
     /**
-     * Sync Mata Kuliah
+     * Sync Mahasiswa with pagination
+     * Uses GetCount first, then fetches data with progress
      *
-     * @return array{total: int, synced: int, errors: array}
+     * @return array
      */
-    public function syncMataKuliah(): array
+    public function syncMahasiswa(int $offset = 0, int $limit = 2000): array
     {
         // Build a map of id_prodi => local ProgramStudi id
         $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
@@ -119,77 +336,98 @@ class NeoFeederSyncService
             throw new \Exception('Tidak ada Program Studi. Sync Program Studi terlebih dahulu.');
         }
 
-        // Fetch all mata kuliah at once (no filter)
-        $response = $this->neoFeeder->getMataKuliah();
-        
-        return $this->processResponse($response, 'Mata Kuliah', function ($item) use ($prodiMap) {
-            $prodiId = $prodiMap[$item['id_prodi']] ?? null;
-            
-            MataKuliah::updateOrCreate(
-                ['id_matkul' => $item['id_matkul']],
-                [
-                    'kode_matkul' => $item['kode_mata_kuliah'] ?? '',
-                    'nama_matkul' => $item['nama_mata_kuliah'] ?? '',
-                    'sks_mata_kuliah' => (int) ($item['sks_mata_kuliah'] ?? 0),
-                    'sks_tatap_muka' => (int) ($item['sks_tatap_muka'] ?? 0),
-                    'sks_praktek' => (int) ($item['sks_praktek'] ?? 0),
-                    'sks_praktek_lapangan' => (int) ($item['sks_praktek_lapangan'] ?? 0),
-                    'sks_simulasi' => (int) ($item['sks_simulasi'] ?? 0),
-                    'program_studi_id' => $prodiId,
-                    'id_prodi' => $item['id_prodi'] ?? null,
-                ]
-            );
-        }, 'nama_mata_kuliah');
-    }
-
-    /**
-     * Sync Mahasiswa
-     *
-     * @return array{total: int, synced: int, errors: array}
-     */
-    public function syncMahasiswa(): array
-    {
-        // Build a map of id_prodi => local ProgramStudi id
-        $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
-        
-        if (empty($prodiMap)) {
-            throw new \Exception('Tidak ada Program Studi. Sync Program Studi terlebih dahulu.');
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountMahasiswa();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
         }
 
-        // Fetch all mahasiswa at once (no filter)
         $dosenMap = Dosen::pluck('id', 'id_dosen')->toArray();
-        $response = $this->neoFeeder->getMahasiswa();
+        $response = $this->neoFeeder->getMahasiswa($limit, $offset);
 
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
 
-        return $this->processResponse($response, 'Mahasiswa', function ($item) use ($prodiMap) {
-            $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
-            
-            Mahasiswa::updateOrCreate(
-                ['id_mahasiswa' => $item['id_mahasiswa'] ?? $item['id_registrasi_mahasiswa'] ?? null],
-                [
-                    'nim' => $item['nim'] ?? '',
-                    'nama' => $item['nama_mahasiswa'] ?? '',
-                    'tempat_lahir' => $item['tempat_lahir'] ?? null,
-                    'tanggal_lahir' => isset($item['tanggal_lahir']) ? \Carbon\Carbon::parse($item['tanggal_lahir']) : null,
-                    'jenis_kelamin' => $item['jenis_kelamin'] ?? null,
-                    'alamat' => $item['jalan'] ?? null,
-                    'no_hp' => $item['handphone'] ?? null,
-                    'email' => $item['email'] ?? null,
-                    'nama_ayah' => $item['nama_ayah'] ?? null,
-                    'nama_ibu' => $item['nama_ibu_kandung'] ?? null,
-                    'program_studi_id' => $prodiId,
-                    'id_prodi' => $item['id_prodi'] ?? null,
-                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'] ?? null,
-                    'dosen_wali_id' => $dosenMap[$item['id_dosen_wali'] ?? ''] ?? null,
-                    // angkatan tidak ada di API, gunakan 4 digit awal id_periode (format: 20231 = 2023)
-                    'angkatan' => $item['angkatan'] ?? (isset($item['id_periode']) ? substr($item['id_periode'], 0, 4) : null),
-                    'status_mahasiswa' => $item['id_status_mahasiswa'] ?? 'A',
-                    'pekerjaan_ayah' => $item['nama_pekerjaan_ayah'] ?? null,
-                    'pekerjaan_ibu' => $item['nama_pekerjaan_ibu'] ?? null,
-                    'alamat_ortu' => $item['alamat_ayah'] ?? $item['alamat_ibu'] ?? null,
-                ]
-            );
-        }, 'nim');
+        if (isset($response['error_code']) && $response['error_code'] != 0) {
+            throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $index => $item) {
+            try {
+                $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
+                
+                $mhs = Mahasiswa::updateOrCreate(
+                    ['id_mahasiswa' => $item['id_mahasiswa'] ?? $item['id_registrasi_mahasiswa'] ?? null],
+                    [
+                        'nim' => $item['nim'] ?? '',
+                        'nama' => $item['nama_mahasiswa'] ?? '',
+                        'tempat_lahir' => $item['tempat_lahir'] ?? null,
+                        'tanggal_lahir' => isset($item['tanggal_lahir']) ? \Carbon\Carbon::parse($item['tanggal_lahir']) : null,
+                        'jenis_kelamin' => $item['jenis_kelamin'] ?? null,
+                        'alamat' => $item['jalan'] ?? null,
+                        'no_hp' => $item['handphone'] ?? null,
+                        'email' => $item['email'] ?? null,
+                        'nama_ayah' => $item['nama_ayah'] ?? null,
+                        'nama_ibu' => $item['nama_ibu_kandung'] ?? null,
+                        'program_studi_id' => $prodiId,
+                        'id_prodi' => $item['id_prodi'] ?? null,
+                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'] ?? null,
+                        'dosen_wali_id' => $dosenMap[$item['id_dosen_wali'] ?? ''] ?? null,
+                        'angkatan' => $item['angkatan'] ?? (isset($item['id_periode']) ? substr($item['id_periode'], 0, 4) : null),
+                        'status_mahasiswa' => $item['id_status_mahasiswa'] ?? 'A',
+                        'pekerjaan_ayah' => $item['nama_pekerjaan_ayah'] ?? null,
+                        'pekerjaan_ibu' => $item['nama_pekerjaan_ibu'] ?? null,
+                        'alamat_ortu' => $item['alamat_ayah'] ?? $item['alamat_ibu'] ?? null,
+                    ]
+                );
+
+                if ($mhs->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($mhs->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "Mahasiswa {$item['nim']}: " . $e->getMessage();
+            }
+
+            // Garbage collection every 500 records
+            if ($index % 500 === 0 && $index > 0) {
+                gc_collect_cycles();
+            }
+        }
+
+        gc_collect_cycles();
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
     }
 
     /**
@@ -269,40 +507,94 @@ class NeoFeederSyncService
     }
 
     /**
-     * Sync Dosen
+     * Sync Dosen with pagination
+     * Uses GetCount first, then fetches data with progress
      *
-     * @return array{total: int, synced: int, errors: array}
+     * @return array
      */
-    public function syncDosen(): array
+    public function syncDosen(int $offset = 0, int $limit = 500): array
     {
         // Build a map of id_prodi => local ProgramStudi id
         $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
 
-        // Fetch all dosen at once (no filter)
-        $response = $this->neoFeeder->getDosen();
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountDosen();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getDosen($limit, $offset);
         
-        return $this->processResponse($response, 'Dosen', function ($item) use ($prodiMap) {
-            $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
-            
-            Dosen::updateOrCreate(
-                ['id_dosen' => $item['id_dosen']],
-                [
-                    'nidn' => $item['nidn'] ?? null,
-                    'nip' => $item['nip'] ?? null,
-                    'nama' => $item['nama_dosen'] ?? '',
-                    'gelar_depan' => $item['gelar_depan'] ?? null,
-                    'gelar_belakang' => $item['gelar_belakang'] ?? null,
-                    'jenis_kelamin' => $item['jenis_kelamin'] ?? null,
-                    'tempat_lahir' => $item['tempat_lahir'] ?? null,
-                    'tanggal_lahir' => isset($item['tanggal_lahir']) ? \Carbon\Carbon::parse($item['tanggal_lahir']) : null,
-                    'jabatan_fungsional' => $item['nama_jabatan_fungsional'] ?? null,
-                    'id_status_aktif' => $item['id_status_aktif'] ?? null,
-                    'status_aktif' => $item['nama_status_aktif'] ?? null,
-                    'program_studi_id' => $prodiId,
-                    'id_prodi' => $item['id_prodi'] ?? null,
-                ]
-            );
-        }, 'nama_dosen');
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        if (isset($response['error_code']) && $response['error_code'] != 0) {
+            throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $item) {
+            try {
+                $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
+                
+                $dosen = Dosen::updateOrCreate(
+                    ['id_dosen' => $item['id_dosen']],
+                    [
+                        'nidn' => $item['nidn'] ?? null,
+                        'nip' => $item['nip'] ?? null,
+                        'nama' => $item['nama_dosen'] ?? '',
+                        'gelar_depan' => $item['gelar_depan'] ?? null,
+                        'gelar_belakang' => $item['gelar_belakang'] ?? null,
+                        'jenis_kelamin' => $item['jenis_kelamin'] ?? null,
+                        'tempat_lahir' => $item['tempat_lahir'] ?? null,
+                        'tanggal_lahir' => isset($item['tanggal_lahir']) ? \Carbon\Carbon::parse($item['tanggal_lahir']) : null,
+                        'jabatan_fungsional' => $item['nama_jabatan_fungsional'] ?? null,
+                        'id_status_aktif' => $item['id_status_aktif'] ?? null,
+                        'status_aktif' => $item['nama_status_aktif'] ?? null,
+                        'program_studi_id' => $prodiId,
+                        'id_prodi' => $item['id_prodi'] ?? null,
+                    ]
+                );
+
+                if ($dosen->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($dosen->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "Dosen {$item['nama_dosen']}: " . $e->getMessage();
+            }
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
     }
 
     /**
@@ -1014,6 +1306,7 @@ class NeoFeederSyncService
                 'failed' => 0,
                 'errors' => [],
                 'total_all' => 0,
+                'batch_count' => 0,
                 'offset' => $offset,
                 'next_offset' => null,
                 'has_more' => false,
@@ -1165,8 +1458,24 @@ class NeoFeederSyncService
         // Always get total count for accurate pagination
         $totalAll = 0;
         $countResponse = $this->neoFeeder->getCountKelasKuliah();
+        
         if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = (int) ($countResponse['data'] ?? 0);
+            $data = $countResponse['data'];
+            
+            if (is_array($data)) {
+                // Check if wrapped in array typical of NeoFeeder list responses
+                if (isset($data[0]) && is_array($data[0])) {
+                     $first = $data[0];
+                     // Common keys for count: total, count, record, jumlah
+                     $totalAll = (int) ($first['total'] ?? $first['count'] ?? $first['record'] ?? $first['jumlah'] ?? 0);
+                } else {
+                     // Direct keys
+                     $totalAll = (int) ($data['total'] ?? $data['count'] ?? $data['record'] ?? $data['jumlah'] ?? 0);
+                }
+            } else {
+                // Scalar
+                $totalAll = (int) $data;
+            }
         }
 
         // Fetch classes from API
@@ -1243,6 +1552,8 @@ class NeoFeederSyncService
         $nextOffset = $offset + $totalFromApi;
         $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($totalFromApi === $limit);
         $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        \Log::info("Sync Kelas Kuliah: offset=$offset, totalFromApi=$totalFromApi, totalAll=$totalAll, nextOffset=$nextOffset, hasMore=" . ($hasMore ? 'true' : 'false'));
 
         return [
             'total' => $totalFromApi,

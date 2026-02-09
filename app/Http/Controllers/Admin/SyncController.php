@@ -11,19 +11,26 @@ use Illuminate\Http\Request;
 class SyncController extends Controller
 {
     /**
-     * Sync Program Studi
+     * Sync Program Studi (with pagination)
      */
-    public function syncProdi(NeoFeederSyncService $syncService): JsonResponse
+    public function syncProdi(Request $request, NeoFeederSyncService $syncService): JsonResponse
     {
-        // Release session lock so other requests can proceed
         session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
         
         try {
-            $result = $syncService->syncProdi();
-            return $this->successResponse('Program Studi', $result['total'], $result['synced'], $result['errors'], [
+            $result = $syncService->syncProdi($offset);
+            return $this->successResponse('Program Studi', $result['total_all'], $result['synced'], $result['errors'], [
                 'inserted' => $result['inserted'] ?? 0,
                 'updated' => $result['updated'] ?? 0,
                 'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Prodi Error', ['message' => $e->getMessage()]);
@@ -32,18 +39,26 @@ class SyncController extends Controller
     }
 
     /**
-     * Sync Semester
+     * Sync Semester (with pagination)
      */
-    public function syncSemester(NeoFeederSyncService $syncService): JsonResponse
+    public function syncSemester(Request $request, NeoFeederSyncService $syncService): JsonResponse
     {
         session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
         
         try {
-            $result = $syncService->syncSemester();
-            return $this->successResponse('Semester', $result['total'], $result['synced'], $result['errors'], [
+            $result = $syncService->syncSemester($offset);
+            return $this->successResponse('Semester', $result['total_all'], $result['synced'], $result['errors'], [
                 'inserted' => $result['inserted'] ?? 0,
                 'updated' => $result['updated'] ?? 0,
                 'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Semester Error', ['message' => $e->getMessage()]);
@@ -52,18 +67,26 @@ class SyncController extends Controller
     }
 
     /**
-     * Sync Mata Kuliah
+     * Sync Mata Kuliah (with pagination)
      */
-    public function syncMataKuliah(NeoFeederSyncService $syncService): JsonResponse
+    public function syncMataKuliah(Request $request, NeoFeederSyncService $syncService): JsonResponse
     {
         session()->save();
+        set_time_limit(600);
+        
+        $offset = (int) $request->input('offset', 0);
         
         try {
-            $result = $syncService->syncMataKuliah();
-            return $this->successResponse('Mata Kuliah', $result['total'], $result['synced'], $result['errors'], [
+            $result = $syncService->syncMataKuliah($offset);
+            return $this->successResponse('Mata Kuliah', $result['total_all'], $result['synced'], $result['errors'], [
                 'inserted' => $result['inserted'] ?? 0,
                 'updated' => $result['updated'] ?? 0,
                 'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Mata Kuliah Error', ['message' => $e->getMessage()]);
@@ -72,21 +95,57 @@ class SyncController extends Controller
     }
 
     /**
-     * Sync Mahasiswa
+     * Sync Mahasiswa (with pagination)
      */
-    public function syncMahasiswa(NeoFeederSyncService $syncService): JsonResponse
+    public function syncMahasiswa(Request $request, NeoFeederSyncService $syncService): JsonResponse
     {
         session()->save();
+        set_time_limit(600);
+        
+        $offset = (int) $request->input('offset', 0);
         
         try {
-            $result = $syncService->syncMahasiswa();
-            return $this->successResponse('Mahasiswa', $result['total'], $result['synced'], $result['errors'], [
+            $result = $syncService->syncMahasiswa($offset);
+            return $this->successResponse('Mahasiswa', $result['total_all'], $result['synced'], $result['errors'], [
                 'inserted' => $result['inserted'] ?? 0,
                 'updated' => $result['updated'] ?? 0,
                 'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
             ]);
         } catch (\Exception $e) {
             Log::error('Sync Mahasiswa Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Dosen (with pagination)
+     */
+    public function syncDosen(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncDosen($offset);
+            return $this->successResponse('Dosen', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Dosen Error', ['message' => $e->getMessage()]);
             return $this->errorResponse($e->getMessage());
         }
     }
@@ -442,26 +501,6 @@ class SyncController extends Controller
     }
 
     /**
-     * Sync Dosen
-     */
-    public function syncDosen(NeoFeederSyncService $syncService): JsonResponse
-    {
-        session()->save();
-        
-        try {
-            $result = $syncService->syncDosen();
-            return $this->successResponse('Dosen', $result['total'], $result['synced'], $result['errors'], [
-                'inserted' => $result['inserted'] ?? 0,
-                'updated' => $result['updated'] ?? 0,
-                'skipped' => $result['skipped'] ?? 0,
-            ]);
-        } catch (\Exception $e) {
-            Log::error('Sync Dosen Error', ['message' => $e->getMessage()]);
-            return $this->errorResponse($e->getMessage());
-        }
-    }
-
-    /**
      * Sync Kelas Kuliah (Classes)
      */
     public function syncKelasKuliah(Request $request, NeoFeederSyncService $syncService): JsonResponse
@@ -534,12 +573,11 @@ class SyncController extends Controller
             'failed' => count($errors),
             'errors' => array_slice($errors, 0, 10),
         ];
-        
+
         // Add detailed stats if available
         if ($extras !== null) {
-            if (isset($extras['inserted'])) $data['inserted'] = $extras['inserted'];
-            if (isset($extras['updated'])) $data['updated'] = $extras['updated'];
-            if (isset($extras['skipped'])) $data['skipped'] = $extras['skipped'];
+            // Merge all extras into data
+            $data = array_merge($data, $extras);
         }
         
         return response()->json([
