@@ -31,6 +31,7 @@ class RolePermissionSeeder extends Seeder
             'print krs',
             'print khs',
             'print transkrip',
+            'print kartu ujian',
             
             // Surat
             'view surat',
@@ -38,9 +39,13 @@ class RolePermissionSeeder extends Seeder
             'reject surat',
             'print surat',
             'delete surat',
+            
+            // Templates
+            'manage templates',
 
             // User Management
             'manage users',
+            'manage roles',
 
             // Dosen
             'view dosen',
@@ -53,6 +58,12 @@ class RolePermissionSeeder extends Seeder
             'sync semester',
             'view matakuliah',
             'sync matakuliah',
+            'view kelas kuliah',
+            'sync kelas kuliah',
+            'view nilai',
+            'sync nilai',
+            'view aktivitas kuliah',
+            'sync aktivitas kuliah',
 
             // Kalender Akademik
             'view kalender',
@@ -62,7 +73,12 @@ class RolePermissionSeeder extends Seeder
 
             // Settings
             'view settings',
-            'edit settings',
+            'manage settings',
+            'view neofeeder',
+            'manage neofeeder',
+            
+            // Logs
+            'view activity logs',
         ];
 
         foreach ($permissions as $permission) {
@@ -81,10 +97,14 @@ class RolePermissionSeeder extends Seeder
             'print krs',
             'print khs',
             'print transkrip',
+            'print kartu ujian',
+            
+            // Surat & Templates
             'view surat',
             'approve surat',
             'reject surat',
             'print surat',
+            'manage templates',
             
             // Dosen
             'view dosen',
@@ -97,9 +117,18 @@ class RolePermissionSeeder extends Seeder
             'sync semester',
             'view matakuliah',
             'sync matakuliah',
+            'view kelas kuliah',
+            'sync kelas kuliah',
+            'view nilai',
+            'sync nilai',
+            'view aktivitas kuliah',
+            'sync aktivitas kuliah',
 
             // Kalender
             'view kalender',
+            
+            // Settings - View only
+            'view settings',
         ]);
 
         // Create default admin user

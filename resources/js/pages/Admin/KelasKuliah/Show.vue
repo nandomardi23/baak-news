@@ -1,160 +1,202 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
 import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, BookOpen, Users, GraduationCap, Calendar } from 'lucide-vue-next';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ArrowLeft, Users, BookOpen, Clock, GraduationCap } from 'lucide-vue-next';
+import { Badge } from '@/components/ui/badge';
 
-interface Mahasiswa {
+interface DosenPengajar {
     id: number;
-    nim: string | null;
-    nama: string | null;
-    nama_dosen: string | null;
+    nama: string;
+    nidn: string | null;
+    sks_substansi: number;
+    rencana_tm: number;
+    realisasi_tm: number;
+    evaluasi: string | null;
+}
+
+interface Peserta {
+    id: number;
+    nim: string;
+    nama: string;
+    angkatan: string;
+    prodi: string;
 }
 
 interface KelasKuliah {
     id: number;
     id_kelas_kuliah: string;
-    nama_kelas_kuliah: string | null;
-    kode_mata_kuliah: string | null;
-    nama_mata_kuliah: string | null;
-    sks: number | null;
-    kapasitas: number | null;
-    prodi: string | null;
-    semester: string | null;
-    dosen_pengajar: string | null;
-    mahasiswa: Mahasiswa[];
+    nama_kelas_kuliah: string;
+    kode_mata_kuliah: string;
+    nama_mata_kuliah: string;
+    sks: number;
+    kapasitas: number;
+    prodi: string;
+    semester: string;
+    dosen_pengajar: DosenPengajar[];
+    peserta: Peserta[];
+    total_peserta: number;
 }
 
 const props = defineProps<{
     kelasKuliah: KelasKuliah;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+const breadcrumbs = [
     { title: 'Dashboard', href: '/admin' },
     { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah' },
-    { title: props.kelasKuliah.nama_kelas_kuliah || 'Detail', href: '#' },
+    { title: 'Detail Kelas', href: '#' },
 ];
 </script>
 
 <template>
-    <Head :title="`Kelas: ${kelasKuliah.nama_kelas_kuliah}`" />
+    <Head :title="`Detail Kelas - ${kelasKuliah.nama_kelas_kuliah}`" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 p-6 lg:p-10 w-full">
+        <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full max-w-7xl mx-auto">
             
             <!-- Header -->
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                <div class="flex items-center gap-4">
+                <div class="flex items-start gap-4">
                     <Link href="/admin/kelas-kuliah">
-                        <Button variant="outline" size="icon" class="h-9 w-9">
+                        <Button variant="outline" size="icon" class="mt-1">
                             <ArrowLeft class="w-4 h-4" />
                         </Button>
                     </Link>
                     <div>
-                        <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ kelasKuliah.nama_kelas_kuliah }}</h1>
-                        <p class="text-slate-500 mt-1">{{ kelasKuliah.kode_mata_kuliah }} - {{ kelasKuliah.nama_mata_kuliah }}</p>
+                        <div class="flex items-center gap-2">
+                            <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ kelasKuliah.nama_kelas_kuliah }}</h1>
+                            <Badge variant="outline" class="font-mono">{{ kelasKuliah.kode_mata_kuliah }}</Badge>
+                        </div>
+                        <p class="text-slate-500 mt-1">{{ kelasKuliah.nama_mata_kuliah }}</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Info Cards -->
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <Card>
-                    <CardContent class="flex items-center gap-4 p-4">
-                        <div class="rounded-lg bg-blue-50 p-3">
-                            <BookOpen class="h-5 w-5 text-blue-600" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-500">SKS</p>
-                            <p class="text-xl font-bold text-slate-900">{{ kelasKuliah.sks || '-' }}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div class="grid gap-6 md:grid-cols-3">
                 
-                <Card>
-                    <CardContent class="flex items-center gap-4 p-4">
-                        <div class="rounded-lg bg-emerald-50 p-3">
-                            <Users class="h-5 w-5 text-emerald-600" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-500">Peserta</p>
-                            <p class="text-xl font-bold text-slate-900">{{ kelasKuliah.mahasiswa.length }} / {{ kelasKuliah.kapasitas || '∞' }}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardContent class="flex items-center gap-4 p-4">
-                        <div class="rounded-lg bg-purple-50 p-3">
-                            <GraduationCap class="h-5 w-5 text-purple-600" />
-                        </div>
-                        <div>
-                            <p class="text-sm font-medium text-slate-500">Dosen Pengajar</p>
-                            <p class="text-sm font-semibold text-slate-900 truncate">{{ kelasKuliah.dosen_pengajar || '-' }}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardContent class="flex items-center gap-4 p-4">
-                        <div class="rounded-lg bg-rose-50 p-3">
-                            <GraduationCap class="h-5 w-5 text-rose-600" />
-                        </div>
+                <!-- Class Info Card -->
+                <Card class="md:col-span-1 h-fit">
+                    <CardHeader>
+                        <CardTitle class="text-lg flex items-center gap-2">
+                            <BookOpen class="w-5 h-5 text-slate-500" />
+                            Informasi Kelas
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent class="grid gap-4">
                         <div>
                             <p class="text-sm font-medium text-slate-500">Program Studi</p>
-                            <p class="text-sm font-semibold text-slate-900 truncate">{{ kelasKuliah.prodi || '-' }}</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                
-                <Card>
-                    <CardContent class="flex items-center gap-4 p-4">
-                        <div class="rounded-lg bg-amber-50 p-3">
-                            <Calendar class="h-5 w-5 text-amber-600" />
+                            <p class="font-medium">{{ kelasKuliah.prodi }}</p>
                         </div>
                         <div>
                             <p class="text-sm font-medium text-slate-500">Semester</p>
-                            <p class="text-lg font-semibold text-slate-900 truncate">{{ kelasKuliah.semester || '-' }}</p>
+                            <p class="font-medium">{{ kelasKuliah.semester }}</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">SKS</p>
+                                <p class="font-medium">{{ kelasKuliah.sks }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Kapasitas</p>
+                                <p class="font-medium">{{ kelasKuliah.kapasitas }}</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-500">Total Peserta</p>
+                            <div class="flex items-center gap-2">
+                                <Users class="w-4 h-4 text-slate-400" />
+                                <span class="font-medium">{{ kelasKuliah.total_peserta }} Mahasiswa</span>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>
-            </div>
 
-            <!-- Daftar Mahasiswa -->
-            <Card>
-                <CardHeader>
-                    <CardTitle>Daftar Mahasiswa</CardTitle>
-                    <CardDescription>Mahasiswa yang mengambil kelas ini</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div v-if="kelasKuliah.mahasiswa.length > 0" class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-slate-200">
-                            <thead class="bg-slate-50">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">No</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">NIM</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Nama Mahasiswa</th>
-                                    <th class="px-4 py-3 text-left text-xs font-semibold text-slate-600 uppercase tracking-wider">Dosen Pengajar</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-slate-200">
-                                <tr v-for="(mhs, index) in kelasKuliah.mahasiswa" :key="mhs.id" class="hover:bg-slate-50">
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{{ index + 1 }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">{{ mhs.nim || '-' }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-900">{{ mhs.nama || '-' }}</td>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm text-slate-600">{{ mhs.nama_dosen || kelasKuliah.dosen_pengajar || '-' }}</td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div v-else class="text-center py-12 text-slate-500">
-                        <Users class="w-12 h-12 mx-auto mb-4 text-slate-300" />
-                        <p>Belum ada mahasiswa yang terdaftar di kelas ini.</p>
-                    </div>
-                </CardContent>
-            </Card>
+                <!-- Main Content Column -->
+                <div class="md:col-span-2 space-y-6">
+                    
+                    <!-- Dosen Pengajar Section -->
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="text-lg flex items-center gap-2">
+                                <GraduationCap class="w-5 h-5 text-slate-500" />
+                                Dosen Pengajar (Team Teaching)
+                            </CardTitle>
+                            <CardDescription>Daftar dosen yang mengampu mata kuliah ini beserta beban ajar.</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Nama Dosen</TableHead>
+                                        <TableHead>NIDN</TableHead>
+                                        <TableHead class="text-center">SKS Ajar</TableHead>
+                                        <TableHead class="text-center">Rencana TM</TableHead>
+                                        <TableHead class="text-center">Realisasi TM</TableHead>
+                                        <TableHead>Jenis Evaluasi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="dosen in kelasKuliah.dosen_pengajar" :key="dosen.id">
+                                        <TableCell class="font-medium">{{ dosen.nama }}</TableCell>
+                                        <TableCell class="font-mono text-xs text-slate-500">{{ dosen.nidn || '-' }}</TableCell>
+                                        <TableCell class="text-center">{{ dosen.sks_substansi }}</TableCell>
+                                        <TableCell class="text-center">{{ dosen.rencana_tm }}</TableCell>
+                                        <TableCell class="text-center">{{ dosen.realisasi_tm }}</TableCell>
+                                        <TableCell>{{ dosen.evaluasi || '-' }}</TableCell>
+                                    </TableRow>
+                                    <TableRow v-if="kelasKuliah.dosen_pengajar.length === 0">
+                                        <TableCell colspan="6" class="text-center text-slate-500 py-8">
+                                            Belum ada data dosen pengajar. Silahkan lakukan Sinkronisasi Dosen Pengajar.
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                    <!-- Peserta Section -->
+                    <Card>
+                        <CardHeader>
+                            <CardTitle class="text-lg flex items-center gap-2">
+                                <Users class="w-5 h-5 text-slate-500" />
+                                Peserta Kelas
+                            </CardTitle>
+                            <CardDescription>Mahasiswa yang mengambil mata kuliah ini (KRS).</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead class="w-12">No</TableHead>
+                                        <TableHead>NIM</TableHead>
+                                        <TableHead>Nama Mahasiswa</TableHead>
+                                        <TableHead>Angkatan</TableHead>
+                                        <TableHead>Program Studi</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    <TableRow v-for="(mhs, idx) in kelasKuliah.peserta" :key="mhs.id">
+                                        <TableCell class="text-slate-500">{{ idx + 1 }}</TableCell>
+                                        <TableCell class="font-mono">{{ mhs.nim }}</TableCell>
+                                        <TableCell class="font-medium">{{ mhs.nama }}</TableCell>
+                                        <TableCell>{{ mhs.angkatan }}</TableCell>
+                                        <TableCell>{{ mhs.prodi }}</TableCell>
+                                    </TableRow>
+                                    <TableRow v-if="kelasKuliah.peserta.length === 0">
+                                        <TableCell colspan="5" class="text-center text-slate-500 py-8">
+                                            Belum ada peserta terdaftar.
+                                        </TableCell>
+                                    </TableRow>
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+
+                </div>
+            </div>
         </div>
     </AppLayout>
 </template>

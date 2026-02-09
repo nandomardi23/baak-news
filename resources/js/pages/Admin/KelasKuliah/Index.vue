@@ -59,6 +59,7 @@ const columns = [
     { key: 'nama_kelas_kuliah', label: 'Nama Kelas', sortable: true },
     { key: 'kode_mata_kuliah', label: 'Kode MK', sortable: true },
     { key: 'nama_mata_kuliah', label: 'Mata Kuliah', sortable: true },
+    { key: 'dosen_pengajar', label: 'Dosen Pengajar', sortable: false },
     { key: 'sks', label: 'SKS', sortable: true, align: 'center' as const },
     { key: 'kapasitas', label: 'Kapasitas', sortable: false, align: 'center' as const },
     { key: 'prodi', label: 'Program Studi', sortable: false },
@@ -150,6 +151,15 @@ const submitDelete = () => {
                     </div>
                 </template>
                 
+                <template #cell-dosen_pengajar="{ value }">
+                    <div v-if="value && value.length > 0" class="flex flex-col gap-1">
+                        <span v-for="dosen in value" :key="dosen.id" class="text-sm">
+                            {{ dosen.nama }}
+                        </span>
+                    </div>
+                    <span v-else class="text-slate-400 italic">Belum ada dosen</span>
+                </template>
+
                 <template #cell-sks="{ value }">
                     <span class="font-medium">{{ value || '-' }}</span>
                 </template>

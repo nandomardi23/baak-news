@@ -59,4 +59,13 @@ class KelasKuliah extends Model
     {
         return $this->hasMany(KrsDetail::class, 'id_kelas_kuliah', 'id_kelas_kuliah');
     }
+    /**
+     * Get related Dosen Pengajar (Many-to-Many via dosen_pengajar_kelas)
+     */
+    public function dosenPengajar(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(Dosen::class, 'dosen_pengajar_kelas', 'kelas_kuliah_id', 'dosen_id')
+            ->withPivot(['sks_substansi_total', 'rencana_tatap_muka', 'realisasi_tatap_muka', 'nama_jenis_evaluasi'])
+            ->withTimestamps();
+    }
 }

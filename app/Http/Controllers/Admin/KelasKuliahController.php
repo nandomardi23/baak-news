@@ -16,7 +16,7 @@ class KelasKuliahController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = KelasKuliah::with(['programStudi', 'mataKuliah', 'tahunAkademik']);
+        $query = KelasKuliah::with(['programStudi', 'mataKuliah', 'tahunAkademik', 'dosenPengajar']);
 
         // Search
         if ($search = $request->input('search')) {
@@ -60,6 +60,10 @@ class KelasKuliahController extends Controller
                 'semester' => $item->tahunAkademik?->nama_semester,
                 'program_studi_id' => $item->program_studi_id,
                 'tahun_akademik_id' => $item->tahun_akademik_id,
+                'dosen_pengajar' => $item->dosenPengajar->map(fn($d) => [
+                    'id' => $d->id,
+                    'nama' => $d->nama_lengkap,
+                ]),
             ]);
 
         return Inertia::render('Admin/KelasKuliah/Index', [
@@ -74,47 +78,25 @@ class KelasKuliahController extends Controller
         ]);
     }
 
-    public function show(KelasKuliah $kelasKuliah, NeoFeederService $neoFeeder): Response
+    public function show(KelasKuliah $kelasKuliah): Response
     {
-        $kelasKuliah->load(['programStudi', 'mataKuliah', 'tahunAkademik', 'krsDetails.krs.mahasiswa']);
+        $kelasKuliah->load([
+            'programStudi', 
+            'mataKuliah', 
+            'tahunAkademik', 
+            'dosenPengajar',
+            'krsDetails.krs.mahasiswa'
+        ]);
 
-        // Try to get mahasiswa from local KRS data first
-        $mahasiswaList = $kelasKuliah->krsDetails->map(fn($krsDetail) => [
+        // Get Peserta List from local KRS data
+        // This is much faster than fetching from API every time
+        $peserta = $kelasKuliah->krsDetails->map(fn($krsDetail) => [
             'id' => $krsDetail->id,
             'nim' => $krsDetail->krs?->mahasiswa?->nim,
             'nama' => $krsDetail->krs?->mahasiswa?->nama,
-            'nama_dosen' => $krsDetail->nama_dosen,
+            'angkatan' => $krsDetail->krs?->mahasiswa?->angkatan,
+            'prodi' => $krsDetail->krs?->mahasiswa?->programStudi?->nama_prodi,
         ])->filter(fn($m) => $m['nim'] !== null)->values();
-
-        // If local data is empty, try fetching from Neo Feeder API
-        if ($mahasiswaList->isEmpty() && $kelasKuliah->id_kelas_kuliah) {
-            try {
-                $pesertaResponse = $neoFeeder->getPesertaKelasKuliah($kelasKuliah->id_kelas_kuliah);
-                if ($pesertaResponse && !empty($pesertaResponse['data'])) {
-                    $mahasiswaList = collect($pesertaResponse['data'])->map(fn($p, $index) => [
-                        'id' => $index + 1,
-                        'nim' => $p['nim'] ?? null,
-                        'nama' => $p['nama_mahasiswa'] ?? null,
-                        'nama_dosen' => null,
-                    ])->values();
-                }
-            } catch (\Exception $e) {
-                // Silently fail - just show empty list
-            }
-        }
-
-        // Get dosen pengajar info
-        $dosenPengajar = null;
-        if ($kelasKuliah->id_kelas_kuliah) {
-            try {
-                $dosenResponse = $neoFeeder->getDosenPengajarKelasKuliah($kelasKuliah->id_kelas_kuliah);
-                if ($dosenResponse && !empty($dosenResponse['data'])) {
-                    $dosenPengajar = $dosenResponse['data'][0]['nama_dosen'] ?? null;
-                }
-            } catch (\Exception $e) {
-                // Silently fail
-            }
-        }
 
         return Inertia::render('Admin/KelasKuliah/Show', [
             'kelasKuliah' => [
@@ -127,8 +109,17 @@ class KelasKuliahController extends Controller
                 'kapasitas' => $kelasKuliah->kapasitas,
                 'prodi' => $kelasKuliah->programStudi?->nama_prodi,
                 'semester' => $kelasKuliah->tahunAkademik?->nama_semester ?? $kelasKuliah->id_semester,
-                'dosen_pengajar' => $dosenPengajar,
-                'mahasiswa' => $mahasiswaList,
+                'dosen_pengajar' => $kelasKuliah->dosenPengajar->map(fn($d) => [
+                    'id' => $d->id,
+                    'nama' => $d->nama_lengkap,
+                    'nidn' => $d->nidn,
+                    'sks_substansi' => $d->pivot->sks_substansi_total,
+                    'rencana_tm' => $d->pivot->rencana_tatap_muka,
+                    'realisasi_tm' => $d->pivot->realisasi_tatap_muka,
+                    'evaluasi' => $d->pivot->nama_jenis_evaluasi,
+                ]),
+                'peserta' => $peserta,
+                'total_peserta' => $peserta->count(),
             ],
         ]);
     }

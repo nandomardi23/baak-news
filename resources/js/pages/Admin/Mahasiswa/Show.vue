@@ -46,6 +46,7 @@ interface KrsDetail {
     nama: string;
     sks: number;
     kelas: string;
+    dosen_pengajar: string[] | null;
     nama_dosen: string | null;
 }
 
@@ -497,7 +498,14 @@ const saveDosenWali = () => {
                                 <td class="px-4 py-2 text-sm">{{ detail.nama }}</td>
                                 <td class="px-4 py-2 text-sm text-center">{{ detail.sks }}</td>
                                 <td class="px-4 py-2 text-sm text-center">{{ detail.kelas }}</td>
-                                <td class="px-4 py-2 text-sm text-gray-600">{{ detail.nama_dosen || '-' }}</td>
+                                <td class="px-4 py-2 text-sm text-gray-600">
+                                    <div v-if="detail.dosen_pengajar && detail.dosen_pengajar.length > 0" class="flex flex-col gap-0.5">
+                                        <span v-for="(dsn, i) in detail.dosen_pengajar" :key="i" class="text-xs">
+                                            {{ dsn }}
+                                        </span>
+                                    </div>
+                                    <span v-else>{{ detail.nama_dosen || '-' }}</span>
+                                </td>
                             </tr>
                         </tbody>
                     </table>

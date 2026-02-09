@@ -57,7 +57,7 @@ class MahasiswaController extends Controller
 
     public function show(Mahasiswa $mahasiswa): Response
     {
-        $mahasiswa->load(['programStudi', 'dosenWali', 'nilai.mataKuliah', 'nilai.tahunAkademik', 'krs.details.mataKuliah', 'krs.details.dosen', 'krs.tahunAkademik']);
+        $mahasiswa->load(['programStudi', 'dosenWali', 'nilai.mataKuliah', 'nilai.tahunAkademik', 'krs.details.mataKuliah', 'krs.details.dosen', 'krs.tahunAkademik', 'krs.details.kelasKuliah.dosenPengajar']);
 
         // Filter: Semesters with Nilai OR Krs
         $semesterIds = $mahasiswa->nilai->pluck('tahun_akademik_id')
@@ -107,6 +107,8 @@ class MahasiswaController extends Controller
                     'nama' => $d->mataKuliah?->nama_matkul,
                     'sks' => $d->mataKuliah?->sks_mata_kuliah,
                     'kelas' => $d->nama_kelas,
+                    // Check if class has team teaching, otherwise legacy name
+                    'dosen_pengajar' => $d->kelasKuliah?->dosenPengajar->map(fn($lecture) => $lecture->nama_lengkap),
                     'nama_dosen' => $d->nama_dosen ?? $d->dosen?->nama,
                 ]),
             ]),

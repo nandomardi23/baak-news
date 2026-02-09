@@ -493,6 +493,9 @@ class SyncController extends Controller
     /**
      * Sync Dosen Pengajar (Lecturer for each class)
      */
+    /**
+     * Sync Dosen Pengajar (Lecturer for each class)
+     */
     public function syncDosenPengajar(Request $request, NeoFeederSyncService $syncService): JsonResponse
     {
         session()->save();
@@ -504,8 +507,8 @@ class SyncController extends Controller
             $result = $syncService->syncDosenPengajar($offset, 100);
 
             return $this->successResponse('Dosen Pengajar', $result['total_all'], $result['synced'], $result['errors'], [
-                'inserted' => 0,
-                'updated' => $result['synced'],
+                'inserted' => $result['assignments'] ?? 0, // Total assignments created
+                'updated' => $result['synced'], // Classes with lecturer found
                 'skipped' => 0,
                 'failed' => $result['failed'],
                 'batch_size' => $result['batch_count'],

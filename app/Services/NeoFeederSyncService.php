@@ -994,92 +994,139 @@ class NeoFeederSyncService
      * 
      * @return array
      */
+    /**
+     * Sync Dosen Pengajar (Lecturer for each class) - Supports Team Teaching
+     * Updates dosen_pengajar_kelas table (Many-to-Many)
+     * Also updates legacy dosen_id in kelas_kuliah (One-to-Many) for backward compatibility
+     * 
+     * @return array
+     */
     public function syncDosenPengajar(int $offset = 0, int $limit = 100): array
     {
-        // Get ALL kelas kuliah that need dosen info (nama_dosen is null)
-        $allKelasIds = KelasKuliah::whereNull('nama_dosen')
-            ->whereNotNull('id_kelas_kuliah')
-            ->pluck('id_kelas_kuliah')
-            ->toArray();
-
-        $totalAll = count($allKelasIds);
-
+        // Get ALL active classes (paginated)
+        // We sync regardless of whether they already have a lecturer, to ensure updates are captured
+        $totalAll = KelasKuliah::count();
+        
         if ($totalAll === 0) {
-            // Check if there are any kelas at all
-            $existingCount = KelasKuliah::count();
             return [
                 'total' => 0,
                 'synced' => 0,
                 'failed' => 0,
                 'errors' => [],
                 'total_all' => 0,
-                'existing_count' => $existingCount,
                 'offset' => $offset,
                 'next_offset' => null,
                 'has_more' => false,
                 'progress' => 100,
-                'message' => $existingCount > 0 
-                    ? 'Semua kelas sudah memiliki data dosen pengajar' 
-                    : 'Tidak ada kelas kuliah. Sync Kelas Kuliah terlebih dahulu.',
+                'message' => 'Tidak ada kelas kuliah. Sync Kelas Kuliah terlebih dahulu.',
             ];
         }
 
-        // Build map for dosen lookup
-        $dosenMap = Dosen::pluck('id', 'id_dosen')->toArray();
-
-        // Get batch of kelas IDs
-        $kelasIds = array_slice($allKelasIds, $offset, $limit);
+        // Get batch of kelas
+        $kelasIds = KelasKuliah::orderBy('id_kelas_kuliah')
+            ->skip($offset)
+            ->take($limit)
+            ->pluck('id_kelas_kuliah')
+            ->toArray();
+            
         $batchCount = count($kelasIds);
+
+        // Build map for dosen lookup (id_dosen => id)
+        $dosenMap = Dosen::pluck('id', 'id_dosen')->toArray();
+        // Build map for kelas lookup (id_kelas_kuliah => id)
+        $kelasMap = KelasKuliah::whereIn('id_kelas_kuliah', $kelasIds)->pluck('id', 'id_kelas_kuliah')->toArray();
 
         $synced = 0;
         $failed = 0;
         $errors = [];
+        $totalAssignments = 0;
 
         foreach ($kelasIds as $idKelas) {
             try {
                 $response = $this->neoFeeder->getDosenPengajarKelasKuliah($idKelas);
                 
+                // Clear existing assignments for this class to ensure clean slate (handling deletions/changes)
+                if (isset($kelasMap[$idKelas])) {
+                    \DB::table('dosen_pengajar_kelas')->where('kelas_kuliah_id', $kelasMap[$idKelas])->delete();
+                }
+
                 if ($response && !empty($response['data'])) {
-                    $data = $response['data'][0];
-                    $idDosen = $data['id_dosen'] ?? null;
-                    $namaDosen = $data['nama_dosen'] ?? null;
+                    $lecturers = $response['data'];
+                    
+                    // Sort by urgency or order if available, otherwise first one is primary
+                    $primaryLecturer = null;
 
-                    if ($namaDosen) {
-                        // Find local dosen ID if exists
+                    foreach ($lecturers as $ajar) {
+                        $idDosen = $ajar['id_dosen'] ?? null;
+                        $namaDosen = $ajar['nama_dosen'] ?? null;
+                        
+                        if (!$idDosen) continue;
+
                         $localDosenId = $dosenMap[$idDosen] ?? null;
+                        $localKelasId = $kelasMap[$idKelas] ?? null;
 
-                        // Update kelas_kuliah table
-                        KelasKuliah::where('id_kelas_kuliah', $idKelas)
-                            ->update([
+                        if ($localKelasId) {
+                            // Insert into pivot table
+                            \DB::table('dosen_pengajar_kelas')->insert([
+                                'id_aktivitas_mengajar' => $ajar['id_aktivitas_mengajar'] ?? null,
+                                'kelas_kuliah_id' => $localKelasId,
+                                'id_kelas_kuliah' => $idKelas,
+                                'dosen_id' => $localDosenId,
                                 'id_dosen' => $idDosen,
-                                'dosen_id' => $localDosenId,
-                                'nama_dosen' => $namaDosen,
-                            ]);
-
-                        // Also update KRS Detail if exists (for backward compatibility)
-                        KrsDetail::where('id_kelas_kuliah', $idKelas)
-                            ->whereNull('nama_dosen')
-                            ->update([
-                                'dosen_id' => $localDosenId,
-                                'nama_dosen' => $namaDosen,
+                                'id_registrasi_dosen' => $ajar['id_registrasi_dosen'] ?? null,
+                                'sks_substansi_total' => $ajar['sks_substansi_total'] ?? 0,
+                                'rencana_tatap_muka' => $ajar['rencana_tatap_muka'] ?? 0,
+                                'realisasi_tatap_muka' => $ajar['realisasi_tatap_muka'] ?? 0,
+                                'id_jenis_evaluasi' => $ajar['id_jenis_evaluasi'] ?? null,
+                                'nama_jenis_evaluasi' => $ajar['nama_jenis_evaluasi'] ?? null,
+                                'created_at' => now(),
+                                'updated_at' => now(),
                             ]);
                             
-                        $synced++;
+                            $totalAssignments++;
+                        }
+
+                        // Set primary lecturer (first one found)
+                        if (!$primaryLecturer) {
+                            $primaryLecturer = [
+                                'id_dosen' => $idDosen,
+                                'dosen_id' => $localDosenId,
+                                'nama_dosen' => $namaDosen
+                            ];
+                        }
                     }
+
+                    // Update legacy/primary lecturer in kelas_kuliah
+                    if ($primaryLecturer) {
+                        KelasKuliah::where('id_kelas_kuliah', $idKelas)
+                            ->update([
+                                'id_dosen' => $primaryLecturer['id_dosen'],
+                                'dosen_id' => $primaryLecturer['dosen_id'],
+                                'nama_dosen' => $primaryLecturer['nama_dosen'],
+                            ]);
+                            
+                        // Also update KRS Detail if exists (legacy support)
+                        KrsDetail::where('id_kelas_kuliah', $idKelas)
+                            ->update([
+                                'dosen_id' => $primaryLecturer['dosen_id'],
+                                'nama_dosen' => $primaryLecturer['nama_dosen'],
+                            ]);
+                    }
+                    
+                    $synced++;
+                    
                 } else {
-                    // Mark as checked (set nama_dosen to empty string)
+                    // No lecturer assigned
                     KelasKuliah::where('id_kelas_kuliah', $idKelas)
-                        ->update(['nama_dosen' => '']);
+                        ->update(['nama_dosen' => null, 'dosen_id' => null, 'id_dosen' => null]);
                 }
             } catch (\Exception $e) {
                 $failed++;
                 $errors[] = "Kelas $idKelas: " . $e->getMessage();
-                // Rate limit protection on error
-                usleep(500000); // 500ms
             }
 
-            // Simple rate limiting to avoid overwhelming Feeder
-            usleep(50000); // 50ms between requests
+            // Simple rate limiting
+            usleep(20000); // 20ms
         }
 
         $nextOffset = $offset + $limit;
@@ -1087,8 +1134,9 @@ class NeoFeederSyncService
         $progress = min(100, round(($offset + $batchCount) / $totalAll * 100));
 
         return [
-            'total' => $batchCount,
-            'synced' => $synced,
+            'total' => $batchCount, // Processed classes
+            'synced' => $synced, // Classes with lecturers found
+            'assignments' => $totalAssignments, // Total lecture assignments (pivot rows)
             'failed' => $failed,
             'errors' => $errors,
             'total_all' => $totalAll,

@@ -57,4 +57,13 @@ class Dosen extends Model
               ->orWhere('nip', 'like', "%{$search}%");
         });
     }
+    /**
+     * Get Kelas Kuliah taught by this Dosen
+     */
+    public function kelasMengajar(): \Illuminate\Database\Eloquent\Relations\BelongsToMany
+    {
+        return $this->belongsToMany(KelasKuliah::class, 'dosen_pengajar_kelas', 'dosen_id', 'kelas_kuliah_id')
+            ->withPivot(['sks_substansi_total', 'rencana_tatap_muka', 'realisasi_tatap_muka', 'nama_jenis_evaluasi'])
+            ->withTimestamps();
+    }
 }
