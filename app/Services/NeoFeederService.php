@@ -434,5 +434,135 @@ class NeoFeederService
     {
         return $this->request('GetCountSemester', []);
     }
+    /**
+     * Get Agama (Religion)
+     */
+    public function getAgama(): ?array
+    {
+        return $this->request('GetAgama', []);
+    }
+
+    /**
+     * Get Jenis Tinggal (Residence Type)
+     */
+    public function getJenisTinggal(): ?array
+    {
+        return $this->request('GetJenisTinggal', []);
+    }
+
+    /**
+     * Get Alat Transportasi
+     */
+    public function getAlatTransportasi(): ?array
+    {
+        return $this->request('GetAlatTransportasi', []);
+    }
+
+    /**
+     * Get Pekerjaan (Occupation)
+     */
+    public function getPekerjaan(): ?array
+    {
+        return $this->request('GetPekerjaan', []);
+    }
+
+    /**
+     * Get Penghasilan (Income)
+     */
+    public function getPenghasilan(): ?array
+    {
+        return $this->request('GetPenghasilan', []);
+    }
+
+    /**
+     * Get Kebutuhan Khusus (Special Needs)
+     */
+    public function getKebutuhanKhusus(): ?array
+    {
+        return $this->request('GetKebutuhanKhusus', []);
+    }
+
+    /**
+     * Get Pembiayaan (Scholarship/Funding)
+     */
+    public function getPembiayaan(): ?array
+    {
+        return $this->request('GetPembiayaan', []);
+    }
+
+    /**
+     * Get Wilayah (Regions) with pagination
+     * There are thousands of regions, so pagination is needed.
+     */
+    public function getWilayah(int $limit = 1000, int $offset = 0): ?array
+    {
+        return $this->request('GetWilayah', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count of Wilayah
+     */
+    public function getCountWilayah(): ?array
+    {
+        return $this->request('GetCountWilayah', []);
+    }
+    /**
+     * Get List Kurikulum
+     */
+    public function getKurikulum(int $limit = 100, int $offset = 0): ?array
+    {
+        return $this->request('GetListKurikulum', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Kurikulum
+     */
+    public function getCountKurikulum(): ?array
+    {
+        return $this->request('GetCountKurikulum', []);
+    }
+
+    /**
+     * Get Mata Kuliah Kurikulum (Courses in a Curriculum)
+     */
+    public function getMatkulKurikulum(int $limit = 2000, int $offset = 0): ?array
+    {
+        return $this->request('GetMatkulKurikulum', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Mata Kuliah Kurikulum
+     */
+    public function getCountMatkulKurikulum(): ?array
+    {
+        return $this->request('GetCountMatkulKurikulum', []);
+    }
+    /**
+     * Get Skala Nilai Prodi
+     */
+    public function getSkalaNilaiProdi(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListSkalaNilaiProdi', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Skala Nilai Prodi
+     */
+    public function getCountSkalaNilaiProdi(): ?array
+    {
+        return $this->request('GetCountSkalaNilaiProdi', []);
+    }
 }
 

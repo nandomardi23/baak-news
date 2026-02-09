@@ -13,6 +13,11 @@ use App\Models\KrsDetail;
 use App\Models\TahunAkademik;
 use Illuminate\Support\Facades\Log;
 
+use App\Services\NeoFeederService;
+use App\Models\Kurikulum;
+use App\Models\MatkulKurikulum;
+use App\Models\SkalaNilai;
+
 class NeoFeederSyncService
 {
     protected NeoFeederService $neoFeeder;
@@ -1566,6 +1571,242 @@ class NeoFeederSyncService
             'next_offset' => $hasMore ? $nextOffset : null,
             'has_more' => $hasMore,
             'total_all' => $totalAll,
+            'progress' => $progress,
+        ];
+    }
+    /**
+     * Sync Kurikulum with pagination
+     */
+    public function syncKurikulum(int $offset = 0, int $limit = 100): array
+    {
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountKurikulum();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getKurikulum($limit, $offset);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        // Build Prodi Map
+        $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
+
+        foreach ($data as $item) {
+            try {
+                $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
+                
+                $kurikulum = Kurikulum::updateOrCreate(
+                    ['id_kurikulum' => $item['id_kurikulum']],
+                    [
+                        'nama_kurikulum' => $item['nama_kurikulum'] ?? '',
+                        'id_prodi' => $item['id_prodi'] ?? null,
+                        'id_semester' => $item['id_semester'] ?? null, // Start Semester
+                        'jumlah_sks_lulus' => $item['jumlah_sks_lulus'] ?? 0,
+                        'jumlah_sks_wajib' => $item['jumlah_sks_wajib'] ?? 0,
+                        'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'] ?? 0,
+                        
+                    ]
+                );
+                
+                // If prodi_id column exists, update it
+                if ($prodiId && \Schema::hasColumn('kurikulum', 'program_studi_id')) {
+                    $kurikulum->program_studi_id = $prodiId;
+                    $kurikulum->save();
+                }
+
+                if ($kurikulum->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($kurikulum->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "Kurikulum {$item['nama_kurikulum']}: " . $e->getMessage();
+            }
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
+    }
+
+    /**
+     * Sync Mata Kuliah Kurikulum with pagination
+     */
+    public function syncMatkulKurikulum(int $offset = 0, int $limit = 2000): array
+    {
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountMatkulKurikulum();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $index => $item) {
+            try {
+                // Ensure Kurikulum exists first? Or just store ID. Usually safer to just store ID from Feeder.
+                // We assume Matkul & Kurikulum are synced
+                
+                $mkKur = MatkulKurikulum::updateOrCreate(
+                    [
+                        'id_kurikulum' => $item['id_kurikulum'],
+                        'id_matkul' => $item['id_matkul']
+                    ],
+                    [
+                        'semester' => $item['semester'] ?? null,
+                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                        'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
+                        'sks_praktek' => $item['sks_praktek'] ?? 0,
+                        'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
+                        'sks_simulasi' => $item['sks_simulasi'] ?? 0,
+                        'apakah_wajib' => ($item['apakah_wajib'] ?? 0) == 1,
+                    ]
+                );
+
+                if ($mkKur->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($mkKur->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "MatkulKurikulum error: " . $e->getMessage();
+            }
+            
+            if ($index % 500 === 0) gc_collect_cycles();
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
+    }
+    /**
+     * Sync Skala Nilai (Grading Scale)
+     */
+    public function syncSkalaNilai(int $offset = 0, int $limit = 500): array
+    {
+        // Get total count from API
+        $totalAll = 0;
+        $countResponse = $this->neoFeeder->getCountSkalaNilaiProdi();
+        if ($countResponse && isset($countResponse['data'])) {
+            $totalAll = $this->extractCount($countResponse['data']);
+        }
+
+        $response = $this->neoFeeder->getSkalaNilaiProdi($limit, $offset);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($data as $item) {
+            try {
+                $skala = SkalaNilai::updateOrCreate(
+                    ['id_bobot_nilai' => $item['id_bobot_nilai']],
+                    [
+                        'id_prodi' => $item['id_prodi'] ?? '',
+                        'nilai_huruf' => $item['nilai_huruf'] ?? '',
+                        'nilai_indeks' => $item['nilai_indeks'] ?? 0,
+                        'bobot_minimum' => $item['bobot_minimum'] ?? 0,
+                        'bobot_maksimum' => $item['bobot_maksimum'] ?? 0,
+                        'tanggal_mulai_efektif' => $item['tanggal_mulai_efektif'] ?? null,
+                        'tanggal_akhir_efektif' => $item['tanggal_akhir_efektif'] ?? null,
+                    ]
+                );
+
+                if ($skala->wasRecentlyCreated) {
+                    $inserted++;
+                } elseif ($skala->wasChanged()) {
+                    $updated++;
+                } else {
+                    $skipped++;
+                }
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "SkalaNilai {$item['nilai_huruf']}: " . $e->getMessage();
+            }
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
             'progress' => $progress,
         ];
     }

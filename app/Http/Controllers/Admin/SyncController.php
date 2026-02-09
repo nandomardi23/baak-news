@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\NeoFeederSyncService;
+use App\Services\ReferenceSyncService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Http\Request;
@@ -501,6 +502,94 @@ class SyncController extends Controller
     }
 
     /**
+     * Sync Reference Data
+     * type: 'basic' (Agama, Pekerjaan, etc) or 'wilayah' (Regions)
+     */
+    public function syncReferensi(Request $request, ReferenceSyncService $refService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(600);
+        
+        $type = $request->input('type', 'basic');
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            if ($type === 'wilayah') {
+                $result = $refService->syncWilayah($offset, 2000);
+                
+                return $this->successResponse('Wilayah', $result['total_all'], $result['synced'], [], [
+                    'offset' => $result['offset'],
+                    'next_offset' => $result['next_offset'],
+                    'has_more' => $result['has_more'],
+                    'progress' => $result['progress'],
+                ]);
+            } else {
+                // Sync all basic references
+                $results = $refService->syncAllBasicReferences();
+                
+                // Calculate total synced
+                $totalSynced = 0;
+                $details = [];
+                foreach ($results as $key => $res) {
+                    if (isset($res['count'])) {
+                        $totalSynced += $res['count'];
+                        $details[$key] = $res['count'];
+                    }
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Berhasil sync data referensi dasar',
+                    'data' => [
+                        'synced' => $totalSynced,
+                        'details' => $details
+                    ]
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Sync Referensi Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Kurikulum (with pagination)
+     * Includes syncing Mata Kuliah Kurikulum if requested? No, keep separate for now or chained.
+     */
+    public function syncKurikulum(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        $type = $request->input('type', 'kurikulum'); // 'kurikulum' or 'matkul_kurikulum'
+        
+        try {
+            if ($type === 'matkul_kurikulum') {
+                $result = $syncService->syncMatkulKurikulum($offset, 2000);
+                $label = 'Mata Kuliah Kurikulum';
+            } else {
+                $result = $syncService->syncKurikulum($offset, 100);
+                $label = 'Kurikulum';
+            }
+
+            return $this->successResponse($label, $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Kurikulum Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
      * Sync Kelas Kuliah (Classes)
      */
     public function syncKelasKuliah(Request $request, NeoFeederSyncService $syncService): JsonResponse
@@ -532,6 +621,36 @@ class SyncController extends Controller
     /**
      * Sync Dosen Pengajar (Lecturer for each class)
      */
+
+    /**
+     * Sync Skala Nilai (Grading Scale)
+     */
+    public function syncSkalaNilai(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncSkalaNilai($offset, 500);
+
+            return $this->successResponse('Skala Nilai', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Skala Nilai Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
     /**
      * Sync Dosen Pengajar (Lecturer for each class)
      */

@@ -162,7 +162,7 @@ const handleSearch = () => {
                 
                 <div class="grid md:grid-cols-4 gap-8 relative">
                     <!-- Connector Line (Hidden on mobile) -->
-                    <div class="hidden md:block absolute top-[2.5rem] left-0 right-0 h-0.5 bg-linear-to-r from-blue-100 via-blue-200 to-blue-100 -z-10"></div>
+                    <div class="hidden md:block absolute top-10 left-0 right-0 h-0.5 bg-linear-to-r from-blue-100 via-blue-200 to-blue-100 -z-10"></div>
                     
                     <!-- Step 1 -->
                     <div class="relative group">
