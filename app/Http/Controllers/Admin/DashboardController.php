@@ -16,7 +16,21 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
-        $stats = [
+        return Inertia::render('Admin/Dashboard', [
+            'stats' => $this->getStats(),
+            'mahasiswaPerProdi' => $this->getMahasiswaPerProdi(),
+            'suratPerStatus' => $this->getSuratPerStatus(),
+            'recentPengajuan' => $this->getRecentPengajuan(),
+            'pengajuanPerJenis' => $this->getPengajuanPerJenis(),
+            'mahasiswaPerAngkatan' => $this->getMahasiswaPerAngkatan(),
+            'ipkDistribution' => $this->getIpkDistribution(),
+            'monthlyPengajuan' => $this->getMonthlyPengajuan(),
+        ]);
+    }
+
+    private function getStats(): array
+    {
+        return [
             'total_mahasiswa' => Mahasiswa::count(),
             'mahasiswa_aktif' => Mahasiswa::active()->count(),
             'total_dosen' => Dosen::count(),
@@ -28,24 +42,30 @@ class DashboardController extends Controller
                 ->whereYear('created_at', now()->year)
                 ->count(),
         ];
+    }
 
-        // Mahasiswa per prodi
-        $mahasiswaPerProdi = ProgramStudi::withCount(['mahasiswa' => fn($q) => $q->active()])
+    private function getMahasiswaPerProdi()
+    {
+        return ProgramStudi::withCount(['mahasiswa' => fn($q) => $q->active()])
             ->orderByDesc('mahasiswa_count')
             ->get()
             ->map(fn($prodi) => [
                 'nama' => $prodi->nama_prodi,
                 'total' => $prodi->mahasiswa_count,
             ]);
+    }
 
-        // Surat per status
-        $suratPerStatus = SuratPengajuan::selectRaw('status, count(*) as total')
+    private function getSuratPerStatus()
+    {
+        return SuratPengajuan::selectRaw('status, count(*) as total')
             ->groupBy('status')
             ->get()
             ->mapWithKeys(fn($item) => [$item->status => $item->total]);
+    }
 
-        // Get recent pengajuan
-        $recentPengajuan = SuratPengajuan::with(['mahasiswa', 'processedBy'])
+    private function getRecentPengajuan()
+    {
+        return SuratPengajuan::with(['mahasiswa', 'processedBy'])
             ->latest()
             ->take(10)
             ->get()
@@ -61,15 +81,19 @@ class DashboardController extends Controller
                 'status_badge' => $item->status_badge,
                 'created_at' => $item->created_at->format('d M Y H:i'),
             ]);
+    }
 
-        // Pengajuan per jenis surat
-        $pengajuanPerJenis = SuratPengajuan::selectRaw('jenis_surat, count(*) as total')
+    private function getPengajuanPerJenis()
+    {
+        return SuratPengajuan::selectRaw('jenis_surat, count(*) as total')
             ->groupBy('jenis_surat')
             ->get()
             ->mapWithKeys(fn($item) => [$item->jenis_surat => $item->total]);
+    }
 
-        // Mahasiswa per angkatan (new)
-        $mahasiswaPerAngkatan = Mahasiswa::active()
+    private function getMahasiswaPerAngkatan()
+    {
+        return Mahasiswa::active()
             ->selectRaw('angkatan, count(*) as total')
             ->whereNotNull('angkatan')
             ->groupBy('angkatan')
@@ -80,8 +104,10 @@ class DashboardController extends Controller
                 'angkatan' => $item->angkatan,
                 'total' => $item->total,
             ]);
+    }
 
-        // IPK distribution (optimized - 1 query instead of 5)
+    private function getIpkDistribution(): array
+    {
         $ipkRaw = Mahasiswa::active()
             ->selectRaw("
                 COUNT(CASE WHEN ipk >= 3.50 AND ipk <= 4.00 THEN 1 END) as cumlaude,
@@ -91,16 +117,18 @@ class DashboardController extends Controller
                 COUNT(CASE WHEN ipk > 0 AND ipk < 2.00 THEN 1 END) as kurang
             ")
             ->first();
-        
-        $ipkDistribution = [
+
+        return [
             ['range' => '3.50 - 4.00', 'total' => $ipkRaw->cumlaude ?? 0],
             ['range' => '3.00 - 3.49', 'total' => $ipkRaw->sangat_baik ?? 0],
             ['range' => '2.50 - 2.99', 'total' => $ipkRaw->baik ?? 0],
             ['range' => '2.00 - 2.49', 'total' => $ipkRaw->cukup ?? 0],
             ['range' => '< 2.00', 'total' => $ipkRaw->kurang ?? 0],
         ];
+    }
 
-        // Monthly pengajuan trend (last 12 months)
+    private function getMonthlyPengajuan()
+    {
         $monthlyPengajuan = collect();
         for ($i = 11; $i >= 0; $i--) {
             $date = now()->subMonths($i);
@@ -112,17 +140,7 @@ class DashboardController extends Controller
                 'total' => $count,
             ]);
         }
-
-        return Inertia::render('Admin/Dashboard', [
-            'stats' => $stats,
-            'mahasiswaPerProdi' => $mahasiswaPerProdi,
-            'suratPerStatus' => $suratPerStatus,
-            'recentPengajuan' => $recentPengajuan,
-            'pengajuanPerJenis' => $pengajuanPerJenis,
-            'mahasiswaPerAngkatan' => $mahasiswaPerAngkatan,
-            'ipkDistribution' => $ipkDistribution,
-            'monthlyPengajuan' => $monthlyPengajuan,
-        ]);
+        return $monthlyPengajuan;
     }
 }
 

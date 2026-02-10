@@ -29,8 +29,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 const columns = [
     { key: 'nama_jabatan', label: 'Nama Jabatan', sortable: true },
     { key: 'kode_jabatan', label: 'Kode', sortable: true },
-    { key: 'is_active', label: 'Status', sortable: true, align: 'center' },
-    { key: 'aksi', label: 'Aksi', align: 'right' },
+    { key: 'is_active', label: 'Status', sortable: true, align: 'center' as const },
+    { key: 'aksi', label: 'Aksi', align: 'right' as const },
 ];
 
 const showModal = ref(false);
