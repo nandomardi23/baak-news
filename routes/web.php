@@ -112,8 +112,10 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
 
     // Sync routes (AJAX)
     Route::middleware('role:admin|staff_baak')->prefix('sync')->name('sync.')->group(function () {
+        Route::post('referensi', [\App\Http\Controllers\Admin\SyncController::class, 'syncReferensi'])->name('referensi');
         Route::post('prodi', [\App\Http\Controllers\Admin\SyncController::class, 'syncProdi'])->name('prodi');
         Route::post('semester', [\App\Http\Controllers\Admin\SyncController::class, 'syncSemester'])->name('semester');
+        Route::post('kurikulum', [\App\Http\Controllers\Admin\SyncController::class, 'syncKurikulum'])->name('kurikulum');
         Route::post('matakuliah', [\App\Http\Controllers\Admin\SyncController::class, 'syncMataKuliah'])->name('matakuliah');
         Route::post('mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswa'])->name('mahasiswa');
         Route::post('biodata', [\App\Http\Controllers\Admin\SyncController::class, 'syncBiodata'])->name('biodata');

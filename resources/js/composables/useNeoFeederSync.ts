@@ -1,0 +1,191 @@
+import { ref, reactive } from 'vue';
+import { router } from '@inertiajs/vue3';
+import axios from 'axios';
+
+export interface SyncResult {
+    success: boolean;
+    message: string;
+    total_from_api?: number;
+    synced?: number;
+    failed?: number;
+    inserted?: number;
+    updated?: number;
+    skipped?: number;
+    errors?: string[];
+    // Progress fields
+    progress?: number;
+    batch_size?: number;
+    offset?: number;
+    next_offset?: number | null;
+    has_more?: boolean;
+    // API response total (sometimes mapped differently)
+    total_all?: number;
+}
+
+export interface SyncState {
+    loading: boolean;
+    result: SyncResult | null;
+}
+
+export function useNeoFeederSync() {
+    // Stats Accumulator
+    const accumulatedStats = reactive<Record<string, {
+        total_synced: number;
+        total_failed: number;
+        total_api: number;
+        progress: number;
+        errors: string[];
+    }>>({});
+
+    // Sync States
+    const syncStates = reactive<Record<string, SyncState>>({
+        referensi: { loading: false, result: null },
+        wilayah: { loading: false, result: null },
+        prodi: { loading: false, result: null },
+        kurikulum: { loading: false, result: null },
+        matakuliah: { loading: false, result: null }, // Renamed from matkul
+        mahasiswa: { loading: false, result: null },
+        biodata: { loading: false, result: null },
+        aktivitas: { loading: false, result: null }, // Renamed from akm
+        krs: { loading: false, result: null },
+        nilai: { loading: false, result: null },
+        kelaskuliah: { loading: false, result: null }, // Renamed from kelas
+        dosenpengajar: { loading: false, result: null }, // Renamed from pengajar
+        dosen: { loading: false, result: null },
+        semester: { loading: false, result: null },
+        ajardosen: { loading: false, result: null },
+        bimbingan: { loading: false, result: null },
+        uji: { loading: false, result: null },
+        aktivitasmahasiswa: { loading: false, result: null },
+        anggotaaktivitas: { loading: false, result: null },
+        konversi: { loading: false, result: null },
+    });
+
+    const routeMapping: Record<string, string> = {
+        'referensi': 'referensi',
+        'wilayah': 'referensi', // Logic in syncData handles type='wilayah'
+        'prodi': 'prodi',
+        'kurikulum': 'kurikulum',
+        'matakuliah': 'matakuliah',
+        'mahasiswa': 'mahasiswa',
+        'biodata': 'biodata',
+        'aktivitas': 'aktivitas',
+        'krs': 'krs',
+        'nilai': 'nilai',
+        'kelaskuliah': 'kelas-kuliah',
+        'dosenpengajar': 'dosen-pengajar',
+        'dosen': 'dosen',
+        'semester': 'semester',
+        'ajardosen': 'ajar-dosen',
+        'bimbingan': 'bimbingan-mahasiswa',
+        'uji': 'uji-mahasiswa',
+        'aktivitasmahasiswa': 'aktivitas-mahasiswa',
+        'anggotaaktivitas': 'anggota-aktivitas-mahasiswa',
+        'konversi': 'konversi-kampus-merdeka',
+    };
+
+    /**
+     * Initialize Accumulator for a type
+     */
+    const initAccumulator = (type: string) => {
+        if (!accumulatedStats[type]) {
+            accumulatedStats[type] = {
+                total_synced: 0,
+                total_failed: 0,
+                total_api: 0,
+                progress: 0,
+                errors: []
+            };
+        }
+    };
+
+    /**
+     * Generic Sync Function
+     */
+    const syncData = async (type: string, offset = 0) => {
+        if (!syncStates[type]) return;
+
+        // If starting fresh (offset 0), reset states
+        if (offset === 0) {
+            syncStates[type].loading = true;
+            syncStates[type].result = null;
+            // Reset accumulator for this session
+            accumulatedStats[type] = {
+                total_synced: 0,
+                total_failed: 0,
+                total_api: 0,
+                progress: 0,
+                errors: []
+            };
+        }
+
+        try {
+            const endpoint = routeMapping[type];
+            if (!endpoint) throw new Error(`Unknown sync type: ${type}`);
+
+            // Special param for wilayah
+            const params: any = { offset, limit: type === 'kelaskuliah' ? 2000 : 500 }; 
+            // Adjust limits based on type for optimization
+            if (['biodata', 'krs', 'nilai', 'aktivitas'].includes(type)) params.limit = 50; 
+            if (['wilayah'].includes(type)) {
+                params.type = 'wilayah';
+                params.limit = 2000;
+            }
+
+            const response = await axios.post(route('admin.sync.' + endpoint), params);
+
+            if (response.data.success) {
+                const result = response.data.data;
+                // Add success/message from wrapper to result object if needed, 
+                // but usually we trust the data block. 
+                // Let's ensure result has success/message for NeoFeeder.vue compat
+                const fullResult: SyncResult = {
+                    success: true,
+                    message: response.data.message || 'Sync successful',
+                    ...result
+                };
+                
+                syncStates[type].result = fullResult;
+
+                // Update Accumulator
+                initAccumulator(type);
+                const acc = accumulatedStats[type];
+                
+                acc.total_synced += (result.synced || 0) + (result.updated || 0) + (result.inserted || 0);
+                acc.total_failed += (result.failed || 0);
+                acc.total_api = result.total_all || result.total_from_api || 0;
+                acc.progress = result.progress || 0;
+
+                if (result.errors && result.errors.length > 0) {
+                     acc.errors.push(...result.errors);
+                }
+
+                // Recursive call if has_more
+                if (result.has_more && result.next_offset) {
+                    await syncData(type, result.next_offset);
+                } else {
+                    syncStates[type].loading = false;
+                    // No toast, just finish
+                }
+            } else {
+                throw new Error(response.data.message);
+            }
+        } catch (error: any) {
+            syncStates[type].loading = false;
+            // Set result to error state so UI shows it
+            syncStates[type].result = {
+                success: false,
+                message: error.response?.data?.message || error.message || 'Sync Failed',
+                failed: (accumulatedStats[type]?.total_failed || 0) + 1,
+                errors: [...(accumulatedStats[type]?.errors || []), error.message]
+            };
+        }
+    };
+
+    return {
+        syncStates,
+        accumulatedStats,
+        syncData,
+        routeMapping
+    };
+}

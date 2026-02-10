@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref, reactive, computed } from 'vue';
+import { useNeoFeederSync } from '@/composables/useNeoFeederSync';
 
 interface Settings {
     url: string;
@@ -11,28 +12,11 @@ interface Settings {
     has_password: boolean;
 }
 
-interface SyncResult {
-    success: boolean;
-    message: string;
-    data?: {
-        total_from_api: number;
-        synced: number;
-        failed: number;
-        inserted?: number;
-        updated?: number;
-        skipped?: number;
-        errors: string[];
-        batch_size?: number;
-        offset?: number;
-        next_offset?: number | null;
-        has_more?: boolean;
-        progress?: number;
-    };
-}
-
 const props = defineProps<{
     settings: Settings;
 }>();
+
+const { syncStates, accumulatedStats, syncData } = useNeoFeederSync();
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/admin' },
@@ -48,54 +32,34 @@ const form = useForm({
 const testResult = ref<{ success: boolean; message: string } | null>(null);
 const isTesting = ref(false);
 
-const syncStates = reactive<Record<string, { loading: boolean; result: SyncResult | null }>>({
-    prodi: { loading: false, result: null },
-    semester: { loading: false, result: null },
-    matakuliah: { loading: false, result: null },
-    mahasiswa: { loading: false, result: null },
-    biodata: { loading: false, result: null },
-    dosen: { loading: false, result: null },
-    nilai: { loading: false, result: null },
-    krs: { loading: false, result: null },
-    aktivitas: { loading: false, result: null },
-    kelaskuliah: { loading: false, result: null },
-    dosenpengajar: { loading: false, result: null },
-    ajardosen: { loading: false, result: null },
-    bimbingan: { loading: false, result: null },
-    uji: { loading: false, result: null },
-    aktivitasmahasiswa: { loading: false, result: null },
-    anggotaaktivitas: { loading: false, result: null },
-    konversi: { loading: false, result: null },
-});
-
-// Accumulated counters for paginated syncs
-const accumulatedStats = reactive<Record<string, { synced: number; failed: number }>>({
-    prodi: { synced: 0, failed: 0 },
-    semester: { synced: 0, failed: 0 },
-    matakuliah: { synced: 0, failed: 0 },
-    mahasiswa: { synced: 0, failed: 0 },
-    biodata: { synced: 0, failed: 0 },
-    dosen: { synced: 0, failed: 0 },
-    nilai: { synced: 0, failed: 0 },
-    krs: { synced: 0, failed: 0 },
-    aktivitas: { synced: 0, failed: 0 },
-    kelaskuliah: { synced: 0, failed: 0 },
-    dosenpengajar: { synced: 0, failed: 0 },
-    ajardosen: { synced: 0, failed: 0 },
-    bimbingan: { synced: 0, failed: 0 },
-    uji: { synced: 0, failed: 0 },
-    aktivitasmahasiswa: { synced: 0, failed: 0 },
-    anggotaaktivitas: { synced: 0, failed: 0 },
-    konversi: { synced: 0, failed: 0 },
-});
-
 // Sync All State
 const isSyncingAll = ref(false);
 const currentSyncIndex = ref(-1);
 const syncAllProgress = ref(0);
 const syncAllErrors = ref<string[]>([]);
 
-const syncOrder = ['prodi', 'semester', 'matakuliah', 'mahasiswa', 'dosen', 'biodata', 'nilai', 'krs', 'aktivitas', 'kelaskuliah', 'dosenpengajar', 'ajardosen', 'bimbingan', 'uji', 'aktivitasmahasiswa', 'anggotaaktivitas', 'konversi'];
+const syncOrder = [
+    'referensi', 
+    'wilayah', 
+    'prodi', 
+    'kurikulum',
+    'semester', 
+    'matakuliah', 
+    'dosen', 
+    'mahasiswa', 
+    'biodata', 
+    'kelaskuliah', 
+    'dosenpengajar', 
+    'krs', 
+    'nilai', 
+    'aktivitas', 
+    'ajardosen', 
+    'bimbingan', 
+    'uji', 
+    'aktivitasmahasiswa', 
+    'anggotaaktivitas', 
+    'konversi'
+];
 
 const submit = () => {
     form.post('/admin/settings/neofeeder');
@@ -140,92 +104,6 @@ const testConnection = async () => {
     }
 };
 
-const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
-    const state = syncStates[type];
-    // All sync types now support pagination
-    const isPaginated = true;
-    
-    
-    state.loading = true;
-    
-    // Reset accumulated stats at start of new sync
-    if (offset === 0) {
-        state.result = null;
-        if (isPaginated && accumulatedStats[type]) {
-            accumulatedStats[type].synced = 0;
-            accumulatedStats[type].failed = 0;
-        }
-    }
-
-    try {
-        // Map type to correct route path
-        const routeMapping: Record<string, string> = {
-            'dosenpengajar': 'dosen-pengajar',
-            'kelaskuliah': 'kelas-kuliah',
-            'ajardosen': 'ajar-dosen',
-            'bimbingan': 'bimbingan-mahasiswa',
-            'uji': 'uji-mahasiswa',
-            'aktivitasmahasiswa': 'aktivitas-mahasiswa',
-            'anggotaaktivitas': 'anggota-aktivitas-mahasiswa',
-            'konversi': 'konversi-kampus-merdeka',
-        };
-        const routePath = routeMapping[type] || type;
-        const url = isPaginated
-            ? `/admin/sync/${routePath}?offset=${offset}`
-            : `/admin/sync/${routePath}`;
-            
-        const payload: any = {};
-
-        const response = await fetch(url, {
-            method: 'POST',
-            body: JSON.stringify(payload),
-            headers: {
-                'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-XSRF-TOKEN': getXsrfToken(),
-            },
-            credentials: 'same-origin',
-        });
-
-        const data = await response.json();
-        
-        // For paginated types, accumulate the counts
-        if (isPaginated && data.success && data.data && accumulatedStats[type]) {
-            accumulatedStats[type].synced += data.data.synced || 0;
-            accumulatedStats[type].failed += data.data.failed || 0;
-            
-            // Update result with accumulated totals
-            state.result = {
-                ...data,
-                data: {
-                    ...data.data,
-                    synced: accumulatedStats[type].synced,
-                    failed: accumulatedStats[type].failed,
-                }
-            };
-        } else {
-            state.result = data;
-        }
-        
-        if (data.success && data.data?.has_more && data.data?.next_offset !== null) {
-            // Wait and continue pagination
-            await new Promise(resolve => setTimeout(resolve, 500));
-            return await syncData(type, data.data.next_offset);
-        } else {
-            state.loading = false;
-            return data.success;
-        }
-    } catch (error) {
-        state.result = {
-            success: false,
-            message: 'Gagal sync: ' + (error instanceof Error ? error.message : 'Unknown error'),
-        };
-        state.loading = false;
-        return false;
-    }
-};
-
 // Sync All - Sequential
 const syncAll = async () => {
     if (isSyncingAll.value) return;
@@ -237,18 +115,28 @@ const syncAll = async () => {
     
     // Reset all results
     for (const type of syncOrder) {
-        syncStates[type].result = null;
+        if(syncStates[type]) syncStates[type].result = null;
     }
     
     for (let i = 0; i < syncOrder.length; i++) {
         currentSyncIndex.value = i;
         const type = syncOrder[i];
         
-        const success = await syncData(type);
+        // This now waits for the full recursive sync
+        await syncData(type);
         
-        if (!success) {
+        // Check for errors in the accumulator
+        const acc = accumulatedStats[type];
+        if (acc && (acc.total_failed > 0 || acc.errors.length > 0)) {
             const syncType = syncTypes.find(s => s.type === type);
-            syncAllErrors.value.push(`${syncType?.label || type}: ${syncStates[type].result?.message || 'Gagal'}`);
+            // Only add to main errors if it was a total failure or significant? 
+            // Let's just note it.
+             if (acc.total_synced === 0 && acc.total_failed > 0) {
+                 syncAllErrors.value.push(`${syncType?.label || type}: Gagal total (${acc.total_failed} errors)`);
+             } else if (acc.errors.length > 0) {
+                 // Maybe just show count
+                 // syncAllErrors.value.push(`${syncType?.label || type}: ${acc.errors.length} error items`);
+             }
         }
         
         syncAllProgress.value = Math.round(((i + 1) / syncOrder.length) * 100);
@@ -270,12 +158,33 @@ const stopSyncAll = () => {
 };
 
 const syncTypes = [
+     {
+        type: 'referensi',
+        label: 'Referensi Umum',
+        description: 'Agama, Alat Transportasi, Pekerjaan, dll.',
+        icon: '📚',
+        color: 'from-gray-500 to-slate-500',
+    },
+    {
+        type: 'wilayah',
+        label: 'Data Wilayah',
+        description: 'Negara, Propinsi, Kabupaten, Kecamatan',
+        icon: '🌍',
+        color: 'from-blue-400 to-indigo-400',
+    },
     {
         type: 'prodi',
         label: 'Program Studi',
         description: 'Data program studi dari Neo Feeder',
         icon: '🎓',
         color: 'from-violet-500 to-purple-500',
+    },
+     {
+        type: 'kurikulum',
+        label: 'Kurikulum',
+        description: 'Data Kurikulum & Matkul Kurikulum',
+        icon: '📖',
+        color: 'from-emerald-400 to-teal-400',
     },
     {
         type: 'semester',
@@ -292,6 +201,13 @@ const syncTypes = [
         color: 'from-emerald-500 to-teal-500',
     },
     {
+        type: 'dosen',
+        label: 'Dosen',
+        description: 'Data dosen dari Neo Feeder',
+        icon: '👨‍🏫',
+        color: 'from-indigo-500 to-blue-500',
+    },
+    {
         type: 'mahasiswa',
         label: 'Mahasiswa',
         description: 'Data mahasiswa (sync prodi & semester dulu)',
@@ -306,34 +222,6 @@ const syncTypes = [
         color: 'from-pink-500 to-rose-500',
     },
     {
-        type: 'dosen',
-        label: 'Dosen',
-        description: 'Data dosen dari Neo Feeder',
-        icon: '👨‍🏫',
-        color: 'from-indigo-500 to-blue-500',
-    },
-    {
-        type: 'nilai',
-        label: 'Nilai',
-        description: 'Nilai/KHS mahasiswa',
-        icon: '📊',
-        color: 'from-green-500 to-emerald-500',
-    },
-    {
-        type: 'krs',
-        label: 'KRS',
-        description: 'Riwayat KRS mahasiswa',
-        icon: '📝',
-        color: 'from-cyan-500 to-blue-500',
-    },
-    {
-        type: 'aktivitas',
-        label: 'Aktivitas',
-        description: 'IPK dan SKS tempuh',
-        icon: '📈',
-        color: 'from-fuchsia-500 to-pink-500',
-    },
-    {
         type: 'kelaskuliah',
         label: 'Kelas Kuliah',
         description: 'Data kelas kuliah per semester',
@@ -346,6 +234,27 @@ const syncTypes = [
         description: 'Data dosen pengajar per kelas',
         icon: '👨‍🏫',
         color: 'from-rose-500 to-red-500',
+    },
+     {
+        type: 'krs',
+        label: 'KRS',
+        description: 'Riwayat KRS mahasiswa',
+        icon: '📝',
+        color: 'from-cyan-500 to-blue-500',
+    },
+    {
+        type: 'nilai',
+        label: 'Nilai',
+        description: 'Nilai/KHS mahasiswa',
+        icon: '📊',
+        color: 'from-green-500 to-emerald-500',
+    },
+    {
+        type: 'aktivitas',
+        label: 'Aktivitas Kuliah',
+        description: 'IPK dan SKS tempuh',
+        icon: '📈',
+        color: 'from-fuchsia-500 to-pink-500',
     },
     {
         type: 'ajardosen',
@@ -729,19 +638,19 @@ const connectionStatus = computed(() => {
                                         >
                                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                         </svg>
-                                        <span v-if="syncStates[sync.type].loading && syncStates[sync.type].result?.data?.progress">
-                                            {{ syncStates[sync.type].result?.data?.progress }}%
+                                        <span v-if="syncStates[sync.type].loading && syncStates[sync.type].result?.progress">
+                                            {{ syncStates[sync.type].result?.progress }}%
                                         </span>
                                         <span v-else>{{ syncStates[sync.type].loading ? 'Syncing...' : 'Sync' }}</span>
                                     </button>
 
                                     <!-- Live Progress Bar (shown during syncing) -->
-                                    <div v-if="syncStates[sync.type].loading && syncStates[sync.type].result?.data" class="mt-3 space-y-2">
+                                    <div v-if="syncStates[sync.type].loading && syncStates[sync.type].result" class="mt-3 space-y-2">
                                         <!-- Total Count Display -->
-                                        <div v-if="syncStates[sync.type].result?.data?.total_from_api" 
+                                        <div v-if="syncStates[sync.type].result?.total_from_api" 
                                             class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
                                             <span class="text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                                                📊 Total dari API: {{ syncStates[sync.type].result?.data?.total_from_api }} data
+                                                📊 Total dari API: {{ syncStates[sync.type].result?.total_from_api }} data
                                             </span>
                                         </div>
                                         
@@ -749,58 +658,63 @@ const connectionStatus = computed(() => {
                                         <div class="space-y-1">
                                             <div class="flex justify-between text-xs">
                                                 <span class="text-muted-foreground">Progress</span>
-                                                <span class="font-bold text-indigo-600">{{ syncStates[sync.type].result?.data?.progress || 0 }}%</span>
+                                                <span class="font-bold text-indigo-600">{{ syncStates[sync.type].result?.progress || 0 }}%</span>
                                             </div>
                                             <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
                                                 <div 
                                                     :class="['h-2 rounded-full transition-all bg-linear-to-r', sync.color]"
-                                                    :style="{ width: (syncStates[sync.type].result?.data?.progress || 0) + '%' }"
+                                                    :style="{ width: (syncStates[sync.type].result?.progress || 0) + '%' }"
                                                 ></div>
                                             </div>
                                         </div>
                                     </div>
+                                    
+                                    <!-- Error message if failed -->
+                                   <div v-if="!syncStates[sync.type].loading && syncStates[sync.type].result && (syncStates[sync.type].result?.failed || 0) > 0" class="mt-2 text-xs text-red-600 dark:text-red-400 text-center">
+                                        Gagal: {{ syncStates[sync.type].result?.failed }} data
+                                   </div>
 
                                     <!-- Result (shown after sync complete) -->
                                     <div v-if="syncStates[sync.type].result && !syncStates[sync.type].loading" class="mt-3">
                                         <!-- Final Progress Bar -->
-                                        <div v-if="syncStates[sync.type].result?.data?.progress" class="mb-2">
+                                        <div v-if="syncStates[sync.type].result?.progress" class="mb-2">
                                             <div class="flex justify-between text-xs mb-1">
                                                 <span class="text-muted-foreground">Progress</span>
-                                                <span class="font-medium">{{ syncStates[sync.type].result?.data?.progress }}%</span>
+                                                <span class="font-medium">{{ syncStates[sync.type].result?.progress }}%</span>
                                             </div>
                                             <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
                                                 <div 
                                                     :class="['h-1.5 rounded-full transition-all bg-linear-to-r', sync.color]"
-                                                    :style="{ width: syncStates[sync.type].result?.data?.progress + '%' }"
+                                                    :style="{ width: syncStates[sync.type].result?.progress + '%' }"
                                                 ></div>
                                             </div>
                                         </div>
 
                                         <!-- Stats Grid -->
-                                        <div v-if="syncStates[sync.type].result?.data" class="space-y-2 text-xs">
+                                        <div v-if="syncStates[sync.type].result" class="space-y-2 text-xs">
                                             <!-- Total from API (always show for clarity) -->
-                                            <div v-if="syncStates[sync.type].result?.data?.total_from_api" 
+                                            <div v-if="syncStates[sync.type].result?.total_from_api" 
                                                 class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
                                                 <span class="text-indigo-600 dark:text-indigo-400 font-medium">
-                                                    Total: {{ syncStates[sync.type].result?.data?.total_from_api }} data
+                                                    Total: {{ syncStates[sync.type].result?.total_from_api }} data
                                                 </span>
                                             </div>
                                             
                                             <!-- Detailed Stats (Insert/Update/Skip) - 3 columns -->
-                                            <div v-if="syncStates[sync.type].result?.data?.inserted !== undefined || 
-                                                        syncStates[sync.type].result?.data?.updated !== undefined || 
-                                                        syncStates[sync.type].result?.data?.skipped !== undefined" 
+                                            <div v-if="syncStates[sync.type].result?.inserted !== undefined || 
+                                                        syncStates[sync.type].result?.updated !== undefined || 
+                                                        syncStates[sync.type].result?.skipped !== undefined" 
                                                 class="grid grid-cols-3 gap-1">
                                                 <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-1.5 text-center">
-                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.data?.inserted || 0 }}</span>
+                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.inserted || 0 }}</span>
                                                     <span class="text-emerald-600 dark:text-emerald-400 text-[10px]">✚ Baru</span>
                                                 </div>
                                                 <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-1.5 text-center">
-                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.data?.updated || 0 }}</span>
+                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.updated || 0 }}</span>
                                                     <span class="text-blue-600 dark:text-blue-400 text-[10px]">↻ Update</span>
                                                 </div>
                                                 <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-1.5 text-center">
-                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.data?.skipped || 0 }}</span>
+                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.skipped || 0 }}</span>
                                                     <span class="text-gray-500 dark:text-gray-400 text-[10px]">⏸ Sama</span>
                                                 </div>
                                             </div>
@@ -808,20 +722,20 @@ const connectionStatus = computed(() => {
                                             <!-- Fallback: Simple Success/Failed Grid (for endpoints without detailed stats) -->
                                             <div v-else class="grid grid-cols-2 gap-2">
                                                 <div class="bg-muted/50 rounded-lg p-2 text-center">
-                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.data?.synced }}</span>
+                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.synced }}</span>
                                                     <span class="text-emerald-600 dark:text-emerald-400">✓ Berhasil</span>
                                                 </div>
                                                 <div class="bg-muted/50 rounded-lg p-2 text-center">
-                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.data?.failed || 0 }}</span>
+                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.failed || 0 }}</span>
                                                     <span class="text-red-500">✗ Gagal</span>
                                                 </div>
                                             </div>
                                             
                                             <!-- Failed count (if any, show separately) -->
-                                            <div v-if="(syncStates[sync.type].result?.data?.inserted !== undefined) && (syncStates[sync.type].result?.data?.failed || 0) > 0" 
+                                            <div v-if="(syncStates[sync.type].result?.inserted !== undefined) && (syncStates[sync.type].result?.failed || 0) > 0" 
                                                 class="bg-red-50 dark:bg-red-900/20 rounded-lg p-1.5 text-center">
                                                 <span class="text-red-600 dark:text-red-400 font-medium">
-                                                    ✗ {{ syncStates[sync.type].result?.data?.failed }} Gagal
+                                                    ✗ {{ syncStates[sync.type].result?.failed }} Gagal
                                                 </span>
                                             </div>
                                         </div>
@@ -837,8 +751,8 @@ const connectionStatus = computed(() => {
                                         </div>
 
                                         <!-- Errors -->
-                                        <div v-if="syncStates[sync.type].result?.data?.errors?.length" class="mt-2 text-xs">
-                                            <p class="font-medium text-red-600 dark:text-red-400">{{ syncStates[sync.type].result?.data?.errors?.length }} Error(s)</p>
+                                        <div v-if="syncStates[sync.type].result?.errors?.length" class="mt-2 text-xs">
+                                            <p class="font-medium text-red-600 dark:text-red-400">{{ syncStates[sync.type].result?.errors?.length }} Error(s)</p>
                                         </div>
                                     </div>
                                 </div>
