@@ -564,5 +564,156 @@ class NeoFeederService
     {
         return $this->request('GetCountSkalaNilaiProdi', []);
     }
+    /**
+     * Get Aktivitas Mahasiswa (Non-Class Activities: KKN, PKL, MBKM, etc.)
+     */
+    public function getAktivitasMahasiswa(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListAktivitasMahasiswa', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Aktivitas Mahasiswa
+     */
+    public function getCountAktivitasMahasiswa(): ?array
+    {
+        return $this->request('GetCountAktivitasMahasiswa', []);
+    }
+
+    /**
+     * Get Anggota Aktivitas Mahasiswa (Participants)
+     */
+    public function getAnggotaAktivitasMahasiswa(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListAnggotaAktivitasMahasiswa', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Anggota Aktivitas Mahasiswa
+     */
+    public function getCountAnggotaAktivitasMahasiswa(): ?array
+    {
+        return $this->request('GetCountAnggotaAktivitasMahasiswa', []);
+    }
+
+    /**
+     * Get Konversi Kampus Merdeka (Credit Transfer for MBKM)
+     */
+    public function getKonversiKampusMerdeka(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListKonversiKampusMerdeka', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Konversi Kampus Merdeka
+     */
+    public function getCountKonversiKampusMerdeka(): ?array
+    {
+        return $this->request('GetCountKonversiKampusMerdeka', []);
+    }
+
+    /**
+     * Get List Aktivitas Mengajar Dosen
+     */
+    public function getAktivitasMengajarDosen(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListAktivitasMengajarDosen', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Aktivitas Mengajar Dosen
+     */
+    public function getCountAktivitasMengajarDosen(): ?array
+    {
+        return $this->request('GetCountAktivitasMengajarDosen', []);
+    }
+
+    /**
+     * Get List Bimbingan Mahasiswa
+     */
+    public function getBimbingMahasiswa(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListBimbingMahasiswa', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Bimbingan Mahasiswa
+     */
+    public function getCountBimbingMahasiswa(): ?array
+    {
+        return $this->request('GetCountBimbingMahasiswa', []);
+    }
+
+    /**
+     * Get List Uji Mahasiswa
+     */
+    public function getUjiMahasiswa(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListUjiMahasiswa', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Uji Mahasiswa
+     */
+    public function getCountUjiMahasiswa(): ?array
+    {
+        return $this->request('GetCountUjiMahasiswa', []);
+    }
+
+    /**
+     * Get List Mahasiswa Lulus DO
+     */
+    public function getMahasiswaLulusDO(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListMahasiswaLulusDO', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Mahasiswa Lulus DO
+     */
+    public function getCountMahasiswaLulusDO(): ?array
+    {
+        return $this->request('GetCountMahasiswaLulusDO', []);
+    }
+
+    /**
+     * Get List Riwayat Pendidikan Mahasiswa
+     */
+    public function getRiwayatPendidikanMahasiswa(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListRiwayatPendidikanMahasiswa', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
+     * Get Count Riwayat Pendidikan Mahasiswa
+     */
+    public function getCountRiwayatPendidikanMahasiswa(): ?array
+    {
+        return $this->request('GetCountRiwayatPendidikanMahasiswa', []);
+    }
 }
 

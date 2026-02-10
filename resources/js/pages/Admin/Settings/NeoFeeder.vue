@@ -60,6 +60,12 @@ const syncStates = reactive<Record<string, { loading: boolean; result: SyncResul
     aktivitas: { loading: false, result: null },
     kelaskuliah: { loading: false, result: null },
     dosenpengajar: { loading: false, result: null },
+    ajardosen: { loading: false, result: null },
+    bimbingan: { loading: false, result: null },
+    uji: { loading: false, result: null },
+    aktivitasmahasiswa: { loading: false, result: null },
+    anggotaaktivitas: { loading: false, result: null },
+    konversi: { loading: false, result: null },
 });
 
 // Accumulated counters for paginated syncs
@@ -75,6 +81,12 @@ const accumulatedStats = reactive<Record<string, { synced: number; failed: numbe
     aktivitas: { synced: 0, failed: 0 },
     kelaskuliah: { synced: 0, failed: 0 },
     dosenpengajar: { synced: 0, failed: 0 },
+    ajardosen: { synced: 0, failed: 0 },
+    bimbingan: { synced: 0, failed: 0 },
+    uji: { synced: 0, failed: 0 },
+    aktivitasmahasiswa: { synced: 0, failed: 0 },
+    anggotaaktivitas: { synced: 0, failed: 0 },
+    konversi: { synced: 0, failed: 0 },
 });
 
 // Sync All State
@@ -83,7 +95,7 @@ const currentSyncIndex = ref(-1);
 const syncAllProgress = ref(0);
 const syncAllErrors = ref<string[]>([]);
 
-const syncOrder = ['prodi', 'semester', 'matakuliah', 'mahasiswa', 'dosen', 'biodata', 'nilai', 'krs', 'aktivitas', 'kelaskuliah', 'dosenpengajar'];
+const syncOrder = ['prodi', 'semester', 'matakuliah', 'mahasiswa', 'dosen', 'biodata', 'nilai', 'krs', 'aktivitas', 'kelaskuliah', 'dosenpengajar', 'ajardosen', 'bimbingan', 'uji', 'aktivitasmahasiswa', 'anggotaaktivitas', 'konversi'];
 
 const submit = () => {
     form.post('/admin/settings/neofeeder');
@@ -150,6 +162,12 @@ const syncData = async (type: string, offset: number = 0): Promise<boolean> => {
         const routeMapping: Record<string, string> = {
             'dosenpengajar': 'dosen-pengajar',
             'kelaskuliah': 'kelas-kuliah',
+            'ajardosen': 'ajar-dosen',
+            'bimbingan': 'bimbingan-mahasiswa',
+            'uji': 'uji-mahasiswa',
+            'aktivitasmahasiswa': 'aktivitas-mahasiswa',
+            'anggotaaktivitas': 'anggota-aktivitas-mahasiswa',
+            'konversi': 'konversi-kampus-merdeka',
         };
         const routePath = routeMapping[type] || type;
         const url = isPaginated
@@ -328,6 +346,48 @@ const syncTypes = [
         description: 'Data dosen pengajar per kelas',
         icon: '👨‍🏫',
         color: 'from-rose-500 to-red-500',
+    },
+    {
+        type: 'ajardosen',
+        label: 'Ajar Dosen (Real)',
+        description: 'Aktivitas mengajar dosen (rekom. BKD/Sister)',
+        icon: '👨‍🏫',
+        color: 'from-orange-500 to-red-500',
+    },
+    {
+        type: 'bimbingan',
+        label: 'Bimbingan Mhs',
+        description: 'Bimbingan Tugas Akhir/Skripsi',
+        icon: '👥',
+        color: 'from-teal-500 to-green-500',
+    },
+    {
+        type: 'uji',
+        label: 'Uji Mahasiswa',
+        description: 'Penguji Sidang/Tugas Akhir',
+        icon: '📝',
+        color: 'from-cyan-500 to-blue-500',
+    },
+    {
+        type: 'aktivitasmahasiswa',
+        label: 'Aktivitas Mhs',
+        description: 'MBKM, KKN, PKL, Prestasi, dll.',
+        icon: '🏆',
+        color: 'from-violet-500 to-fuchsia-500',
+    },
+    {
+        type: 'anggotaaktivitas',
+        label: 'Anggota Aktivitas',
+        description: 'Peserta aktivitas mahasiswa',
+        icon: '🧑‍🤝‍🧑',
+        color: 'from-fuchsia-500 to-pink-500',
+    },
+    {
+        type: 'konversi',
+        label: 'Konversi MBKM',
+        description: 'Konversi nilai aktivitas MBKM',
+        icon: '🔄',
+        color: 'from-emerald-500 to-teal-500',
     },
 ];
 

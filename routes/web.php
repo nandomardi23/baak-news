@@ -127,6 +127,12 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::post('aktivitas', [\App\Http\Controllers\Admin\SyncController::class, 'syncAktivitasKuliah'])->name('aktivitas');
         Route::post('kelas-kuliah', [\App\Http\Controllers\Admin\SyncController::class, 'syncKelasKuliah'])->name('kelas-kuliah');
         Route::post('dosen-pengajar', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosenPengajar'])->name('dosen-pengajar');
+        Route::post('ajar-dosen', [\App\Http\Controllers\Admin\SyncController::class, 'syncAjarDosen'])->name('ajar-dosen');
+        Route::post('bimbingan-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncBimbinganMahasiswa'])->name('bimbingan-mahasiswa');
+        Route::post('uji-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncUjiMahasiswa'])->name('uji-mahasiswa');
+        Route::post('aktivitas-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncAktivitasMahasiswa'])->name('aktivitas-mahasiswa');
+        Route::post('anggota-aktivitas-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncAnggotaAktivitasMahasiswa'])->name('anggota-aktivitas-mahasiswa');
+        Route::post('konversi-kampus-merdeka', [\App\Http\Controllers\Admin\SyncController::class, 'syncKonversiKampusMerdeka'])->name('konversi-kampus-merdeka');
     });
 });
 

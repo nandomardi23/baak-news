@@ -681,6 +681,96 @@ class SyncController extends Controller
         }
     }
 
+
+
+    /**
+     * Sync Riwayat Pendidikan (History)
+     */
+    public function syncRiwayatPendidikan(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncRiwayatPendidikan($offset, 100);
+
+            return $this->successResponse('Riwayat Pendidikan', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Riwayat Pendidikan Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Mahasiswa Lulus / DO
+     */
+    public function syncMahasiswaLulusDO(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncMahasiswaLulusDO($offset, 100);
+
+            return $this->successResponse('Mahasiswa Lulus/DO', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Mahasiswa Lulus/DO Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+
+    /**
+     * Sync Ajar Dosen (Real Teaching Activity)
+     */
+    public function syncAjarDosen(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncAjarDosen($offset, 500);
+
+            return $this->successResponse('Aktivitas Mengajar Dosen', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Ajar Dosen Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
     /**
      * Build success response with optional detailed stats
      */
@@ -717,5 +807,90 @@ class SyncController extends Controller
             'data' => null,
         ]);
     }
-}
+    /**
+     * Sync Aktivitas Mahasiswa (Non-Class: KKN, PKL, MBKM)
+     */
+    public function syncAktivitasMahasiswa(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncAktivitasMahasiswa($offset, 500);
 
+            return $this->successResponse('Aktivitas Mahasiswa', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Aktivitas Mahasiswa Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Anggota Aktivitas Mahasiswa
+     */
+    public function syncAnggotaAktivitasMahasiswa(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncAnggotaAktivitasMahasiswa($offset, 500);
+
+            return $this->successResponse('Anggota Aktivitas Mahasiswa', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Anggota Aktivitas Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
+     * Sync Konversi Kampus Merdeka
+     */
+    public function syncKonversiKampusMerdeka(Request $request, NeoFeederSyncService $syncService): JsonResponse
+    {
+        session()->save();
+        set_time_limit(300);
+        
+        $offset = (int) $request->input('offset', 0);
+        
+        try {
+            $result = $syncService->syncKonversiKampusMerdeka($offset, 500);
+
+            return $this->successResponse('Konversi MBKM', $result['total_all'], $result['synced'], $result['errors'], [
+                'inserted' => $result['inserted'] ?? 0,
+                'updated' => $result['updated'] ?? 0,
+                'skipped' => $result['skipped'] ?? 0,
+                'batch_size' => $result['total'],
+                'offset' => $result['offset'],
+                'next_offset' => $result['next_offset'],
+                'has_more' => $result['has_more'],
+                'progress' => $result['progress'],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Sync Konversi MBKM Error', ['message' => $e->getMessage()]);
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+}
