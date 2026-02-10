@@ -50,7 +50,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getProdi($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -70,7 +70,7 @@ class NeoFeederSyncService
         foreach ($data as $item) {
             try {
                 $existing = ProgramStudi::where('id_prodi', $item['id_prodi'])->first();
-                
+
                 $itemData = [
                     'kode_prodi' => $item['kode_program_studi'] ?? '',
                     'nama_prodi' => $item['nama_program_studi'] ?? '',
@@ -78,7 +78,7 @@ class NeoFeederSyncService
                     'jenis_program' => $item['jenis_program'] ?? 'reguler',
                     'is_active' => true,
                 ];
-                
+
                 if (!$existing) {
                     ProgramStudi::create(array_merge(['id_prodi' => $item['id_prodi']], $itemData));
                     $inserted++;
@@ -90,7 +90,7 @@ class NeoFeederSyncService
                             break;
                         }
                     }
-                    
+
                     if ($hasChanges) {
                         $existing->update($itemData);
                         $updated++;
@@ -154,7 +154,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getSemester($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -179,7 +179,7 @@ class NeoFeederSyncService
         foreach ($data as $item) {
             try {
                 $idSemester = $item['id_semester'] ?? '';
-                
+
                 // Filter garbage/future data
                 if ($idSemester < $minSemesterId || $idSemester > $maxSemesterId) {
                     $skipped++;
@@ -245,7 +245,7 @@ class NeoFeederSyncService
     {
         // Build a map of id_prodi => local ProgramStudi id
         $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
-        
+
         if (empty($prodiMap)) {
             throw new \Exception('Tidak ada Program Studi. Sync Program Studi terlebih dahulu.');
         }
@@ -258,7 +258,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getMataKuliah($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -278,7 +278,7 @@ class NeoFeederSyncService
         foreach ($data as $index => $item) {
             try {
                 $prodiId = $prodiMap[$item['id_prodi']] ?? null;
-                
+
                 $mk = MataKuliah::updateOrCreate(
                     ['id_matkul' => $item['id_matkul']],
                     [
@@ -343,7 +343,7 @@ class NeoFeederSyncService
     {
         // Build a map of id_prodi => local ProgramStudi id
         $prodiMap = ProgramStudi::pluck('id', 'id_prodi')->toArray();
-        
+
         if (empty($prodiMap)) {
             throw new \Exception('Tidak ada Program Studi. Sync Program Studi terlebih dahulu.');
         }
@@ -377,7 +377,7 @@ class NeoFeederSyncService
         foreach ($data as $index => $item) {
             try {
                 $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
-                
+
                 $mhs = Mahasiswa::updateOrCreate(
                     ['id_mahasiswa' => $item['id_mahasiswa'] ?? $item['id_registrasi_mahasiswa'] ?? null],
                     [
@@ -455,13 +455,13 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getBiodataMahasiswa($mahasiswa->id_mahasiswa);
-        
+
         if (empty($response['data'])) {
             return null;
         }
 
         $data = $response['data'][0];
-        
+
         // Build update data
         $updateData = [
             'nama_ayah' => $data['nama_ayah'] ?? $mahasiswa->nama_ayah,
@@ -483,7 +483,7 @@ class NeoFeederSyncService
             'no_hp' => $data['handphone'] ?? $mahasiswa->no_hp,
             'email' => $data['email'] ?? $mahasiswa->email,
         ];
-        
+
         // Check if any data changed
         $hasChanges = false;
         foreach ($updateData as $key => $value) {
@@ -492,7 +492,7 @@ class NeoFeederSyncService
                 break;
             }
         }
-        
+
         if ($hasChanges) {
             $mahasiswa->update($updateData);
         }
@@ -537,7 +537,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getDosen($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -557,7 +557,7 @@ class NeoFeederSyncService
         foreach ($data as $item) {
             try {
                 $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
-                
+
                 $dosen = Dosen::updateOrCreate(
                     ['id_dosen' => $item['id_dosen']],
                     [
@@ -619,7 +619,7 @@ class NeoFeederSyncService
     {
         // Get total count
         $totalAll = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')->count();
-        
+
         if ($totalAll === 0) {
             throw new \Exception('Tidak ada Mahasiswa dengan id_registrasi. Sync Mahasiswa terlebih dahulu.');
         }
@@ -642,9 +642,9 @@ class NeoFeederSyncService
         $allErrors = [];
 
         foreach ($mahasiswaList as $index => $mhs) {
-            
+
             $response = $this->neoFeeder->getRiwayatNilaiMahasiswa($mhs->id_registrasi_mahasiswa);
-            
+
             if (!$response || !isset($response['data'])) {
                 // If no data response, count nothing as processed
                 unset($response);
@@ -684,20 +684,20 @@ class NeoFeederSyncService
                     } else {
                         $skipped++;
                     }
-                    
+
                     $totalSynced++;
                 } catch (\Exception $e) {
                     $allErrors[] = "Nilai {$mhs->nim}: " . $e->getMessage();
                 }
             }
-            
+
             unset($response);
-            
+
             if ($index % 10 === 0) {
                 gc_collect_cycles();
             }
         }
-        
+
         unset($mahasiswaList);
         gc_collect_cycles();
 
@@ -737,21 +737,21 @@ class NeoFeederSyncService
         $matkulMap = MataKuliah::pluck('id', 'id_matkul')->toArray();
         $semesterMap = TahunAkademik::pluck('id', 'id_semester')->toArray();
         $mahasiswaMap = Mahasiswa::pluck('id', 'id_registrasi_mahasiswa')->toArray();
-        
+
         if (empty($matkulMap)) {
             throw new \Exception('Tidak ada Mata Kuliah. Sync Mata Kuliah terlebih dahulu.');
         }
-        
+
         if (empty($mahasiswaMap)) {
             throw new \Exception('Tidak ada Mahasiswa. Sync Mahasiswa terlebih dahulu.');
         }
 
         $response = $this->neoFeeder->getNilaiBySemester($semesterId, $limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API (timeout/connection error)');
         }
-        
+
         if (isset($response['error_code']) && $response['error_code'] != 0) {
             throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
         }
@@ -789,7 +789,7 @@ class NeoFeederSyncService
                         'nilai_indeks' => $item['nilai_indeks'] ?? null,
                     ]
                 );
-                
+
                 if ($nilai->wasRecentlyCreated) {
                     $inserted++;
                 } elseif ($nilai->wasChanged()) {
@@ -797,19 +797,19 @@ class NeoFeederSyncService
                 } else {
                     $skipped++;
                 }
-                
+
                 $totalSynced++;
             } catch (\Exception $e) {
                 $nim = $item['nim'] ?? 'Unknown';
                 $allErrors[] = "Nilai {$nim}: " . $e->getMessage();
             }
-            
+
             // Garbage collection every 500 records
             if ($index % 500 === 0 && $index > 0) {
                 gc_collect_cycles();
             }
         }
-        
+
         gc_collect_cycles();
 
         $hasMore = $totalFromApi === $limit; // If we got exactly limit records, there might be more
@@ -845,7 +845,7 @@ class NeoFeederSyncService
     {
         // Get total count
         $totalAll = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')->count();
-        
+
         if ($totalAll === 0) {
             throw new \Exception('Tidak ada Mahasiswa dengan id_registrasi. Sync Mahasiswa terlebih dahulu.');
         }
@@ -866,10 +866,10 @@ class NeoFeederSyncService
         foreach ($mahasiswaList as $index => $mhs) {
             /** @var Mahasiswa $mhs */
             $totalTotal++;
-            
+
             // Fetch activity history for this student
             $response = $this->neoFeeder->getAktivitasKuliahMahasiswa($mhs->id_registrasi_mahasiswa);
-            
+
             if (!$response || !isset($response['data']) || empty($response['data'])) {
                 $skipped++;
                 continue;
@@ -877,39 +877,41 @@ class NeoFeederSyncService
 
             try {
                 $data = $response['data'];
-                
+
                 // Sort by semester descending to get the latest status
-                usort($data, function($a, $b) {
+                usort($data, function ($a, $b) {
                     return $b['id_semester'] <=> $a['id_semester'];
                 });
-                
+
                 // Get latest activity
                 $latest = $data[0];
-                
+
                 $updateData = [
                     'status_mahasiswa' => $latest['id_status_mahasiswa'] ?? $latest['status_mahasiswa'] ?? null,
                 ];
 
-                if (isset($latest['ipk'])) $updateData['ipk'] = $latest['ipk'];
-                
+                if (isset($latest['ipk']))
+                    $updateData['ipk'] = $latest['ipk'];
+
                 // Check sks_total or sks_tot or total_sks
                 $sks = $latest['sks_total'] ?? $latest['sks_tot'] ?? $latest['total_sks'] ?? null;
-                if ($sks !== null) $updateData['sks_tempuh'] = $sks;
+                if ($sks !== null)
+                    $updateData['sks_tempuh'] = $sks;
 
                 // Update Mahasiswa
                 $mhs->fill($updateData);
                 if ($mhs->isDirty()) {
-                     $mhs->save();
-                     $updated++;
+                    $mhs->save();
+                    $updated++;
                 } else {
-                     $skipped++;
+                    $skipped++;
                 }
-                
+
                 $totalSynced++;
             } catch (\Exception $e) {
                 $allErrors[] = "Aktivitas {$mhs->nim}: " . $e->getMessage();
             }
-            
+
             // Garbage collection
             if ($index % 10 === 0) {
                 gc_collect_cycles();
@@ -917,11 +919,11 @@ class NeoFeederSyncService
 
             // Abort if too many errors (likely API down)
             if (count($allErrors) >= 5 && $totalSynced === 0) {
-                 $allErrors[] = "Abort: Too many consecutive errors. Checking connection...";
-                 break;
+                $allErrors[] = "Abort: Too many consecutive errors. Checking connection...";
+                break;
             }
         }
-        
+
         gc_collect_cycles();
 
         $nextOffset = $offset + $limit;
@@ -964,7 +966,7 @@ class NeoFeederSyncService
         }
 
         $data = $response['data'] ?? [];
-        
+
         // Handle case where data might be null/empty
         if (!is_array($data)) {
             $data = [];
@@ -980,7 +982,7 @@ class NeoFeederSyncService
         foreach ($data as $item) {
             try {
                 $result = $callback($item);
-                
+
                 // Track detailed stats based on callback return
                 if ($result === 'inserted') {
                     $inserted++;
@@ -1016,18 +1018,18 @@ class NeoFeederSyncService
     public function syncKrsMahasiswa(string $idRegistrasi): array
     {
         $response = $this->neoFeeder->getKrsMahasiswa("id_registrasi_mahasiswa = '{$idRegistrasi}'");
-        
+
         if (!$response || !isset($response['data']) || !is_array($response['data'])) {
-             return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => []];
+            return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => []];
         }
-        
+
         $data = $response['data'];
         $synced = 0;
         $inserted = 0;
         $updated = 0;
         $skipped = 0;
         $errors = [];
-        
+
         // Group by Semester
         $grouped = [];
         foreach ($data as $item) {
@@ -1037,16 +1039,17 @@ class NeoFeederSyncService
                 $grouped[$sem][] = $item;
             }
         }
-        
+
         $mahasiswa = Mahasiswa::where('id_registrasi_mahasiswa', $idRegistrasi)->first();
         if (!$mahasiswa) {
-             return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => ["Mahasiswa not found locally"]];
+            return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => ["Mahasiswa not found locally"]];
         }
 
         foreach ($grouped as $idSemester => $items) {
-             try {
+            try {
                 $ta = TahunAkademik::where('id_semester', $idSemester)->first();
-                if (!$ta) continue;
+                if (!$ta)
+                    continue;
 
                 $krs = Krs::firstOrCreate(
                     [
@@ -1059,45 +1062,45 @@ class NeoFeederSyncService
                         'is_approved' => true,
                     ]
                 );
-                
+
                 if ($krs->wasRecentlyCreated) {
                     $inserted++;
                 } else {
                     $updated++;
                 }
-                
+
                 // Reset details for this semester to handle dropped classes
                 $krs->details()->delete();
-                
-                foreach ($items as $detail) {
-                     // Mapping Fields
-                     $idMatkul = $detail['id_matkul'] ?? null;
-                     $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
-                     $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
-                     $namaKelas = $detail['nama_kelas_kuliah'] ?? 'A';
 
-                     // Find Mata Kuliah
-                     $mkQuery = MataKuliah::query();
-                     if (!empty($idMatkul)) {
-                         $mkQuery->where('id_matkul', $idMatkul);
-                     } else {
-                         $mkQuery->where('kode_matkul', $kodeMk);
-                     }
-                     $mk = $mkQuery->first();
-                     
-                     if (!$mk) {
-                         // Fallback: try code if id failed
-                         if (!empty($kodeMk)) {
-                             $mk = MataKuliah::where('kode_matkul', $kodeMk)->first();
-                         }
-                     }
-                     
-                     if ($mk) {
+                foreach ($items as $detail) {
+                    // Mapping Fields
+                    $idMatkul = $detail['id_matkul'] ?? null;
+                    $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
+                    $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
+                    $namaKelas = $detail['nama_kelas_kuliah'] ?? 'A';
+
+                    // Find Mata Kuliah
+                    $mkQuery = MataKuliah::query();
+                    if (!empty($idMatkul)) {
+                        $mkQuery->where('id_matkul', $idMatkul);
+                    } else {
+                        $mkQuery->where('kode_matkul', $kodeMk);
+                    }
+                    $mk = $mkQuery->first();
+
+                    if (!$mk) {
+                        // Fallback: try code if id failed
+                        if (!empty($kodeMk)) {
+                            $mk = MataKuliah::where('kode_matkul', $kodeMk)->first();
+                        }
+                    }
+
+                    if ($mk) {
                         $krsDetail = KrsDetail::create([
-                             'krs_id' => $krs->id,
-                             'mata_kuliah_id' => $mk->id,
-                             'id_kelas_kuliah' => $idKelas,
-                             'nama_kelas' => $namaKelas,
+                            'krs_id' => $krs->id,
+                            'mata_kuliah_id' => $mk->id,
+                            'id_kelas_kuliah' => $idKelas,
+                            'nama_kelas' => $namaKelas,
                         ]);
 
                         // Fetch Dosen Pengajar if Kelas is set
@@ -1108,7 +1111,7 @@ class NeoFeederSyncService
                                     // Usually ambil dosen pertama (urutan 1)
                                     $ajar = $dosenResponse['data'][0];
                                     $idDosen = $ajar['id_dosen'] ?? null;
-                                    
+
                                     if ($idDosen) {
                                         // Cari local dosen
                                         $localDosen = Dosen::where('id_dosen', $idDosen)->first();
@@ -1129,15 +1132,15 @@ class NeoFeederSyncService
                                 // Ignore error fetching dosen, continue
                             }
                         }
-                     }
+                    }
                 }
-                
+
                 $synced++;
-             } catch (\Exception $e) {
-                 $errors[] = "Sem $idSemester: " . $e->getMessage();
-             }
+            } catch (\Exception $e) {
+                $errors[] = "Sem $idSemester: " . $e->getMessage();
+            }
         }
-        
+
         return [
             'total' => count($grouped),
             'synced' => $synced,
@@ -1154,34 +1157,35 @@ class NeoFeederSyncService
     public function syncKrsSemester(string $idSemester, int $limit = 1000, int $offset = 0): array
     {
         $response = $this->neoFeeder->getKrsBySemester($idSemester, $limit, $offset);
-        
+
         if (!$response || empty($response['data'])) {
-             return ['synced' => 0, 'total' => 0, 'has_more' => false, 'next_offset' => $offset];
+            return ['synced' => 0, 'total' => 0, 'has_more' => false, 'next_offset' => $offset, 'total_from_api' => 0];
         }
 
         $items = $response['data'];
         $count = count($items);
-        
+
         // 1. Get all unique Student IDs
         $registrasiIds = collect($items)->pluck('id_registrasi_mahasiswa')->unique()->values()->all();
-        
+
         // 2. Map to Local Mahasiswa IDs
         $mahasiswaMap = Mahasiswa::whereIn('id_registrasi_mahasiswa', $registrasiIds)
             ->pluck('id', 'id_registrasi_mahasiswa');
-            
+
         // 3. Get Semester
         $ta = TahunAkademik::where('id_semester', $idSemester)->first();
         if (!$ta) {
-             return ['synced' => 0, 'total' => 0, 'has_more' => false, 'next_offset' => $offset, 'error' => "Semester $idSemester not found"];
+            return ['synced' => 0, 'total' => 0, 'has_more' => false, 'next_offset' => $offset, 'error' => "Semester $idSemester not found"];
         }
 
         $synced = 0;
         $groupedByStudent = collect($items)->groupBy('id_registrasi_mahasiswa');
-        
+
         foreach ($groupedByStudent as $regId => $studentItems) {
             $localMhsId = $mahasiswaMap[$regId] ?? null;
-            if (!$localMhsId) continue; 
-            
+            if (!$localMhsId)
+                continue;
+
             $krs = Krs::firstOrCreate(
                 [
                     'mahasiswa_id' => $localMhsId,
@@ -1193,41 +1197,41 @@ class NeoFeederSyncService
                     'is_approved' => true,
                 ]
             );
-            
-            foreach ($studentItems as $detail) {
-                 $idMatkul = $detail['id_matkul'] ?? null;
-                 $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
-                 $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
-                 $namaKelas = $detail['nama_kelas_kuliah'] ?? 'A';
 
-                 $mkQuery = MataKuliah::query();
-                 if (!empty($idMatkul)) {
-                     $mkQuery->where('id_matkul', $idMatkul);
-                 } else {
-                     $mkQuery->where('kode_matkul', $kodeMk);
-                 }
-                 $mk = $mkQuery->first();
-                 
-                 if (!$mk && !empty($kodeMk)) {
-                     $mk = MataKuliah::where('kode_matkul', $kodeMk)->first();
-                 }
-                 
-                 if ($mk) {
+            foreach ($studentItems as $detail) {
+                $idMatkul = $detail['id_matkul'] ?? null;
+                $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
+                $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
+                $namaKelas = $detail['nama_kelas_kuliah'] ?? 'A';
+
+                $mkQuery = MataKuliah::query();
+                if (!empty($idMatkul)) {
+                    $mkQuery->where('id_matkul', $idMatkul);
+                } else {
+                    $mkQuery->where('kode_matkul', $kodeMk);
+                }
+                $mk = $mkQuery->first();
+
+                if (!$mk && !empty($kodeMk)) {
+                    $mk = MataKuliah::where('kode_matkul', $kodeMk)->first();
+                }
+
+                if ($mk) {
                     KrsDetail::updateOrCreate([
-                         'krs_id' => $krs->id,
-                         'mata_kuliah_id' => $mk->id,
+                        'krs_id' => $krs->id,
+                        'mata_kuliah_id' => $mk->id,
                     ], [
-                         'id_kelas_kuliah' => $idKelas,
-                         'nama_kelas' => $namaKelas,
+                        'id_kelas_kuliah' => $idKelas,
+                        'nama_kelas' => $namaKelas,
                     ]);
-                 }
+                }
             }
             $synced++;
         }
-        
+
         return [
             'synced' => $synced,
-            'total_from_api' => $response['total'] ?? $count, 
+            'total_from_api' => $response['total'] ?? $count,
             'has_more' => $count >= $limit,
             'next_offset' => $offset + $limit
         ];
@@ -1238,55 +1242,55 @@ class NeoFeederSyncService
      */
     public function syncKrs(int $offset = 0, int $limit = 50): array
     {
-         // Get total count
+        // Get total count
         $totalAll = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')->count();
-        
+
         if ($totalAll === 0) {
             throw new \Exception('Tidak ada Mahasiswa dengan id_registrasi. Sync Mahasiswa terlebih dahulu.');
         }
-    
+
         $mahasiswaList = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')
             ->orderBy('id')
             ->skip($offset)
             ->take($limit)
             ->get();
-            
+
         $totalSynced = 0;
         $inserted = 0;
         $updated = 0;
         $skipped = 0;
         $allErrors = [];
-        
+
         foreach ($mahasiswaList as $mhs) {
-             // Removed usleep delay
-             $result = $this->syncKrsMahasiswa($mhs->id_registrasi_mahasiswa);
-             $totalSynced += $result['synced'];
-             $inserted += $result['inserted'] ?? 0;
-             $updated += $result['updated'] ?? 0;
-             $skipped += $result['skipped'] ?? 0;
-             
-             if (!empty($result['errors'])) {
-                 $allErrors[] = $mhs->nim . ': ' . implode(', ', $result['errors']);
-             }
+            // Removed usleep delay
+            $result = $this->syncKrsMahasiswa($mhs->id_registrasi_mahasiswa);
+            $totalSynced += $result['synced'];
+            $inserted += $result['inserted'] ?? 0;
+            $updated += $result['updated'] ?? 0;
+            $skipped += $result['skipped'] ?? 0;
+
+            if (!empty($result['errors'])) {
+                $allErrors[] = $mhs->nim . ': ' . implode(', ', $result['errors']);
+            }
         }
-        
+
         $nextOffset = $offset + $limit;
         $hasMore = $nextOffset < $totalAll;
         $progress = min(100, round(($offset + $limit) / $totalAll * 100));
-        
+
         return [
-             'total' => $limit, 
-             'synced' => $totalSynced,
-             'inserted' => $inserted,
-             'updated' => $updated,
-             'skipped' => $skipped,
-             'errors' => $allErrors,
-             'total_all' => $totalAll,
-             'batch_count' => $mahasiswaList->count(),
-             'offset' => $offset,
-             'next_offset' => $hasMore ? $nextOffset : null,
-             'has_more' => $hasMore,
-             'progress' => $progress,
+            'total' => $limit,
+            'synced' => $totalSynced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $allErrors,
+            'total_all' => $totalAll,
+            'batch_count' => $mahasiswaList->count(),
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
         ];
     }
 
@@ -1310,7 +1314,7 @@ class NeoFeederSyncService
         // Get ALL active classes (paginated)
         // We sync regardless of whether they already have a lecturer, to ensure updates are captured
         $totalAll = KelasKuliah::count();
-        
+
         if ($totalAll === 0) {
             return [
                 'total' => 0,
@@ -1333,7 +1337,7 @@ class NeoFeederSyncService
             ->take($limit)
             ->pluck('id_kelas_kuliah')
             ->toArray();
-            
+
         $batchCount = count($kelasIds);
 
         // Build map for dosen lookup (id_dosen => id)
@@ -1349,7 +1353,7 @@ class NeoFeederSyncService
         foreach ($kelasIds as $idKelas) {
             try {
                 $response = $this->neoFeeder->getDosenPengajarKelasKuliah($idKelas);
-                
+
                 // Clear existing assignments for this class to ensure clean slate (handling deletions/changes)
                 if (isset($kelasMap[$idKelas])) {
                     \DB::table('dosen_pengajar_kelas')->where('kelas_kuliah_id', $kelasMap[$idKelas])->delete();
@@ -1357,15 +1361,16 @@ class NeoFeederSyncService
 
                 if ($response && !empty($response['data'])) {
                     $lecturers = $response['data'];
-                    
+
                     // Sort by urgency or order if available, otherwise first one is primary
                     $primaryLecturer = null;
 
                     foreach ($lecturers as $ajar) {
                         $idDosen = $ajar['id_dosen'] ?? null;
                         $namaDosen = $ajar['nama_dosen'] ?? null;
-                        
-                        if (!$idDosen) continue;
+
+                        if (!$idDosen)
+                            continue;
 
                         $localDosenId = $dosenMap[$idDosen] ?? null;
                         $localKelasId = $kelasMap[$idKelas] ?? null;
@@ -1387,7 +1392,7 @@ class NeoFeederSyncService
                                 'created_at' => now(),
                                 'updated_at' => now(),
                             ]);
-                            
+
                             $totalAssignments++;
                         }
 
@@ -1409,7 +1414,7 @@ class NeoFeederSyncService
                                 'dosen_id' => $primaryLecturer['dosen_id'],
                                 'nama_dosen' => $primaryLecturer['nama_dosen'],
                             ]);
-                            
+
                         // Also update KRS Detail if exists (legacy support)
                         KrsDetail::where('id_kelas_kuliah', $idKelas)
                             ->update([
@@ -1417,9 +1422,9 @@ class NeoFeederSyncService
                                 'nama_dosen' => $primaryLecturer['nama_dosen'],
                             ]);
                     }
-                    
+
                     $synced++;
-                    
+
                 } else {
                     // No lecturer assigned
                     KelasKuliah::where('id_kelas_kuliah', $idKelas)
@@ -1470,19 +1475,19 @@ class NeoFeederSyncService
         // Always get total count for accurate pagination
         $totalAll = 0;
         $countResponse = $this->neoFeeder->getCountKelasKuliah();
-        
+
         if ($countResponse && isset($countResponse['data'])) {
             $data = $countResponse['data'];
-            
+
             if (is_array($data)) {
                 // Check if wrapped in array typical of NeoFeeder list responses
                 if (isset($data[0]) && is_array($data[0])) {
-                     $first = $data[0];
-                     // Common keys for count: total, count, record, jumlah
-                     $totalAll = (int) ($first['total'] ?? $first['count'] ?? $first['record'] ?? $first['jumlah'] ?? 0);
+                    $first = $data[0];
+                    // Common keys for count: total, count, record, jumlah
+                    $totalAll = (int) ($first['total'] ?? $first['count'] ?? $first['record'] ?? $first['jumlah'] ?? 0);
                 } else {
-                     // Direct keys
-                     $totalAll = (int) ($data['total'] ?? $data['count'] ?? $data['record'] ?? $data['jumlah'] ?? 0);
+                    // Direct keys
+                    $totalAll = (int) ($data['total'] ?? $data['count'] ?? $data['record'] ?? $data['jumlah'] ?? 0);
                 }
             } else {
                 // Scalar
@@ -1492,11 +1497,11 @@ class NeoFeederSyncService
 
         // Fetch classes from API
         $response = $this->neoFeeder->getAllKelasKuliah($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API (timeout/connection error)');
         }
-        
+
         if (isset($response['error_code']) && $response['error_code'] != 0) {
             throw new \Exception($response['error_desc'] ?? 'Error dari Neo Feeder');
         }
@@ -1545,19 +1550,19 @@ class NeoFeederSyncService
                 } else {
                     $skipped++;
                 }
-                
+
                 $totalSynced++;
             } catch (\Exception $e) {
                 $namaKelas = $item['nama_kelas_kuliah'] ?? 'Unknown';
                 $allErrors[] = "Kelas {$namaKelas}: " . $e->getMessage();
             }
-            
+
             // Garbage collection every 100 records
             if ($index % 100 === 0 && $index > 0) {
                 gc_collect_cycles();
             }
         }
-        
+
         gc_collect_cycles();
 
         // More reliable has_more check using total count
@@ -1594,7 +1599,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getKurikulum($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -1613,7 +1618,7 @@ class NeoFeederSyncService
         foreach ($data as $item) {
             try {
                 $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
-                
+
                 $kurikulum = Kurikulum::updateOrCreate(
                     ['id_kurikulum' => $item['id_kurikulum']],
                     [
@@ -1623,10 +1628,10 @@ class NeoFeederSyncService
                         'jumlah_sks_lulus' => $item['jumlah_sks_lulus'] ?? 0,
                         'jumlah_sks_wajib' => $item['jumlah_sks_wajib'] ?? 0,
                         'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'] ?? 0,
-                        
+
                     ]
                 );
-                
+
                 // If prodi_id column exists, update it
                 if ($prodiId && \Schema::hasColumn('kurikulum', 'program_studi_id')) {
                     $kurikulum->program_studi_id = $prodiId;
@@ -1678,7 +1683,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -1695,7 +1700,7 @@ class NeoFeederSyncService
             try {
                 // Ensure Kurikulum exists first? Or just store ID. Usually safer to just store ID from Feeder.
                 // We assume Matkul & Kurikulum are synced
-                
+
                 $mkKur = MatkulKurikulum::updateOrCreate(
                     [
                         'id_kurikulum' => $item['id_kurikulum'],
@@ -1723,8 +1728,9 @@ class NeoFeederSyncService
             } catch (\Exception $e) {
                 $errors[] = "MatkulKurikulum error: " . $e->getMessage();
             }
-            
-            if ($index % 500 === 0) gc_collect_cycles();
+
+            if ($index % 500 === 0)
+                gc_collect_cycles();
         }
 
         $nextOffset = $offset + $batchCount;
@@ -1758,7 +1764,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getSkalaNilaiProdi($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -1830,7 +1836,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getMahasiswaLulusDO($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -1895,7 +1901,7 @@ class NeoFeederSyncService
             'has_more' => $hasMore,
             'progress' => $progress,
         ];
-        }
+    }
 
     /**
      * Sync Riwayat Pendidikan Mahasiswa (History of Education)
@@ -1911,7 +1917,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getRiwayatPendidikanMahasiswa($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -1930,29 +1936,29 @@ class NeoFeederSyncService
                 // For now, let's update Mahasiswa if 'id_registrasi_mahasiswa' matches.
                 // Or if it's purely historical (SMA, S1 elsewhere), we might need a separate table 'mahasiswa_history'.
                 // Given the fields usually returned (nim, nama, id_prodi_asal, pt_asal, dll), it's often for Transfer.
-                
+
                 // If the data contains 'id_mahasiswa', we can update specific fields if needed.
                 // But often 'Riwayat Pendidikan' in Neo Feeder is about previous education (SMA, D3, etc).
                 // Let's assume we just want to log or store it. 
                 // However, without a dedicated table, I will just count it for now to test connectivity,
                 // OR if it maps to 'mahasiswa' table fields like 'asal_sekolah' etc.
-                
+
                 // Detailed implementation:
                 // If it's about 'Riwayat Pendidikan Mahasiswa' (College history), it's often used for 'Pindahan'.
                 // Let's create a placeholder logic unless we have a 'mahasiswa_riwayat_pendidikan' table.
                 // Since user didn't request a complex table yet, I will skip saving for now OR just update 'mahasiswa' if matches.
-                
+
                 // Check if 'id_mahasiswa' exists
                 if (isset($item['id_mahasiswa'])) {
-                     // Potential logic: Update 'mahasiswa' with 'id_perguruan_tinggi_asal', 'id_prodi_asal' if columns exist.
-                     $synced++;
+                    // Potential logic: Update 'mahasiswa' with 'id_perguruan_tinggi_asal', 'id_prodi_asal' if columns exist.
+                    $synced++;
                 }
 
             } catch (\Exception $e) {
                 $errors[] = "RiwayatPendidikan Sync Error: " . $e->getMessage();
             }
         }
-        
+
         // For now, returning success to show connectivity as requested in Task ID 15.
         // The task says "Enhance Mahasiswa sync to capture historical changes".
         // Realistically, we need a table `mahasiswa_riwayat_pendidikan` for 1-to-many.
@@ -1990,7 +1996,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getAktivitasMengajarDosen($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -2063,7 +2069,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -2133,7 +2139,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getUjiMahasiswa($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -2202,7 +2208,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getAktivitasMahasiswa($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -2277,7 +2283,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getAnggotaAktivitasMahasiswa($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -2347,7 +2353,7 @@ class NeoFeederSyncService
         }
 
         $response = $this->neoFeeder->getKonversiKampusMerdeka($limit, $offset);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
