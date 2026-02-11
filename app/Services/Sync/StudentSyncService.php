@@ -11,9 +11,14 @@ class StudentSyncService extends BaseSyncService
     public function syncMahasiswa(int $offset = 0, int $limit = 2000): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountMahasiswa();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getMahasiswa($limit, $offset);
@@ -165,9 +170,14 @@ class StudentSyncService extends BaseSyncService
     public function syncMahasiswaLulusDO(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountMahasiswaLulusDO();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountMahasiswaLulusDO();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncLulusDO: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getMahasiswaLulusDO($limit, $offset);
@@ -246,9 +256,14 @@ class StudentSyncService extends BaseSyncService
     public function syncRiwayatPendidikan(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountRiwayatPendidikanMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountRiwayatPendidikanMahasiswa();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncRiwayatPendidikan: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getRiwayatPendidikanMahasiswa($limit, $offset);

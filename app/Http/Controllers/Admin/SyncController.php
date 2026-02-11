@@ -45,6 +45,7 @@ class SyncController extends Controller
     {
         try {
             $type = $request->input('type');
+            $subType = $request->input('sub_type');
             
             if ($type === 'wilayah') {
                 $offset = $request->input('offset', 0);
@@ -53,7 +54,16 @@ class SyncController extends Controller
                 return $this->successResponse('Sync Wilayah berhasil', $result);
             }
 
-            // Sync all simple references
+            if ($subType) {
+                $methodName = 'sync' . str_replace('_', '', ucwords($subType, '_'));
+                if (method_exists($syncService, $methodName)) {
+                    $result = $syncService->$methodName();
+                    return $this->successResponse("Sync $subType berhasil", $result);
+                }
+                return $this->errorResponse("Sub-tipe referensi $subType tidak ditemukan", 400);
+            }
+
+            // Fallback: Sync all simple references (may be slow)
             $synced = 0;
             $res = $syncService->syncAgama(); $synced += $res['synced'] ?? 0;
             $res = $syncService->syncJenisTinggal(); $synced += $res['synced'] ?? 0;
@@ -190,6 +200,7 @@ class SyncController extends Controller
             
             foreach ($students as $student) {
                 try {
+                    /** @var \App\Models\Mahasiswa $student */
                     $res = $syncService->syncBiodata($student);
                     if ($res === 'updated') $synced++;
                     else $skipped++;

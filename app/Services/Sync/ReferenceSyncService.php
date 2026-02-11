@@ -24,10 +24,16 @@ class ReferenceSyncService extends BaseSyncService
     public function syncProdi(int $offset = 0, int $limit = 100): array
     {
         // Get total count from API
+        // Get total count from API
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountProdi();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        try {
+            $countResponse = $this->neoFeeder->getCountProdi();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            // Context: Log warning but continue sync with manual paging
+            \Illuminate\Support\Facades\Log::warning("SyncProdi: GetCount failed, relying on pagination end. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getProdi($limit, $offset);
@@ -83,12 +89,8 @@ class ReferenceSyncService extends BaseSyncService
      */
     public function syncSemester(int $offset = 0, int $limit = 100): array
     {
-        // Get total count from API
+        // Removed GetCountSemester as it is not supported
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountSemester();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
-        }
 
         $response = $this->neoFeeder->getSemester($limit, $offset);
         
@@ -122,8 +124,8 @@ class ReferenceSyncService extends BaseSyncService
         }
 
         $nextOffset = $offset + $batchCount;
-        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+        $hasMore = ($batchCount === $limit);
+        $progress = 0; // Unknown progress
 
         return [
             'total' => $batchCount,
@@ -139,28 +141,44 @@ class ReferenceSyncService extends BaseSyncService
 
     public function syncAgama(): array
     {
-        $response = $this->neoFeeder->getAgama();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefAgama::updateOrCreate(
-                    ['id_agama' => $item['id_agama']],
-                    ['nama_agama' => $item['nama_agama']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getAgama();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefAgama::updateOrCreate(
+                        ['id_agama' => $item['id_agama']],
+                        ['nama_agama' => $item['nama_agama']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncAgama failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 
     public function syncWilayah(int $offset = 0, int $limit = 1000): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountWilayah();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
-        }
-
+        
+        // Removed GetCountWilayah as it's not supported
+        
         $response = $this->neoFeeder->getWilayah($limit, $offset);
         $synced = 0;
         $batchCount = 0;
@@ -181,9 +199,11 @@ class ReferenceSyncService extends BaseSyncService
         }
         
         $nextOffset = $offset + $batchCount;
-        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
+        // Assume more if batch is full
+        $hasMore = ($batchCount === $limit);
+        // Progress is hard to calculate without total, so we default to 0 or remove it
+        $progress = 0; 
+        
         return [
             'synced' => $synced,
             'total' => $batchCount,
@@ -197,97 +217,205 @@ class ReferenceSyncService extends BaseSyncService
 
     public function syncJenisTinggal(): array
     {
-        $response = $this->neoFeeder->getJenisTinggal();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefJenisTinggal::updateOrCreate(
-                    ['id_jenis_tinggal' => $item['id_jenis_tinggal']],
-                    ['nama_jenis_tinggal' => $item['nama_jenis_tinggal']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getJenisTinggal();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefJenisTinggal::updateOrCreate(
+                        ['id_jenis_tinggal' => $item['id_jenis_tinggal']],
+                        ['nama_jenis_tinggal' => $item['nama_jenis_tinggal']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncJenisTinggal failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 
     public function syncAlatTransportasi(): array
     {
-        $response = $this->neoFeeder->getAlatTransportasi();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefAlatTransportasi::updateOrCreate(
-                    ['id_alat_transportasi' => $item['id_alat_transportasi']],
-                    ['nama_alat_transportasi' => $item['nama_alat_transportasi']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getAlatTransportasi();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefAlatTransportasi::updateOrCreate(
+                        ['id_alat_transportasi' => $item['id_alat_transportasi']],
+                        ['nama_alat_transportasi' => $item['nama_alat_transportasi']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncAlatTransportasi failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 
     public function syncPekerjaan(): array
     {
-        $response = $this->neoFeeder->getPekerjaan();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefPekerjaan::updateOrCreate(
-                    ['id_pekerjaan' => $item['id_pekerjaan']],
-                    ['nama_pekerjaan' => $item['nama_pekerjaan']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getPekerjaan();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefPekerjaan::updateOrCreate(
+                        ['id_pekerjaan' => $item['id_pekerjaan']],
+                        ['nama_pekerjaan' => $item['nama_pekerjaan']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncPekerjaan failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 
     public function syncPenghasilan(): array
     {
-        $response = $this->neoFeeder->getPenghasilan();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefPenghasilan::updateOrCreate(
-                    ['id_penghasilan' => $item['id_penghasilan']],
-                    ['nama_penghasilan' => $item['nama_penghasilan']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getPenghasilan();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefPenghasilan::updateOrCreate(
+                        ['id_penghasilan' => $item['id_penghasilan']],
+                        ['nama_penghasilan' => $item['nama_penghasilan']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncPenghasilan failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 
     public function syncKebutuhanKhusus(): array
     {
-        $response = $this->neoFeeder->getKebutuhanKhusus();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefKebutuhanKhusus::updateOrCreate(
-                    ['id_kebutuhan_khusus' => $item['id_kebutuhan_khusus']],
-                    ['nama_kebutuhan_khusus' => $item['nama_kebutuhan_khusus']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getKebutuhanKhusus();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefKebutuhanKhusus::updateOrCreate(
+                        ['id_kebutuhan_khusus' => $item['id_kebutuhan_khusus']],
+                        ['nama_kebutuhan_khusus' => $item['nama_kebutuhan_khusus']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncKebutuhanKhusus failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 
     public function syncPembiayaan(): array
     {
-        $response = $this->neoFeeder->getPembiayaan();
-        $synced = 0;
-        if ($response && isset($response['data'])) {
-            foreach ($response['data'] as $item) {
-                RefPembiayaan::updateOrCreate(
-                    ['id_pembiayaan' => $item['id_pembiayaan']],
-                    ['nama_pembiayaan' => $item['nama_pembiayaan']]
-                );
-                $synced++;
+        try {
+            $response = $this->neoFeeder->getPembiayaan();
+            $synced = 0;
+            if ($response && isset($response['data'])) {
+                foreach ($response['data'] as $item) {
+                    RefPembiayaan::updateOrCreate(
+                        ['id_pembiayaan' => $item['id_pembiayaan']],
+                        ['nama_pembiayaan' => $item['nama_pembiayaan']]
+                    );
+                    $synced++;
+                }
             }
+            return [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+                'progress' => 100,
+                'has_more' => false
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncPembiayaan failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 0,
+                'has_more' => false,
+                'errors' => [$e->getMessage()]
+            ];
         }
-        return ['synced' => $synced];
     }
 }

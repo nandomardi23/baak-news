@@ -18,9 +18,14 @@ class AcademicSyncService extends BaseSyncService
     public function syncKelasKuliah(int $offset = 0, int $limit = 2000): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountKelasKuliah();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountKelasKuliah();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncKelasKuliah: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getAllKelasKuliah($limit, $offset);
@@ -356,11 +361,9 @@ class AcademicSyncService extends BaseSyncService
     public function syncBimbinganMahasiswa(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountBimbingMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
-        }
-
+        
+        // Removed GetCountBimbingMahasiswa as it is not supported
+        
         $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset);
         
         if (!$response) {
@@ -408,10 +411,8 @@ class AcademicSyncService extends BaseSyncService
     public function syncUjiMahasiswa(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountUjiMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
-        }
+        
+        // Removed GetCountUjiMahasiswa as it is not supported
 
         $response = $this->neoFeeder->getUjiMahasiswa($limit, $offset);
         
@@ -460,9 +461,14 @@ class AcademicSyncService extends BaseSyncService
     public function syncAktivitasMahasiswa(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountAktivitasMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountAktivitasMahasiswa();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncAktivitasMhs: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getAktivitasMahasiswa($limit, $offset);
@@ -517,10 +523,8 @@ class AcademicSyncService extends BaseSyncService
     public function syncAnggotaAktivitasMahasiswa(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountAnggotaAktivitasMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
-        }
+        
+        // Removed GetCountAnggotaAktivitasMahasiswa as it is not supported
 
         $response = $this->neoFeeder->getAnggotaAktivitasMahasiswa($limit, $offset);
         
@@ -571,9 +575,14 @@ class AcademicSyncService extends BaseSyncService
     public function syncKonversiKampusMerdeka(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountKonversiKampusMerdeka();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountKonversiKampusMerdeka();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncKonversi: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getKonversiKampusMerdeka($limit, $offset);

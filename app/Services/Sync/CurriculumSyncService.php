@@ -11,9 +11,14 @@ class CurriculumSyncService extends BaseSyncService
     public function syncKurikulum(int $offset = 0, int $limit = 100): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountKurikulum();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountKurikulum();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncKurikulum: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getKurikulum($limit, $offset);
@@ -65,9 +70,14 @@ class CurriculumSyncService extends BaseSyncService
     public function syncMataKuliah(int $offset = 0, int $limit = 2000): array
     {
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountMataKuliah();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountMataKuliah();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncMataKuliah: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset); // Using GetMatkulKurikulum as it's more complete

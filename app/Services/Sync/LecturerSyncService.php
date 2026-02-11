@@ -9,10 +9,15 @@ class LecturerSyncService extends BaseSyncService
 {
     public function syncDosen(int $offset = 0, int $limit = 500): array
     {
+        // Get total count from API
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountDosen();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        try {
+            $countResponse = $this->neoFeeder->getCountDosen();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncDosen: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getDosen($limit, $offset);
@@ -66,10 +71,15 @@ class LecturerSyncService extends BaseSyncService
 
     public function syncAjarDosen(int $offset = 0, int $limit = 500): array
     {
+        // Get total count from API
         $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountAktivitasMengajarDosen();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        try {
+            $countResponse = $this->neoFeeder->getCountAktivitasMengajarDosen();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncAjarDosen: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getAktivitasMengajarDosen($limit, $offset);

@@ -123,6 +123,46 @@ export function useNeoFeederSync() {
             const endpoint = routeMapping[type];
             if (!endpoint) throw new Error(`Unknown sync type: ${type}`);
 
+            // Special handling for referensi (General Reference)
+            if (type === 'referensi' && offset === 0) {
+                const subTypes = ['agama', 'jenis_tinggal', 'alat_transportasi', 'pekerjaan', 'penghasilan', 'kebutuhan_khusus', 'pembiayaan'];
+                let totalSynced = 0;
+                
+                for (let i = 0; i < subTypes.length; i++) {
+                    const sub = subTypes[i];
+                    // Update progress based on sub-type step
+                    const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
+                    
+                    const res = await axios.post(route('admin.sync.' + endpoint), { sub_type: sub });
+                    if (res.data.success) {
+                        const subResult = res.data.data;
+                        totalSynced += (subResult.synced || 0);
+                        
+                        // Update UI state for each step
+                        syncStates[type].result = {
+                            success: true,
+                            message: `Syncing ${sub.replace('_', ' ')}...`,
+                            synced: totalSynced,
+                            progress: subProgress
+                        };
+                        
+                        // Update accumulator
+                        initAccumulator(type);
+                        accumulatedStats[type].total_synced = totalSynced;
+                        accumulatedStats[type].progress = subProgress;
+                    }
+                }
+                
+                syncStates[type].loading = false;
+                syncStates[type].result = {
+                    success: true,
+                    message: 'Sync Referensi Umum selesai',
+                    synced: totalSynced,
+                    progress: 100
+                };
+                return;
+            }
+
             // Special param for wilayah
             const params: any = { offset, limit: type === 'kelaskuliah' ? 2000 : 500 }; 
             // Adjust limits based on type for optimization

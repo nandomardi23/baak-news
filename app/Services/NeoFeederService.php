@@ -26,8 +26,8 @@ class NeoFeederService
         $this->password = Setting::getValue('neo_feeder_password', '');
         
         $this->client = new Client([
-            'timeout' => 60, // Reduced to 60s to fail faster
-            'connect_timeout' => 10,
+            'timeout' => 120, // Increased to 120s to handle slow responses
+            'connect_timeout' => 30,
             'verify' => false,
         ]);
     }
