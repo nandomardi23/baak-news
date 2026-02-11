@@ -1,78 +1,36 @@
 <?php
+
 require __DIR__ . '/vendor/autoload.php';
+
 $app = require_once __DIR__ . '/bootstrap/app.php';
+
+// Boot the application
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\Models\Mahasiswa;
-use App\Services\NeoFeederService;
-use App\Services\NeoFeederSyncService;
+use App\Services\Sync\ReferenceSyncService;
+use App\Models\RefKebutuhanKhusus;
 
-// Target specific student for verification
-$nim = '101013070'; 
-$mhs = Mahasiswa::where('nim', $nim)->first();
+$syncService = app(ReferenceSyncService::class);
 
-if (!$mhs) {
-    echo "Student $nim not found.\n";
-    $mhs = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')->first();
-    echo "Falling back to " . $mhs->nim . "\n";
-}
+echo "Starting verified sync for Kebutuhan Khusus...\n";
 
-echo "BEFORE Sync:\n";
-echo "IPK: " . $mhs->ipk . "\n";
-echo "SKS: " . $mhs->sks_tempuh . "\n";
-echo "Status: " . $mhs->status_mahasiswa . "\n";
-
-echo "\nRunning Sync...\n";
+// Clear existing to ensure fresh test
+RefKebutuhanKhusus::truncate();
+echo "Cleared ref_kebutuhan_khusus table.\n";
 
 try {
-    $neoService = new NeoFeederService();
-    $syncService = new NeoFeederSyncService($neoService);
+    $result = $syncService->syncKebutuhanKhusus();
+    echo "SYNC RESULT:\n";
+    print_r($result);
     
-    // We can't easily call syncAktivitasKuliah for just ONE student because it loops.
-    // So we'll replicate the logic here for this single student to prove the mapping works.
-    
-    $response = $neoService->getAktivitasKuliahMahasiswa($mhs->id_registrasi_mahasiswa);
-            
-    if (!$response || !isset($response['data']) || empty($response['data'])) {
-        echo "No data from API.\n";
-    } else {
-        $data = $response['data'];
-        
-        // LOGIC FIX REPLICATION:
-        // Sort by id_semester descending
-        usort($data, function($a, $b) {
-            return strcmp($b['id_semester'], $a['id_semester']);
-        });
-
-        $latestData = $data[0];
-        echo "Latest Semester Found: " . $latestData['id_semester'] . "\n";
-        
-        $updateData = [
-            'status_mahasiswa' => $latestData['id_status_mahasiswa'] ?? $mhs->status_mahasiswa,
-        ];
-        
-        // Strict mapping check
-        if (isset($latestData['ipk'])) {
-            $updateData['ipk'] = $latestData['ipk'];
-        } else {
-            echo "WARNING: 'ipk' not found in API response. Keeping existing.\n";
-        }
-        
-        if (isset($latestData['sks_total'])) {
-                $updateData['sks_tempuh'] = $latestData['sks_total'];
-        } else {
-            echo "WARNING: 'sks_total' not found in API response. Keeping existing.\n";
-        }
-
-        $mhs->update($updateData);
-        
-        echo "\nAFTER Sync:\n";
-        echo "IPK: " . $mhs->ipk . "\n";
-        echo "SKS: " . $mhs->sks_tempuh . "\n";
-        echo "Status: " . $mhs->status_mahasiswa . "\n";
+    echo "\nSTORED ITEMS IN DATABASE:\n";
+    $items = RefKebutuhanKhusus::all();
+    foreach ($items as $item) {
+        echo "ID: " . $item->id_kebutuhan_khusus . " | NAME: " . $item->nama_kebutuhan_khusus . "\n";
     }
-
-} catch (\Exception $e) {
-    echo "Error: " . $e->getMessage() . "\n";
+    echo "Total Stored: " . $items->count() . "\n";
+    
+} catch (\Throwable $e) {
+    echo "ERROR: " . $e->getMessage() . "\n";
 }

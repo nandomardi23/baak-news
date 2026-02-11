@@ -143,20 +143,28 @@ class ReferenceSyncService extends BaseSyncService
     {
         try {
             $response = $this->neoFeeder->getAgama();
-            $synced = 0;
+            $batchCount = 0;
             if ($response && isset($response['data'])) {
-                foreach ($response['data'] as $item) {
-                    RefAgama::updateOrCreate(
-                        ['id_agama' => $item['id_agama']],
-                        ['nama_agama' => $item['nama_agama']]
-                    );
-                    $synced++;
+                $data = $response['data'];
+                $batchCount = count($data);
+                $records = [];
+                $now = now();
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_agama' => $item['id_agama'],
+                        'nama_agama' => $item['nama_agama'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($records)) {
+                    RefAgama::upsert($records, ['id_agama'], ['nama_agama', 'updated_at']);
                 }
             }
             return [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => $batchCount,
                 'progress' => 100,
                 'has_more' => false
             ];
@@ -175,64 +183,82 @@ class ReferenceSyncService extends BaseSyncService
 
     public function syncWilayah(int $offset = 0, int $limit = 1000): array
     {
-        $totalAll = 0;
-        
-        // Removed GetCountWilayah as it's not supported
-        
-        $response = $this->neoFeeder->getWilayah($limit, $offset);
-        $synced = 0;
-        $batchCount = 0;
+        try {
+            $response = $this->neoFeeder->getWilayah($limit, $offset);
+            $batchCount = 0;
 
-        if ($response && isset($response['data'])) {
-            $data = $response['data'];
-            $batchCount = count($data);
-            foreach ($data as $item) {
-                RefWilayah::updateOrCreate(
-                    ['id_wilayah' => $item['id_wilayah']],
-                    [
+            if ($response && isset($response['data'])) {
+                $data = $response['data'];
+                $batchCount = count($data);
+                $records = [];
+                $now = now();
+
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_wilayah' => $item['id_wilayah'],
                         'id_negara' => $item['id_negara'],
                         'nama_wilayah' => $item['nama_wilayah'],
-                    ]
-                );
-                $synced++;
+                        'id_induk_wilayah' => $item['id_induk_wilayah'],
+                        'id_level_wilayah' => (int)$item['id_level_wilayah'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+
+                if (!empty($records)) {
+                    RefWilayah::upsert($records, ['id_wilayah'], ['id_negara', 'nama_wilayah', 'id_induk_wilayah', 'id_level_wilayah', 'updated_at']);
+                }
             }
+            
+            $nextOffset = $offset + $batchCount;
+            $hasMore = ($batchCount === $limit);
+            
+            return [
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => 0,
+                'offset' => $offset,
+                'next_offset' => $hasMore ? $nextOffset : null,
+                'has_more' => $hasMore,
+                'progress' => 0
+            ];
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("SyncWilayah failed: " . $e->getMessage());
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'errors' => [$e->getMessage()],
+                'has_more' => false
+            ];
         }
-        
-        $nextOffset = $offset + $batchCount;
-        // Assume more if batch is full
-        $hasMore = ($batchCount === $limit);
-        // Progress is hard to calculate without total, so we default to 0 or remove it
-        $progress = 0; 
-        
-        return [
-            'synced' => $synced,
-            'total' => $batchCount,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress
-        ];
     }
 
     public function syncJenisTinggal(): array
     {
         try {
             $response = $this->neoFeeder->getJenisTinggal();
-            $synced = 0;
+            $batchCount = 0;
             if ($response && isset($response['data'])) {
-                foreach ($response['data'] as $item) {
-                    RefJenisTinggal::updateOrCreate(
-                        ['id_jenis_tinggal' => $item['id_jenis_tinggal']],
-                        ['nama_jenis_tinggal' => $item['nama_jenis_tinggal']]
-                    );
-                    $synced++;
+                $data = $response['data'];
+                $batchCount = count($data);
+                $records = [];
+                $now = now();
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_jenis_tinggal' => $item['id_jenis_tinggal'],
+                        'nama_jenis_tinggal' => $item['nama_jenis_tinggal'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($records)) {
+                    RefJenisTinggal::upsert($records, ['id_jenis_tinggal'], ['nama_jenis_tinggal', 'updated_at']);
                 }
             }
             return [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => $batchCount,
                 'progress' => 100,
                 'has_more' => false
             ];
@@ -253,20 +279,28 @@ class ReferenceSyncService extends BaseSyncService
     {
         try {
             $response = $this->neoFeeder->getAlatTransportasi();
-            $synced = 0;
+            $batchCount = 0;
             if ($response && isset($response['data'])) {
-                foreach ($response['data'] as $item) {
-                    RefAlatTransportasi::updateOrCreate(
-                        ['id_alat_transportasi' => $item['id_alat_transportasi']],
-                        ['nama_alat_transportasi' => $item['nama_alat_transportasi']]
-                    );
-                    $synced++;
+                $data = $response['data'];
+                $batchCount = count($data);
+                $now = now();
+                $records = [];
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_alat_transportasi' => $item['id_alat_transportasi'],
+                        'nama_alat_transportasi' => $item['nama_alat_transportasi'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($records)) {
+                    RefAlatTransportasi::upsert($records, ['id_alat_transportasi'], ['nama_alat_transportasi', 'updated_at']);
                 }
             }
             return [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => $batchCount,
                 'progress' => 100,
                 'has_more' => false
             ];
@@ -287,20 +321,28 @@ class ReferenceSyncService extends BaseSyncService
     {
         try {
             $response = $this->neoFeeder->getPekerjaan();
-            $synced = 0;
+            $batchCount = 0;
             if ($response && isset($response['data'])) {
-                foreach ($response['data'] as $item) {
-                    RefPekerjaan::updateOrCreate(
-                        ['id_pekerjaan' => $item['id_pekerjaan']],
-                        ['nama_pekerjaan' => $item['nama_pekerjaan']]
-                    );
-                    $synced++;
+                $data = $response['data'];
+                $batchCount = count($data);
+                $now = now();
+                $records = [];
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_pekerjaan' => $item['id_pekerjaan'],
+                        'nama_pekerjaan' => $item['nama_pekerjaan'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($records)) {
+                    RefPekerjaan::upsert($records, ['id_pekerjaan'], ['nama_pekerjaan', 'updated_at']);
                 }
             }
             return [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => $batchCount,
                 'progress' => 100,
                 'has_more' => false
             ];
@@ -321,20 +363,28 @@ class ReferenceSyncService extends BaseSyncService
     {
         try {
             $response = $this->neoFeeder->getPenghasilan();
-            $synced = 0;
+            $batchCount = 0;
             if ($response && isset($response['data'])) {
-                foreach ($response['data'] as $item) {
-                    RefPenghasilan::updateOrCreate(
-                        ['id_penghasilan' => $item['id_penghasilan']],
-                        ['nama_penghasilan' => $item['nama_penghasilan']]
-                    );
-                    $synced++;
+                $data = $response['data'];
+                $batchCount = count($data);
+                $now = now();
+                $records = [];
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_penghasilan' => $item['id_penghasilan'],
+                        'nama_penghasilan' => $item['nama_penghasilan'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($records)) {
+                    RefPenghasilan::upsert($records, ['id_penghasilan'], ['nama_penghasilan', 'updated_at']);
                 }
             }
             return [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => $batchCount,
                 'progress' => 100,
                 'has_more' => false
             ];
@@ -354,21 +404,38 @@ class ReferenceSyncService extends BaseSyncService
     public function syncKebutuhanKhusus(): array
     {
         try {
-            $response = $this->neoFeeder->getKebutuhanKhusus();
+            // We request a larger chunk since we'll be filtering.
+            // 5000 is enough to get most base categories which are usually in the first few thousands.
+            $response = $this->neoFeeder->request('GetKebutuhanKhusus', ['limit' => 5000]);
             $synced = 0;
+            $skipped = 0;
+
             if ($response && isset($response['data'])) {
                 foreach ($response['data'] as $item) {
-                    RefKebutuhanKhusus::updateOrCreate(
-                        ['id_kebutuhan_khusus' => $item['id_kebutuhan_khusus']],
-                        ['nama_kebutuhan_khusus' => $item['nama_kebutuhan_khusus']]
-                    );
-                    $synced++;
+                    $id = (int)$item['id_kebutuhan_khusus'];
+                    $name = $item['nama_kebutuhan_khusus'];
+
+                    // Base categories have IDs that are powers of 2 (1, 2, 4, 8, etc.)
+                    // and typically don't have commas in the name (which indicate combinations).
+                    $isPowerOfTwo = ($id > 0) && (($id & ($id - 1)) === 0);
+                    $isSingleName = !str_contains($name, ',');
+
+                    if ($isPowerOfTwo || $isSingleName) {
+                        RefKebutuhanKhusus::updateOrCreate(
+                            ['id_kebutuhan_khusus' => $item['id_kebutuhan_khusus']],
+                            ['nama_kebutuhan_khusus' => $item['nama_kebutuhan_khusus']]
+                        );
+                        $synced++;
+                    } else {
+                        $skipped++;
+                    }
                 }
             }
             return [
                 'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'total' => $synced + $skipped,
+                'total_all' => $synced + $skipped,
+                'skipped_combinations' => $skipped,
                 'progress' => 100,
                 'has_more' => false
             ];
@@ -389,20 +456,28 @@ class ReferenceSyncService extends BaseSyncService
     {
         try {
             $response = $this->neoFeeder->getPembiayaan();
-            $synced = 0;
+            $batchCount = 0;
             if ($response && isset($response['data'])) {
-                foreach ($response['data'] as $item) {
-                    RefPembiayaan::updateOrCreate(
-                        ['id_pembiayaan' => $item['id_pembiayaan']],
-                        ['nama_pembiayaan' => $item['nama_pembiayaan']]
-                    );
-                    $synced++;
+                $data = $response['data'];
+                $batchCount = count($data);
+                $now = now();
+                $records = [];
+                foreach ($data as $item) {
+                    $records[] = [
+                        'id_pembiayaan' => $item['id_pembiayaan'],
+                        'nama_pembiayaan' => $item['nama_pembiayaan'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ];
+                }
+                if (!empty($records)) {
+                    RefPembiayaan::upsert($records, ['id_pembiayaan'], ['nama_pembiayaan', 'updated_at']);
                 }
             }
             return [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
+                'synced' => $batchCount,
+                'total' => $batchCount,
+                'total_all' => $batchCount,
                 'progress' => 100,
                 'has_more' => false
             ];

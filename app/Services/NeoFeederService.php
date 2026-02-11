@@ -87,6 +87,8 @@ class NeoFeederService
                     sleep($delay);
                 }
 
+                Log::info("Neo Feeder Request: {$action}", ['params' => $params]);
+                
                 $response = $this->client->post($this->url, [
                     'json' => array_merge([
                         'act' => $action,

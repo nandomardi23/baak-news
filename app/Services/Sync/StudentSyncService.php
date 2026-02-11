@@ -42,7 +42,8 @@ class StudentSyncService extends BaseSyncService
                     [
                         'id_mahasiswa' => $item['id_mahasiswa'],
                         'nim' => $item['nim'],
-                        'nama_mahasiswa' => $item['nama_mahasiswa'],
+                        'nama' => $item['nama_mahasiswa'], // Main name field for the app
+                        'nama_mahasiswa' => $item['nama_mahasiswa'], // Full name for consistency
                         'jenis_kelamin' => $item['jenis_kelamin'],
                         'tanggal_lahir' => $item['tanggal_lahir'],
                         'id_periode' => $item['id_periode'], // Angkatan

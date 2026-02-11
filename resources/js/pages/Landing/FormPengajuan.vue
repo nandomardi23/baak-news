@@ -98,6 +98,12 @@ const toTitleCase = (str: string | null) => {
     if (!str) return '';
     return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
 };
+
+const submit = () => {
+    form.post(`/pengajuan/${props.mahasiswa.id}`, {
+        preserveScroll: true,
+    });
+};
 </script>
 
 <template>
