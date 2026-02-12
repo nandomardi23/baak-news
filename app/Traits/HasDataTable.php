@@ -24,13 +24,19 @@ trait HasDataTable
             $query->where(function ($q) use ($search, $searchableFields) {
                 foreach ($searchableFields as $field) {
                     if (str_contains($field, '.')) {
-                        // Handle relation search (e.g., 'roles.name')
-                        $relation = explode('.', $field);
-                        $col = array_pop($relation);
-                        $rel = implode('.', $relation);
-                        $q->orWhereHas($rel, function ($q) use ($col, $search) {
-                            $q->where($col, 'like', "%{$search}%");
-                        });
+                        $parts = explode('.', $field);
+                        $col = array_pop($parts);
+                        $rel = implode('.', $parts);
+
+                        // If the first part is the model's table, it's just a table prefix, use orWhere
+                        if ($rel === $q->getModel()->getTable()) {
+                            $q->orWhere($field, 'like', "%{$search}%");
+                        } else {
+                            // Assume it's a relationship
+                            $q->orWhereHas($rel, function ($q) use ($col, $search) {
+                                $q->where($col, 'like', "%{$search}%");
+                            });
+                        }
                     } else {
                         $q->orWhere($field, 'like', "%{$search}%");
                     }

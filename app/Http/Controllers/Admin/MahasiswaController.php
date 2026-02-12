@@ -22,18 +22,26 @@ class MahasiswaController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = Mahasiswa::with('programStudi');
+        $query = Mahasiswa::query()
+            ->select('mahasiswa.*')
+            ->leftJoin('program_studi', 'mahasiswa.program_studi_id', '=', 'program_studi.id')
+            ->with('programStudi');
 
         if ($request->filled('prodi')) {
-            $query->where('program_studi_id', $request->prodi);
+            $query->where('mahasiswa.program_studi_id', $request->prodi);
         }
 
         if ($request->filled('status')) {
-            $query->where('status_mahasiswa', $request->status);
+            $query->where('mahasiswa.status_mahasiswa', $request->status);
+        }
+
+        // Fix sorting for relationship
+        if ($request->sort_field === 'program_studi') {
+            $request->merge(['sort_field' => 'program_studi.nama_prodi']);
         }
 
         // Apply standardized Search and Sort
-        $mahasiswa = $this->applyDataTable($query, $request, ['nim', 'nama', 'angkatan', 'programStudi.nama_prodi'], 20);
+        $mahasiswa = $this->applyDataTable($query, $request, ['mahasiswa.nim', 'mahasiswa.nama', 'mahasiswa.angkatan', 'programStudi.nama_prodi'], 20);
 
         // Transform results
         $mahasiswa->through(fn($item) => [

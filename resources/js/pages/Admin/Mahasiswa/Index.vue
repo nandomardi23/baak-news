@@ -35,10 +35,10 @@ const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Mahasiswa', href: '/admin/mahasiswa' },
 ];
 
-const columns = [
+const columns: any[] = [
     { key: 'nim', label: 'NIM', sortable: true },
     { key: 'nama', label: 'Nama Lengkap', sortable: true },
-    { key: 'program_studi', label: 'Program Studi', sortable: true }, // Note: sorting by relation in Controller needs mapping if strict key matching
+    { key: 'program_studi', label: 'Program Studi', sortable: true },
     { key: 'angkatan', label: 'Angkatan', sortable: true, align: 'center' },
     { key: 'ipk', label: 'IPK', sortable: true, align: 'center', render: (row: any) => row.ipk?.toFixed(2) || '-' },
     { key: 'status', label: 'Status', sortable: true, align: 'center' },
@@ -53,6 +53,7 @@ const updateFilter = () => {
         prodi: selectedProdi.value === 'all' ? undefined : selectedProdi.value,
         status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
         search: props.filters.search,
+        page: 1, // Reset to page 1 on filter change
     }, { preserveState: true, preserveScroll: true });
 };
 
@@ -126,11 +127,11 @@ const handleExport = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Status</SelectItem>
-                                    <SelectItem value="A">Aktif</SelectItem>
-                                    <SelectItem value="L">Lulus</SelectItem>
-                                    <SelectItem value="C">Cuti</SelectItem>
-                                    <SelectItem value="N">Non-Aktif</SelectItem>
-                                    <SelectItem value="K">Keluar</SelectItem>
+                                    <SelectItem value="Aktif">Aktif</SelectItem>
+                                    <SelectItem value="Lulus">Lulus</SelectItem>
+                                    <SelectItem value="Cuti">Cuti</SelectItem>
+                                    <SelectItem value="Non-Aktif">Non-Aktif</SelectItem>
+                                    <SelectItem value="Keluar">Keluar</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
