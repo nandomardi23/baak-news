@@ -17,7 +17,7 @@ const props = defineProps<{
     semesters: Array<{ id_semester: string; nama_semester: string }>;
 }>();
 
-const { syncStates, accumulatedStats, syncData } = useNeoFeederSync();
+const { syncStates, accumulatedStats, syncData, cancelAllSyncs } = useNeoFeederSync();
 const selectedSemester = ref<string>('');
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -109,11 +109,14 @@ const syncAll = async () => {
     }
     
     for (let i = 0; i < syncOrder.length; i++) {
+        if (!isSyncingAll.value) break;
         currentSyncIndex.value = i;
         const type = syncOrder[i];
         
         // This now waits for the full recursive sync
         await syncData(type, 0, selectedSemester.value);
+        
+        if (!isSyncingAll.value) break;
         
         // Check for errors in the accumulator
         const acc = accumulatedStats[type];
@@ -139,6 +142,7 @@ const syncAll = async () => {
 const stopSyncAll = () => {
     isSyncingAll.value = false;
     currentSyncIndex.value = -1;
+    cancelAllSyncs();
 };
 
 const syncTypes = [

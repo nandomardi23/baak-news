@@ -28,6 +28,8 @@ export interface SyncState {
 }
 
 export function useNeoFeederSync() {
+    const isStopping = ref(false);
+
     // Stats Accumulator
     const accumulatedStats = reactive<Record<string, {
         total_synced: number;
@@ -103,10 +105,11 @@ export function useNeoFeederSync() {
      * Generic Sync Function
      */
     const syncData = async (type: string, offset = 0, idSemester?: string) => {
-        if (!syncStates[type]) return;
+        if (!syncStates[type] || isStopping.value) return;
 
         // If starting fresh (offset 0), reset states
         if (offset === 0) {
+            isStopping.value = false; // Clear stop signal on fresh start
             syncStates[type].loading = true;
             syncStates[type].result = null;
             // Reset accumulator for this session
@@ -129,6 +132,7 @@ export function useNeoFeederSync() {
                 let totalSynced = 0;
                 
                 for (let i = 0; i < subTypes.length; i++) {
+                    if (isStopping.value) break;
                     const sub = subTypes[i];
                     // Update progress based on sub-type step
                     const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
@@ -207,11 +211,17 @@ export function useNeoFeederSync() {
                 }
 
                 // Recursive call if has_more
-                if (result.has_more && result.next_offset) {
+                if (result.has_more && result.next_offset && !isStopping.value) {
                     await syncData(type, result.next_offset, idSemester);
                 } else {
                     syncStates[type].loading = false;
-                    // No toast, just finish
+                    if (isStopping.value) {
+                        syncStates[type].result = {
+                            success: false,
+                            message: 'Sinkronisasi diberhentikan oleh pengguna',
+                            ...result
+                        };
+                    }
                 }
             } else {
                 throw new Error(response.data.message);
@@ -228,10 +238,22 @@ export function useNeoFeederSync() {
         }
     };
 
+    const cancelAllSyncs = () => {
+        isStopping.value = true;
+        // Reset loading states for all
+        Object.keys(syncStates).forEach(key => {
+            if (syncStates[key].loading) {
+                syncStates[key].loading = false;
+            }
+        });
+    };
+
     return {
         syncStates,
         accumulatedStats,
         syncData,
-        routeMapping
+        routeMapping,
+        cancelAllSyncs,
+        isStopping
     };
 }
