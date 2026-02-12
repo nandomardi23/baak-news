@@ -14,9 +14,11 @@ interface Settings {
 
 const props = defineProps<{
     settings: Settings;
+    semesters: Array<{ id_tahun_akademik: string; nama_tahun_akademik: string }>;
 }>();
 
 const { syncStates, accumulatedStats, syncData } = useNeoFeederSync();
+const selectedSemester = ref<string>('');
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/admin' },
@@ -39,26 +41,14 @@ const syncAllProgress = ref(0);
 const syncAllErrors = ref<string[]>([]);
 
 const syncOrder = [
-    'referensi', 
-    'wilayah', 
-    'prodi', 
-    'kurikulum',
-    'semester', 
-    'matakuliah', 
-    'dosen', 
-    'mahasiswa', 
-    'biodata', 
-    'kelaskuliah', 
-    'dosenpengajar', 
-    'krs', 
-    'nilai', 
-    'aktivitas', 
-    'ajardosen', 
-    'bimbingan', 
-    'uji', 
-    'aktivitasmahasiswa', 
-    'anggotaaktivitas', 
-    'konversi'
+    // Langkah 1: Data Master (Pondasi)
+    'referensi', 'wilayah', 'prodi', 'semester', 'dosen', 'mahasiswa',
+    // Langkah 2: Struktur Pendidikan
+    'kurikulum', 'matakuliah', 'biodata',
+    // Langkah 3: Perkuliahan (Kritikal)
+    'kelaskuliah', 'dosenpengajar', 'krs',
+    // Langkah 4: Hasil & Aktivitas Tambahan
+    'nilai', 'aktivitas', 'ajardosen', 'bimbingan', 'uji', 'aktivitasmahasiswa', 'anggotaaktivitas', 'konversi'
 ];
 
 const submit = () => {
@@ -123,20 +113,15 @@ const syncAll = async () => {
         const type = syncOrder[i];
         
         // This now waits for the full recursive sync
-        await syncData(type);
+        await syncData(type, 0, selectedSemester.value);
         
         // Check for errors in the accumulator
         const acc = accumulatedStats[type];
         if (acc && (acc.total_failed > 0 || acc.errors.length > 0)) {
             const syncType = syncTypes.find(s => s.type === type);
-            // Only add to main errors if it was a total failure or significant? 
-            // Let's just note it.
-             if (acc.total_synced === 0 && acc.total_failed > 0) {
-                 syncAllErrors.value.push(`${syncType?.label || type}: Gagal total (${acc.total_failed} errors)`);
-             } else if (acc.errors.length > 0) {
-                 // Maybe just show count
-                 // syncAllErrors.value.push(`${syncType?.label || type}: ${acc.errors.length} error items`);
-             }
+            if (acc.total_synced === 0 && acc.total_failed > 0) {
+                syncAllErrors.value.push(`${syncType?.label || type}: Gagal total (${acc.total_failed} errors)`);
+            }
         }
         
         syncAllProgress.value = Math.round(((i + 1) / syncOrder.length) * 100);
@@ -152,7 +137,6 @@ const syncAll = async () => {
 };
 
 const stopSyncAll = () => {
-    // Note: This only prevents starting the next sync, current one will complete
     isSyncingAll.value = false;
     currentSyncIndex.value = -1;
 };
@@ -294,10 +278,33 @@ const syncTypes = [
     {
         type: 'konversi',
         label: 'Konversi MBKM',
-        description: 'Konversi nilai aktivitas MBKM',
+        description: 'Data konversi nilai MBKM',
         icon: '🔄',
-        color: 'from-emerald-500 to-teal-500',
+        color: 'from-indigo-500 to-purple-500',
+    }
+];
+
+const syncGroups = [
+    {
+        title: 'Langkah 1: Data Master',
+        description: 'Sync data dasar yang dibutuhkan oleh modul lain',
+        types: ['referensi', 'wilayah', 'prodi', 'semester', 'dosen', 'mahasiswa']
     },
+    {
+        title: 'Langkah 2: Struktur & Detail',
+        description: 'Mapping kurikulum dan biodata lengkap',
+        types: ['kurikulum', 'matakuliah', 'biodata']
+    },
+    {
+        title: 'Langkah 3: Perkuliahan',
+        description: 'Data jadwal, pengajar, dan pengambilan mata kuliah',
+        types: ['kelaskuliah', 'dosenpengajar', 'krs']
+    },
+    {
+        title: 'Langkah 4: Hasil & Aktivitas',
+        description: 'Nilai, AKM, BKD, dan konversi MBKM',
+        types: ['nilai', 'aktivitas', 'ajardosen', 'bimbingan', 'uji', 'aktivitasmahasiswa', 'anggotaaktivitas', 'konversi']
+    }
 ];
 
 const connectionStatus = computed(() => {
@@ -524,29 +531,45 @@ const connectionStatus = computed(() => {
                                 </div>
                             </div>
                             
-                            <!-- Sync All Button -->
-                            <button
-                                v-if="!isSyncingAll"
-                                @click="syncAll"
-                                :disabled="!settings.has_password"
-                                class="px-5 py-2.5 bg-linear-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center gap-2"
-                            >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                </svg>
-                                Sync Semua
-                            </button>
-                            <button
-                                v-else
-                                @click="stopSyncAll"
-                                class="px-5 py-2.5 bg-linear-to-r from-red-500 to-rose-500 text-white font-medium rounded-xl hover:from-red-600 hover:to-rose-600 transition-all shadow-lg shadow-red-500/25 flex items-center gap-2"
-                            >
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
-                                </svg>
-                                Stop
-                            </button>
+                            <div class="flex items-center gap-4">
+                                <!-- Semester Selector -->
+                                <div v-if="semesters && semesters.length > 0" class="flex items-center gap-2">
+                                    <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Semester:</label>
+                                    <select 
+                                        v-model="selectedSemester" 
+                                        class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[150px]"
+                                    >
+                                        <option value="">Semua Semester</option>
+                                        <option v-for="sem in semesters" :key="sem.id_tahun_akademik" :value="sem.id_tahun_akademik">
+                                            {{ sem.nama_tahun_akademik }}
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <!-- Sync All Button -->
+                                <button
+                                    v-if="!isSyncingAll"
+                                    @click="syncAll"
+                                    :disabled="!settings.has_password"
+                                    class="px-5 py-2.5 bg-linear-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition-all shadow-lg shadow-emerald-500/25 disabled:opacity-50 flex items-center gap-2"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                    </svg>
+                                    Sync Semua
+                                </button>
+                                <button
+                                    v-else
+                                    @click="stopSyncAll"
+                                    class="px-5 py-2.5 bg-linear-to-r from-red-500 to-rose-500 text-white font-medium rounded-xl hover:from-red-600 hover:to-rose-600 transition-all shadow-lg shadow-red-500/25 flex items-center gap-2"
+                                >
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                                    </svg>
+                                    Stop
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Sync All Progress Panel -->
@@ -603,156 +626,85 @@ const connectionStatus = computed(() => {
                         </div>
 
 
-                        <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            <div
-                                v-for="sync in syncTypes"
-                                :key="sync.type"
-                                class="group relative overflow-hidden rounded-xl border bg-card p-4 transition-all hover:shadow-lg hover:border-indigo-300 dark:hover:border-indigo-700"
-                            >
-                                <!-- Gradient Accent -->
-                                <div :class="['absolute top-0 left-0 h-1 w-full bg-linear-to-r', sync.color]"></div>
-                                
-                                <div class="flex flex-col h-full">
-                                    <div class="flex items-start justify-between mb-3">
-                                        <div class="flex items-center gap-2">
-                                            <span class="text-2xl">{{ sync.icon }}</span>
-                                            <h4 class="font-semibold">{{ sync.label }}</h4>
-                                        </div>
-                                    </div>
-                                    
-                                    <p class="text-xs text-muted-foreground mb-4 flex-1">{{ sync.description }}</p>
-
-                                    <!-- Sync Button -->
-                                    <button
-                                        @click="syncData(sync.type)"
-                                        :disabled="syncStates[sync.type].loading || !settings.has_password || isSyncingAll"
-                                        :class="['w-full px-4 py-2.5 text-white font-medium rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2 text-sm shadow-lg', 
-                                                 'bg-linear-to-r hover:shadow-xl', sync.color]"
+                        <div class="space-y-10">
+                            <div v-for="group in syncGroups" :key="group.title" class="space-y-4">
+                                <div class="border-l-4 border-indigo-500 pl-4 py-1">
+                                    <h4 class="font-bold text-lg">{{ group.title }}</h4>
+                                    <p class="text-sm text-muted-foreground">{{ group.description }}</p>
+                                </div>
+                                <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <div
+                                        v-for="st in syncTypes.filter(s => group.types.includes(s.type))"
+                                        :key="st.type"
+                                        :class="[
+                                            'group relative flex flex-col rounded-2xl border bg-card/50 backdrop-blur-sm p-4 transition-all duration-300 hover:shadow-xl hover:scale-[1.02] hover:border-indigo-300',
+                                            syncStates[st.type]?.loading ? 'ring-2 ring-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/10' : ''
+                                        ]"
                                     >
-                                        <svg
-                                            v-if="syncStates[sync.type].loading"
-                                            class="w-4 h-4 animate-spin"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                                        </svg>
-                                        <span v-if="syncStates[sync.type].loading && syncStates[sync.type].result?.progress">
-                                            {{ syncStates[sync.type].result?.progress }}%
-                                        </span>
-                                        <span v-else>{{ syncStates[sync.type].loading ? 'Syncing...' : 'Sync' }}</span>
-                                    </button>
-
-                                    <!-- Live Progress Bar (shown during syncing) -->
-                                    <div v-if="syncStates[sync.type].loading && syncStates[sync.type].result" class="mt-3 space-y-2">
-                                        <!-- Total Count Display -->
-                                        <div v-if="syncStates[sync.type].result?.total_from_api" 
-                                            class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
-                                            <span class="text-indigo-600 dark:text-indigo-400 font-medium text-xs">
-                                                📊 Total dari API: {{ syncStates[sync.type].result?.total_from_api }} data
-                                            </span>
-                                        </div>
-                                        
-                                        <!-- Progress Bar -->
-                                        <div class="space-y-1">
-                                            <div class="flex justify-between text-xs">
-                                                <span class="text-muted-foreground">Progress</span>
-                                                <span class="font-bold text-indigo-600">{{ syncStates[sync.type].result?.progress || 0 }}%</span>
-                                            </div>
-                                            <div class="w-full bg-muted rounded-full h-2 overflow-hidden">
-                                                <div 
-                                                    :class="['h-2 rounded-full transition-all bg-linear-to-r', sync.color]"
-                                                    :style="{ width: (syncStates[sync.type].result?.progress || 0) + '%' }"
-                                                ></div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    
-                                    <!-- Error message if failed -->
-                                   <div v-if="!syncStates[sync.type].loading && syncStates[sync.type].result && (syncStates[sync.type].result?.failed || 0) > 0" class="mt-2 text-xs text-red-600 dark:text-red-400 text-center">
-                                        Gagal: {{ syncStates[sync.type].result?.failed }} data
-                                   </div>
-
-                                    <!-- Result (shown after sync complete) -->
-                                    <div v-if="syncStates[sync.type].result && !syncStates[sync.type].loading" class="mt-3">
-                                        <!-- Final Progress Bar -->
-                                        <div v-if="syncStates[sync.type].result?.progress" class="mb-2">
-                                            <div class="flex justify-between text-xs mb-1">
-                                                <span class="text-muted-foreground">Progress</span>
-                                                <span class="font-medium">{{ syncStates[sync.type].result?.progress }}%</span>
-                                            </div>
-                                            <div class="w-full bg-muted rounded-full h-1.5 overflow-hidden">
-                                                <div 
-                                                    :class="['h-1.5 rounded-full transition-all bg-linear-to-r', sync.color]"
-                                                    :style="{ width: syncStates[sync.type].result?.progress + '%' }"
-                                                ></div>
-                                            </div>
-                                        </div>
-
-                                        <!-- Stats Grid -->
-                                        <div v-if="syncStates[sync.type].result" class="space-y-2 text-xs">
-                                            <!-- Total from API (always show for clarity) -->
-                                            <div v-if="syncStates[sync.type].result?.total_from_api" 
-                                                class="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg p-2 text-center">
-                                                <span class="text-indigo-600 dark:text-indigo-400 font-medium">
-                                                    Total: {{ syncStates[sync.type].result?.total_from_api }} data
-                                                </span>
+                                        <!-- Card Header -->
+                                        <div class="flex items-start justify-between mb-3">
+                                            <div :class="['flex h-10 w-10 items-center justify-center rounded-xl bg-linear-to-br text-white shadow-lg shrink-0', st.color]">
+                                                <span class="text-xl">{{ st.icon }}</span>
                                             </div>
                                             
-                                            <!-- Detailed Stats (Insert/Update/Skip) - 3 columns -->
-                                            <div v-if="syncStates[sync.type].result?.inserted !== undefined || 
-                                                        syncStates[sync.type].result?.updated !== undefined || 
-                                                        syncStates[sync.type].result?.skipped !== undefined" 
-                                                class="grid grid-cols-3 gap-1">
-                                                <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-1.5 text-center">
-                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.inserted || 0 }}</span>
-                                                    <span class="text-emerald-600 dark:text-emerald-400 text-[10px]">✚ Baru</span>
-                                                </div>
-                                                <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-1.5 text-center">
-                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.updated || 0 }}</span>
-                                                    <span class="text-blue-600 dark:text-blue-400 text-[10px]">↻ Update</span>
-                                                </div>
-                                                <div class="bg-gray-100 dark:bg-gray-800 rounded-lg p-1.5 text-center">
-                                                    <span class="block font-bold text-sm">{{ syncStates[sync.type].result?.skipped || 0 }}</span>
-                                                    <span class="text-gray-500 dark:text-gray-400 text-[10px]">⏸ Sama</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Fallback: Simple Success/Failed Grid (for endpoints without detailed stats) -->
-                                            <div v-else class="grid grid-cols-2 gap-2">
-                                                <div class="bg-muted/50 rounded-lg p-2 text-center">
-                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.synced }}</span>
-                                                    <span class="text-emerald-600 dark:text-emerald-400">✓ Berhasil</span>
-                                                </div>
-                                                <div class="bg-muted/50 rounded-lg p-2 text-center">
-                                                    <span class="block font-bold text-base">{{ syncStates[sync.type].result?.failed || 0 }}</span>
-                                                    <span class="text-red-500">✗ Gagal</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <!-- Failed count (if any, show separately) -->
-                                            <div v-if="(syncStates[sync.type].result?.inserted !== undefined) && (syncStates[sync.type].result?.failed || 0) > 0" 
-                                                class="bg-red-50 dark:bg-red-900/20 rounded-lg p-1.5 text-center">
-                                                <span class="text-red-600 dark:text-red-400 font-medium">
-                                                    ✗ {{ syncStates[sync.type].result?.failed }} Gagal
-                                                </span>
-                                            </div>
+                                            <!-- Sync Button -->
+                                            <button
+                                                @click="syncData(st.type, 0, selectedSemester)"
+                                                :disabled="syncStates[st.type]?.loading || !settings.has_password || isSyncingAll"
+                                                class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80 hover:bg-indigo-500 hover:text-white transition-all disabled:opacity-30"
+                                            >
+                                                <svg v-if="syncStates[st.type]?.loading" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                                </svg>
+                                            </button>
                                         </div>
 
-                                        <!-- Status Message -->
-                                        <div v-else :class="[
-                                            'rounded-lg p-2 text-xs text-center mt-2',
-                                            syncStates[sync.type].result?.success
-                                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-                                        ]">
-                                            {{ syncStates[sync.type].result?.message }}
+                                        <!-- Content -->
+                                        <div class="flex-1 space-y-1">
+                                            <h4 class="font-bold tracking-tight text-sm">{{ st.label }}</h4>
+                                            <p class="text-[10px] leading-tight text-muted-foreground line-clamp-2">
+                                                {{ st.description }}
+                                            </p>
                                         </div>
 
-                                        <!-- Errors -->
-                                        <div v-if="syncStates[sync.type].result?.errors?.length" class="mt-2 text-xs">
-                                            <p class="font-medium text-red-600 dark:text-red-400">{{ syncStates[sync.type].result?.errors?.length }} Error(s)</p>
+                                        <!-- Progress Detail -->
+                                        <div class="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                                            <div v-if="syncStates[st.type]?.loading" class="space-y-1.5">
+                                                <div class="flex justify-between text-[9px] font-medium">
+                                                    <span class="text-indigo-600 animate-pulse">{{ accumulatedStats[st.type]?.total_synced || 0 }} synced</span>
+                                                    <span>{{ accumulatedStats[st.type]?.progress || 0 }}%</span>
+                                                </div>
+                                                <div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1 overflow-hidden">
+                                                    <div 
+                                                        class="h-1 rounded-full bg-linear-to-r from-indigo-500 to-purple-500 transition-all duration-500"
+                                                        :style="{ width: (accumulatedStats[st.type]?.progress || 0) + '%' }"
+                                                    ></div>
+                                                </div>
+                                            </div>
+
+                                            <div v-else-if="syncStates[st.type]?.result" class="space-y-1.5">
+                                                <div class="flex items-center justify-between text-[10px]">
+                                                    <div class="flex items-center gap-1 font-bold" :class="syncStates[st.type]?.result?.success ? 'text-emerald-600' : 'text-red-500'">
+                                                        <svg v-if="syncStates[st.type]?.result?.success" class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                                        </svg>
+                                                        <svg v-else class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                                        </svg>
+                                                        {{ syncStates[st.type]?.result?.success ? 'Selesai' : 'Gagal' }}
+                                                    </div>
+                                                    <span class="text-[9px] text-muted-foreground font-mono">
+                                                        {{ accumulatedStats[st.type]?.total_synced || 0 }}/{{ accumulatedStats[st.type]?.total_api || '?' }}
+                                                    </span>
+                                                </div>
+                                            </div>
+
+                                            <div v-else class="text-[9px] text-muted-foreground italic text-center">
+                                                Ready
+                                            </div>
                                         </div>
                                     </div>
                                 </div>

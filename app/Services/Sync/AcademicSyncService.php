@@ -458,12 +458,13 @@ class AcademicSyncService extends BaseSyncService
         ];
     }
 
-    public function syncAktivitasMahasiswa(int $offset = 0, int $limit = 500): array
+    public function syncAktivitasMahasiswa(int $offset = 0, int $limit = 500, ?string $idSemester = null): array
     {
         $totalAll = 0;
-        $totalAll = 0;
+        $filter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        
         try {
-            $countResponse = $this->neoFeeder->getCountAktivitasMahasiswa();
+            $countResponse = $this->neoFeeder->getCountAktivitasMahasiswa($filter);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
@@ -471,7 +472,7 @@ class AcademicSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncAktivitasMhs: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getAktivitasMahasiswa($limit, $offset);
+        $response = $this->neoFeeder->getAktivitasMahasiswa($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -520,13 +521,21 @@ class AcademicSyncService extends BaseSyncService
         ];
     }
     
-    public function syncAnggotaAktivitasMahasiswa(int $offset = 0, int $limit = 500): array
+    public function syncAnggotaAktivitasMahasiswa(int $offset = 0, int $limit = 500, ?string $idSemester = null): array
     {
         $totalAll = 0;
+        $filter = $idSemester ? "id_semester = '{$idSemester}'" : "";
         
-        // Removed GetCountAnggotaAktivitasMahasiswa as it is not supported
+        try {
+            $countResponse = $this->neoFeeder->getCountAnggotaAktivitasMahasiswa($filter);
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncAnggotaAktivitas: GetCount failed. Error: " . $e->getMessage());
+        }
 
-        $response = $this->neoFeeder->getAnggotaAktivitasMahasiswa($limit, $offset);
+        $response = $this->neoFeeder->getAnggotaAktivitasMahasiswa($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -572,12 +581,13 @@ class AcademicSyncService extends BaseSyncService
         ];
     }
     
-    public function syncKonversiKampusMerdeka(int $offset = 0, int $limit = 500): array
+    public function syncKonversiKampusMerdeka(int $offset = 0, int $limit = 500, ?string $idSemester = null): array
     {
         $totalAll = 0;
-        $totalAll = 0;
+        $filter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        
         try {
-            $countResponse = $this->neoFeeder->getCountKonversiKampusMerdeka();
+            $countResponse = $this->neoFeeder->getCountKonversiKampusMerdeka($filter);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
@@ -585,7 +595,7 @@ class AcademicSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncKonversi: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getKonversiKampusMerdeka($limit, $offset);
+        $response = $this->neoFeeder->getKonversiKampusMerdeka($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');

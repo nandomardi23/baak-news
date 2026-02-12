@@ -70,12 +70,14 @@ class LecturerSyncService extends BaseSyncService
         ];
     }
 
-    public function syncAjarDosen(int $offset = 0, int $limit = 500): array
+    public function syncAjarDosen(int $offset = 0, int $limit = 100, ?string $idSemester = null): array
     {
+        $filter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+
         // Get total count from API
         $totalAll = 0;
         try {
-            $countResponse = $this->neoFeeder->getCountAktivitasMengajarDosen();
+            $countResponse = $this->neoFeeder->getCountAktivitasMengajarDosen($filter);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
@@ -83,7 +85,7 @@ class LecturerSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncAjarDosen: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getAktivitasMengajarDosen($limit, $offset);
+        $response = $this->neoFeeder->getAktivitasMengajarDosen($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -96,6 +98,10 @@ class LecturerSyncService extends BaseSyncService
 
         foreach ($data as $item) {
             try {
+                if (empty($item['id_aktivitas_mengajar'])) {
+                    continue;
+                }
+
                 AjarDosen::updateOrCreate(
                     ['id_aktivitas_mengajar' => $item['id_aktivitas_mengajar']],
                     [

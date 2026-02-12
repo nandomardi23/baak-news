@@ -569,9 +569,10 @@ class NeoFeederService
     /**
      * Get Aktivitas Mahasiswa (Non-Class Activities: KKN, PKL, MBKM, etc.)
      */
-    public function getAktivitasMahasiswa(int $limit = 500, int $offset = 0): ?array
+    public function getAktivitasMahasiswa(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListAktivitasMahasiswa', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -580,17 +581,20 @@ class NeoFeederService
     /**
      * Get Count Aktivitas Mahasiswa
      */
-    public function getCountAktivitasMahasiswa(): ?array
+    public function getCountAktivitasMahasiswa(string $filter = ''): ?array
     {
-        return $this->request('GetCountAktivitasMahasiswa', []);
+        return $this->request('GetCountAktivitasMahasiswa', [
+            'filter' => $filter
+        ]);
     }
 
     /**
      * Get Anggota Aktivitas Mahasiswa (Participants)
      */
-    public function getAnggotaAktivitasMahasiswa(int $limit = 500, int $offset = 0): ?array
+    public function getAnggotaAktivitasMahasiswa(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListAnggotaAktivitasMahasiswa', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -599,17 +603,20 @@ class NeoFeederService
     /**
      * Get Count Anggota Aktivitas Mahasiswa
      */
-    public function getCountAnggotaAktivitasMahasiswa(): ?array
+    public function getCountAnggotaAktivitasMahasiswa(string $filter = ''): ?array
     {
-        return $this->request('GetCountAnggotaAktivitasMahasiswa', []);
+        return $this->request('GetCountAnggotaAktivitasMahasiswa', [
+            'filter' => $filter
+        ]);
     }
 
     /**
      * Get Konversi Kampus Merdeka (Credit Transfer for MBKM)
      */
-    public function getKonversiKampusMerdeka(int $limit = 500, int $offset = 0): ?array
+    public function getKonversiKampusMerdeka(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListKonversiKampusMerdeka', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -618,17 +625,20 @@ class NeoFeederService
     /**
      * Get Count Konversi Kampus Merdeka
      */
-    public function getCountKonversiKampusMerdeka(): ?array
+    public function getCountKonversiKampusMerdeka(string $filter = ''): ?array
     {
-        return $this->request('GetCountKonversiKampusMerdeka', []);
+        return $this->request('GetCountKonversiKampusMerdeka', [
+            'filter' => $filter
+        ]);
     }
 
     /**
      * Get List Aktivitas Mengajar Dosen
      */
-    public function getAktivitasMengajarDosen(int $limit = 500, int $offset = 0): ?array
+    public function getAktivitasMengajarDosen(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListAktivitasMengajarDosen', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -637,9 +647,11 @@ class NeoFeederService
     /**
      * Get Count Aktivitas Mengajar Dosen
      */
-    public function getCountAktivitasMengajarDosen(): ?array
+    public function getCountAktivitasMengajarDosen(string $filter = ''): ?array
     {
-        return $this->request('GetCountAktivitasMengajarDosen', []);
+        return $this->request('GetCountAktivitasMengajarDosen', [
+            'filter' => $filter
+        ]);
     }
 
     /**

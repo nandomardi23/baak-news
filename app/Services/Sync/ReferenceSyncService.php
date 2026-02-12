@@ -402,9 +402,9 @@ class ReferenceSyncService extends BaseSyncService
     public function syncKebutuhanKhusus(): array
     {
         try {
-            // We request a larger chunk since we'll be filtering.
-            // 5000 is enough to get most base categories which are usually in the first few thousands.
-            $response = $this->neoFeeder->request('GetKebutuhanKhusus', ['limit' => 5000]);
+            // We request without a large limit because it often causes timeouts on some Neo Feeder versions.
+            // Reference data is usually small enough for default limits.
+            $response = $this->neoFeeder->request('GetKebutuhanKhusus', []);
             $synced = 0;
             $skipped = 0;
 

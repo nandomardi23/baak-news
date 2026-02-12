@@ -67,9 +67,8 @@ class CurriculumSyncService extends BaseSyncService
         ];
     }
 
-    public function syncMataKuliah(int $offset = 0, int $limit = 2000): array
+    public function syncMataKuliah(int $offset = 0, int $limit = 500): array
     {
-        $totalAll = 0;
         $totalAll = 0;
         try {
             $countResponse = $this->neoFeeder->getCountMataKuliah();
@@ -80,7 +79,7 @@ class CurriculumSyncService extends BaseSyncService
             \Illuminate\Support\Facades\Log::warning("SyncMataKuliah: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset); // Using GetMatkulKurikulum as it's more complete
+        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset); 
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -97,18 +96,14 @@ class CurriculumSyncService extends BaseSyncService
                 $mk = MataKuliah::updateOrCreate(
                     ['id_matkul' => $item['id_matkul']],
                     [
-                        'kode_mata_kuliah' => $item['kode_mata_kuliah'],
-                        'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                        'kode_matkul' => $item['kode_mata_kuliah'],
+                        'nama_matkul' => $item['nama_mata_kuliah'],
                         'id_prodi' => $item['id_prodi'],
-                        'id_jenis_mata_kuliah' => $item['id_jenis_mata_kuliah'],
                         'sks_mata_kuliah' => $item['sks_mata_kuliah'],
                         'sks_tatap_muka' => $item['sks_tatap_muka'],
                         'sks_praktek' => $item['sks_praktek'],
                         'sks_praktek_lapangan' => $item['sks_praktek_lapangan'],
                         'sks_simulasi' => $item['sks_simulasi'],
-                        'metode_kuliah' => $item['metode_kuliah'] ?? null,
-                        'tanggal_mulai_efektif' => $item['tanggal_mulai_efektif'] ?? null,
-                        'tanggal_akhir_efektif' => $item['tanggal_akhir_efektif'] ?? null,
                     ]
                 );
 

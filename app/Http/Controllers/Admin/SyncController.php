@@ -338,9 +338,10 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
+            $limit = $request->input('limit', 100);
+            $idSemester = $request->input('id_semester');
 
-            $result = $syncService->syncAjarDosen($offset, $limit);
+            $result = $syncService->syncAjarDosen($offset, $limit, $idSemester);
 
             return $this->successResponse('Sync Ajar Dosen berhasil', $result);
         } catch (\Exception $e) {
@@ -390,8 +391,9 @@ class SyncController extends Controller
         try {
             $offset = $request->input('offset', 0);
             $limit = $request->input('limit', 500);
+            $idSemester = $request->input('id_semester');
 
-            $result = $syncService->syncAktivitasMahasiswa($offset, $limit);
+            $result = $syncService->syncAktivitasMahasiswa($offset, $limit, $idSemester);
 
             return $this->successResponse('Sync Aktivitas Mahasiswa berhasil', $result);
         } catch (\Exception $e) {
@@ -407,8 +409,9 @@ class SyncController extends Controller
         try {
             $offset = $request->input('offset', 0);
             $limit = $request->input('limit', 500);
+            $idSemester = $request->input('id_semester');
 
-            $result = $syncService->syncAnggotaAktivitasMahasiswa($offset, $limit);
+            $result = $syncService->syncAnggotaAktivitasMahasiswa($offset, $limit, $idSemester);
 
             return $this->successResponse('Sync Anggota Aktivitas Mahasiswa berhasil', $result);
         } catch (\Exception $e) {
@@ -424,8 +427,9 @@ class SyncController extends Controller
         try {
             $offset = $request->input('offset', 0);
             $limit = $request->input('limit', 500);
+            $idSemester = $request->input('id_semester');
 
-            $result = $syncService->syncKonversiKampusMerdeka($offset, $limit);
+            $result = $syncService->syncKonversiKampusMerdeka($offset, $limit, $idSemester);
 
             return $this->successResponse('Sync Konversi Kampus Merdeka berhasil', $result);
         } catch (\Exception $e) {

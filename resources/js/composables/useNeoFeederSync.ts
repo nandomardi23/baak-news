@@ -102,7 +102,7 @@ export function useNeoFeederSync() {
     /**
      * Generic Sync Function
      */
-    const syncData = async (type: string, offset = 0) => {
+    const syncData = async (type: string, offset = 0, idSemester?: string) => {
         if (!syncStates[type]) return;
 
         // If starting fresh (offset 0), reset states
@@ -166,10 +166,15 @@ export function useNeoFeederSync() {
             // Special param for wilayah
             const params: any = { offset, limit: type === 'kelaskuliah' ? 2000 : 500 }; 
             // Adjust limits based on type for optimization
-            if (['biodata', 'krs', 'nilai', 'aktivitas'].includes(type)) params.limit = 50; 
+            if (['biodata', 'krs', 'nilai', 'aktivitas', 'ajardosen'].includes(type)) params.limit = type === 'ajardosen' ? 100 : 50; 
             if (['wilayah'].includes(type)) {
                 params.type = 'wilayah';
                 params.limit = 2000;
+            }
+            
+            // Add semester filter if provided
+            if (idSemester) {
+                params.id_semester = idSemester;
             }
 
             const response = await axios.post(route('admin.sync.' + endpoint), params);
@@ -202,7 +207,7 @@ export function useNeoFeederSync() {
 
                 // Recursive call if has_more
                 if (result.has_more && result.next_offset) {
-                    await syncData(type, result.next_offset);
+                    await syncData(type, result.next_offset, idSemester);
                 } else {
                     syncStates[type].loading = false;
                     // No toast, just finish
