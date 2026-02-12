@@ -42,17 +42,13 @@ class StudentSyncService extends BaseSyncService
                     [
                         'id_mahasiswa' => $item['id_mahasiswa'],
                         'nim' => $item['nim'],
-                        'nama' => $item['nama_mahasiswa'], // Main name field for the app
-                        'nama_mahasiswa' => $item['nama_mahasiswa'], // Full name for consistency
+                        'nama' => $item['nama_mahasiswa'], 
                         'jenis_kelamin' => $item['jenis_kelamin'],
                         'tanggal_lahir' => $item['tanggal_lahir'],
-                        'id_periode' => $item['id_periode'], // Angkatan
                         'angkatan' => $angkatan,
                         'id_prodi' => $item['id_prodi'],
-                        'nama_program_studi' => $item['nama_program_studi'],
-                        'id_status_mahasiswa' => $item['id_status_mahasiswa'],
-                        'nama_status_mahasiswa' => $item['nama_status_mahasiswa'],
-                        'keterangan_keluar' => $item['keterangan_keluar'] ?? null, // Will be updated by SyncLulusDO
+                        'status_mahasiswa' => $item['nama_status_mahasiswa'],
+                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
                     ]
                 );
                 $synced++;

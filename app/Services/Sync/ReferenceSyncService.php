@@ -52,11 +52,9 @@ class ReferenceSyncService extends BaseSyncService
                 ProgramStudi::updateOrCreate(
                     ['id_prodi' => $item['id_prodi']],
                     [
-                        'kode_program_studi' => $item['kode_program_studi'],
-                        'nama_program_studi' => $item['nama_program_studi'],
-                        'status' => $item['status'],
-                        'id_jenjang_pendidikan' => $item['id_jenjang_pendidikan'],
-                        'nama_jenjang_pendidikan' => $item['nama_jenjang_pendidikan'],
+                        'kode_prodi' => $item['kode_program_studi'],
+                        'nama_prodi' => $item['nama_program_studi'],
+                        'jenjang' => $item['nama_jenjang_pendidikan'],
                     ]
                 );
                 $synced++;

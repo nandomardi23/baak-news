@@ -36,14 +36,15 @@ class LecturerSyncService extends BaseSyncService
                 Dosen::updateOrCreate(
                     ['id_dosen' => $item['id_dosen']],
                     [
-                        'nama_dosen' => $item['nama_dosen'],
+                        'nama' => $item['nama_dosen'],
                         'nidn' => $item['nidn'],
                         'nip' => $item['nip'],
                         'jenis_kelamin' => $item['jenis_kelamin'],
                         'id_agama' => $item['id_agama'],
                         'tanggal_lahir' => $item['tanggal_lahir'],
                         'id_status_aktif' => $item['id_status_aktif'],
-                        'nama_status_aktif' => $item['nama_status_aktif'],
+                        'status_aktif' => $item['nama_status_aktif'],
+                        'id_prodi' => $item['id_prodi'] ?? null,
                     ]
                 );
                 $synced++;
