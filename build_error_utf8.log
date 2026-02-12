@@ -1,0 +1,107 @@
+﻿
+> build
+> vite build
+
+[36mvite v7.3.1 [32mbuilding client environment for production...[36m[39m
+[plugin @laravel/vite-plugin-wayfinder] Types generated for actions, routes, form variants
+transforming...
+node.exe : 
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (:  
+  String) [], RemoteExc   
+ eption
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+/images/grid.svg 
+referenced in 
+/images/grid.svg didn't 
+resolve at build time, it 
+will remain unchanged to 
+be resolved at runtime
+[32mÔ£ô[39m 4349 modules transformed.
+[31mÔ£ù[39m Build 
+failed in 8.35s
+[31merror during build:
+[31m[vite:vue] [plugin 
+vite:vue] resources/js/com
+ponents/NavGrouped.vue 
+(40:25): Invalid end 
+tag.[31m
+file: [36mC:/Users/Nando/
+Documents/belajar/baak-new
+s/resources/js/components/
+NavGrouped.vue:40:25[31m
+SyntaxError: [plugin 
+vite:vue] resources/js/com
+ponents/NavGrouped.vue 
+(40:25): Invalid end tag.
+    at 
+createCompilerError (C:\Us
+ers\Nando\Documents\belaja
+r\baak-news\node_modules\@
+vue\compiler-core\dist\com
+piler-core.cjs.prod.js:137
+4:17)
+    at emitError (C:\Users
+\Nando\Documents\belajar\b
+aak-news\node_modules\@vue
+\compiler-core\dist\compil
+er-core.cjs.prod.js:2980:5
+)
+    at Object.onclosetag (
+C:\Users\Nando\Documents\b
+elajar\baak-news\node_modu
+les\@vue\compiler-core\dis
+t\compiler-core.cjs.prod.j
+s:2387:9)
+    at Tokenizer.stateInCl
+osingTagName (C:\Users\Nan
+do\Documents\belajar\baak-
+news\node_modules\@vue\com
+piler-core\dist\compiler-c
+ore.cjs.prod.js:799:16)
+    at Tokenizer.parse (C:
+\Users\Nando\Documents\bel
+ajar\baak-news\node_module
+s\@vue\compiler-core\dist\
+compiler-core.cjs.prod.js:
+1157:16)
+    at Object.baseParse (C
+:\Users\Nando\Documents\be
+lajar\baak-news\node_modul
+es\@vue\compiler-core\dist
+\compiler-core.cjs.prod.js
+:3012:13)
+    at Object.parse (C:\Us
+ers\Nando\Documents\belaja
+r\baak-news\node_modules\@
+vue\compiler-dom\dist\comp
+iler-dom.cjs.prod.js:665:2
+3)
+    at Object.parse$1 [as 
+parse] (C:\Users\Nando\Doc
+uments\belajar\baak-news\n
+ode_modules\@vue\compiler-
+sfc\dist\compiler-sfc.cjs.
+js:1824:24)
+    at createDescriptor (f
+ile:///C:/Users/Nando/Docu
+ments/belajar/baak-news/no
+de_modules/@vitejs/plugin-
+vue/dist/index.mjs:54:42)
+    at transformMain (file
+:///C:/Users/Nando/Documen
+ts/belajar/baak-news/node_
+modules/@vitejs/plugin-vue
+/dist/index.mjs:1319:33)[
+39m

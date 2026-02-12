@@ -31,7 +31,18 @@ if ($mahasiswa) {
     echo "Syncing biodata for: " . $mahasiswa->nama . " (NIM: " . $mahasiswa->nim . ")...\n";
     $result = $syncService->syncBiodata($mahasiswa);
     echo "RESULT: " . ($result ?? 'FAILED/NULL') . "\n";
-    
+
+    if ($result === null) {
+        // Additional debugging: request raw biodata response and print
+        $neo = app(\App\Services\NeoFeederService::class);
+        $filter = "id_mahasiswa='{$mahasiswa->id_mahasiswa}'";
+        echo "Attempting raw API call: GetBiodataMahasiswa with filter={$filter}\n";
+        $raw = $neo->request('GetBiodataMahasiswa', ['filter' => $filter]);
+        echo "Raw response: \n";
+        var_export($raw);
+        echo "\n";
+    }
+
     $mahasiswa->refresh();
     echo "\nVERIFYING FIELDS:\n";
     echo "ID Agama: " . $mahasiswa->id_agama . "\n";

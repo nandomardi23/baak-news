@@ -6,6 +6,7 @@ use App\Models\Setting;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Facades\Log;
 
 class NeoFeederService
@@ -96,7 +97,31 @@ class NeoFeederService
                     ], $params),
                 ]);
 
-                $data = json_decode($response->getBody()->getContents(), true);
+                $body = $response->getBody()->getContents();
+                $data = json_decode($body, true);
+
+                if (is_null($data)) {
+                    Log::warning("Neo Feeder {$action} returned non-JSON response", ['body' => substr($body, 0, 2000)]);
+                    // Return raw decoded data (null) so callers can handle it
+                    return null;
+                }
+
+                // If API reports an error related to token (expired/invalid), refresh token and retry once
+                if (isset($data['error_code']) && $data['error_code'] != 0) {
+                    $desc = strtolower($data['error_desc'] ?? '');
+                    if (str_contains($desc, 'token') || str_contains($desc, 'expired') || str_contains($desc, 'invalid')) {
+                        Log::info("Neo Feeder {$action} detected token issue; refreshing token and retrying");
+                        // Clear cached token and obtain a new one
+                        $this->token = null;
+                        $token = $this->getToken();
+                        if (!$token) {
+                            return null;
+                        }
+                        $attempt++;
+                        continue;
+                    }
+                }
+
                 return $data;
             } catch (ConnectException $e) {
                 // Timeout or connection error - retry
@@ -105,6 +130,22 @@ class NeoFeederService
                 Log::warning("Neo Feeder {$action} timeout (attempt {$attempt}/{$this->maxRetries})", [
                     'message' => $e->getMessage()
                 ]);
+            } catch (RequestException $e) {
+                // HTTP errors - retry for server-side issues (5xx) and rate limits (429)
+                $status = null;
+                if (method_exists($e, 'getResponse') && $e->getResponse()) {
+                    $status = $e->getResponse()->getStatusCode();
+                }
+
+                if ($status === 429 || ($status >= 500 && $status < 600)) {
+                    $attempt++;
+                    $lastException = $e;
+                    Log::warning("Neo Feeder {$action} server error (status {$status}) - retrying (attempt {$attempt}/{$this->maxRetries})", ['message' => $e->getMessage()]);
+                    continue;
+                }
+
+                Log::error("Neo Feeder {$action} request error", ['message' => $e->getMessage(), 'status' => $status]);
+                return null;
             } catch (GuzzleException $e) {
                 // Other errors - don't retry
                 Log::error("Neo Feeder {$action} error", ['message' => $e->getMessage()]);

@@ -21,19 +21,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Pencil, Trash2, Eye, Check } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import Swal from 'sweetalert2';
 
 interface Prodi {
     id: number;
@@ -69,7 +60,6 @@ const columns = [
 
 const isDetailOpen = ref(false);
 const isEditOpen = ref(false);
-const isDeleteOpen = ref(false);
 const selectedItem = ref<Prodi | null>(null);
 
 const form = useForm({
@@ -98,8 +88,25 @@ const openEdit = (item: Prodi) => {
 };
 
 const openDelete = (item: Prodi) => {
-    selectedItem.value = item;
-    isDeleteOpen.value = true;
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('admin.akademik.prodi.destroy', item.id), {
+                onSuccess: () => {
+                    toast.success('Berhasil', { description: 'Program Studi berhasil dihapus' });
+                },
+            });
+        }
+    });
 };
 
 const submitEdit = () => {
@@ -112,15 +119,7 @@ const submitEdit = () => {
     });
 };
 
-const submitDelete = () => {
-    if (!selectedItem.value) return;
-    router.delete(route('admin.akademik.prodi.destroy', selectedItem.value.id), {
-        onSuccess: () => {
-            isDeleteOpen.value = false;
-            toast.success('Berhasil', { description: 'Program Studi berhasil dihapus' });
-        },
-    });
-};
+// Deletion handled by openDelete via SweetAlert
 </script>
 
 <template>
@@ -301,23 +300,7 @@ const submitDelete = () => {
             </DialogContent>
         </Dialog>
 
-        <!-- Delete Confirmation -->
-        <AlertDialog :open="isDeleteOpen" @update:open="isDeleteOpen = $event">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                        Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="submitDelete">
-                        Hapus
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+        <!-- Delete Confirmation is now handled by SweetAlert in JS -->
 
     </AppLayout>
 </template>
