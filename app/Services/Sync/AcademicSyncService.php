@@ -159,153 +159,161 @@ class AcademicSyncService extends BaseSyncService
         ];
     }
     
-    public function syncKrs(int $offset = 0, int $limit = 50): array
+    public function syncKrs(int $offset = 0, int $limit = 500, ?string $idSemester = null): array
     {
-        $totalAll = 0;
-        $countResponse = $this->neoFeeder->getCountPerkuliahanMahasiswa();
-        if ($countResponse && isset($countResponse['data'])) {
-            $totalAll = $this->extractCount($countResponse['data']);
+        if (!$idSemester) {
+             throw new \Exception('ID Semester diperlukan untuk sinkronisasi KRS bulk');
         }
-    
-        // NeoFeeder does not have a simple "GetListKRS" with global pagination.
-        // It relies on fetching by student or by class.
-        // However, we can simulate batch processing if we iterate over students.
-        // NOTE: This implementation assumes we iterate over local students to fetch their KRS.
-        
-        // 1. Get local students
-        $students = \App\Models\Mahasiswa::select('id_registrasi_mahasiswa', 'nim', 'id_prodi')
-            ->skip($offset)
-            ->take($limit)
-            ->get();
-            
-        $batchCount = $students->count();
-        // Since we are iterating students, totalAll logic matches student count roughly
-        // But to be proper, we should use getCountMahasiswa as the base of calculation for progress
-        // Overriding totalAll with local student count for progress tracking purposes
-        $totalStudents = \App\Models\Mahasiswa::count(); 
-        
+
+        // 1. Get total count
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->request('GetCountKRSMahasiswa', ['filter' => "id_periode = '{$idSemester}'"]);
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncKrs: GetCount failed. Error: " . $e->getMessage());
+        }
+
+        // 2. Fetch bulk data
+        $response = $this->neoFeeder->getKrsBySemester($idSemester, $limit, $offset);
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
         $synced = 0;
         $errors = [];
 
-        foreach ($students as $student) {
-            try {
-                $krsData = $this->neoFeeder->getKrsMahasiswa($student->id_registrasi_mahasiswa);
-                
-                if ($krsData && isset($krsData['data'])) {
-                    foreach ($krsData['data'] as $krsItem) {
-                        try {
-                            $semesterId = $krsItem['id_periode'];
-                            
-                            // Create/Update Parent KRS Record
-                            $krs = Krs::firstOrCreate(
-                                [
-                                    'id_registrasi_mahasiswa' => $student->id_registrasi_mahasiswa,
-                                    'id_semester' => $semesterId,
-                                ],
-                                [
-                                    'nim' => $student->nim,
-                                    'id_prodi' => $student->id_prodi,
-                                ]
-                            );
-                            
-                            // Create Detail
-                            KrsDetail::updateOrCreate(
-                                [
-                                    'id_krs' => $krs->id,
-                                    'id_kelas_kuliah' => $krsItem['id_kelas_kuliah'],
-                                ],
-                                [
-                                    'id_matkul' => $krsItem['id_matkul'],
-                                    'kode_mata_kuliah' => $krsItem['kode_mata_kuliah'],
-                                    'nama_mata_kuliah' => $krsItem['nama_mata_kuliah'],
-                                    'sks_mata_kuliah' => $krsItem['sks_mata_kuliah'] ?? 0,
-                                    'nama_kelas_kuliah' => $krsItem['nama_kelas_kuliah'],
-                                    'angkatan' => $krsItem['angkatan'] ?? null,
-                                ]
-                            );
-                        } catch (\Exception $e) {
-                           // Individual item error
-                        }
-                    }
-                    $synced++;
+        if (!empty($data)) {
+            // Group by student to create parents first
+            $studentsData = [];
+            foreach ($data as $item) {
+                $key = $item['id_registrasi_mahasiswa'] . '_' . $item['id_periode'];
+                if (!isset($studentsData[$key])) {
+                    $studentsData[$key] = [
+                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                        'id_semester' => $item['id_periode'],
+                        'nim' => $item['nim'],
+                        'id_prodi' => $item['id_prodi'],
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
-            } catch (\Exception $e) {
-                $errors[] = "KRS {$student->nim}: " . $e->getMessage();
             }
+
+            // Upsert Parents
+            Krs::upsert(array_values($studentsData), ['id_registrasi_mahasiswa', 'id_semester'], ['nim', 'id_prodi', 'updated_at']);
+
+            // Get Parent IDs for Detail mapping
+            $parentMap = Krs::whereIn('id_registrasi_mahasiswa', array_column($studentsData, 'id_registrasi_mahasiswa'))
+                ->where('id_semester', $idSemester)
+                ->get()
+                ->pluck('id', 'id_registrasi_mahasiswa');
+
+            $details = [];
+            foreach ($data as $item) {
+                $parentId = $parentMap[$item['id_registrasi_mahasiswa']] ?? null;
+                if ($parentId) {
+                    $details[] = [
+                        'id_krs' => $parentId,
+                        'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                        'id_matkul' => $item['id_matkul'],
+                        'kode_mata_kuliah' => $item['kode_mata_kuliah'],
+                        'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                        'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
+                        'angkatan' => $item['angkatan'] ?? null,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            // Bulk Upsert Details
+            $this->batchUpsert(KrsDetail::class, $details, ['id_krs', 'id_kelas_kuliah'], ['id_matkul', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks_mata_kuliah', 'nama_kelas_kuliah', 'angkatan', 'updated_at']);
+            $synced = count($details);
         }
 
         $nextOffset = $offset + $batchCount;
-        $hasMore = $nextOffset < $totalStudents;
-        $progress = $totalStudents > 0 ? min(100, round($nextOffset / $totalStudents * 100)) : 100;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
 
         return [
             'total' => $batchCount,
             'synced' => $synced,
             'errors' => $errors,
-            'total_all' => $totalStudents,
+            'total_all' => $totalAll,
             'offset' => $offset,
             'next_offset' => $hasMore ? $nextOffset : null,
             'has_more' => $hasMore,
             'progress' => $progress,
         ];
-    
     }
 
-    public function syncNilai(int $offset = 0, int $limit = 50): array
+    public function syncNilai(int $offset = 0, int $limit = 2000, ?string $idSemester = null): array
     {
-        // Similar strategy to KRS - iterate students
-        $totalStudents = \App\Models\Mahasiswa::count();
-        
-        $students = \App\Models\Mahasiswa::select('id_registrasi_mahasiswa', 'nim', 'id_prodi')
-            ->skip($offset)
-            ->take($limit)
-            ->get();
-            
-        $batchCount = $students->count();
+        if (!$idSemester) {
+             throw new \Exception('ID Semester diperlukan untuk sinkronisasi Nilai bulk');
+        }
+
+        // 1. Get total count
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->request('GetCountNilaiPerkuliahanKelas', ['filter' => "id_semester = '{$idSemester}'"]);
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncNilai: GetCount failed. Error: " . $e->getMessage());
+        }
+
+        // 2. Fetch bulk data
+        $response = $this->neoFeeder->getNilaiBySemester($idSemester, $limit, $offset);
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
         $synced = 0;
         $errors = [];
 
-        foreach ($students as $student) {
-            try {
-                // Fetch grades (All history)
-                $nilaiData = $this->neoFeeder->getRiwayatNilaiMahasiswa($student->id_registrasi_mahasiswa);
-                
-                if ($nilaiData && isset($nilaiData['data'])) {
-                    foreach ($nilaiData['data'] as $nilaiItem) {
-                        try {
-                           Nilai::updateOrCreate(
-                                [
-                                    'id_registrasi_mahasiswa' => $student->id_registrasi_mahasiswa,
-                                    'id_kelas_kuliah' => $nilaiItem['id_kelas_kuliah'],
-                                ],
-                                [
-                                    'id_matkul' => $nilaiItem['id_matkul'],
-                                    'nilai_angka' => $nilaiItem['nilai_angka'],
-                                    'nilai_huruf' => $nilaiItem['nilai_huruf'],
-                                    'nilai_indeks' => $nilaiItem['nilai_indeks'],
-                                    'id_periode' => $nilaiItem['id_periode'],
-                                    'nama_mata_kuliah' => $nilaiItem['nama_mata_kuliah'],
-                                    'sks_mata_kuliah' => $nilaiItem['sks_mata_kuliah'],
-                                ]
-                           );
-                        } catch (\Exception $e) {}
-                    }
-                    $synced++;
-                }
-            } catch (\Exception $e) {
-                 $errors[] = "Nilai {$student->nim}: " . $e->getMessage();
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                    'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                    'id_matkul' => $item['id_matkul'],
+                    'nilai_angka' => $item['nilai_angka'] ?? 0,
+                    'nilai_huruf' => $item['nilai_huruf'] ?? '',
+                    'nilai_indeks' => $item['nilai_indeks'] ?? 0,
+                    'id_periode' => $item['id_semester'],
+                    'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+
+            $this->batchUpsert(Nilai::class, $records, ['id_registrasi_mahasiswa', 'id_kelas_kuliah'], [
+                'nilai_angka', 'nilai_huruf', 'nilai_indeks', 'id_periode', 'nama_mata_kuliah', 'sks_mata_kuliah', 'updated_at'
+            ]);
+            $synced = count($records);
         }
-        
+
         $nextOffset = $offset + $batchCount;
-        $hasMore = $nextOffset < $totalStudents;
-        $progress = $totalStudents > 0 ? min(100, round($nextOffset / $totalStudents * 100)) : 100;
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
 
         return [
             'total' => $batchCount,
             'synced' => $synced,
             'errors' => $errors,
-            'total_all' => $totalStudents,
+            'total_all' => $totalAll,
             'offset' => $offset,
             'next_offset' => $hasMore ? $nextOffset : null,
             'has_more' => $hasMore,

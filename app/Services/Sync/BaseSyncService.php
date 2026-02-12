@@ -37,4 +37,17 @@ abstract class BaseSyncService
 
         return 0;
     }
+
+    /**
+     * Perform bulk upsert in smaller chunks to avoid memory/SQL issues
+     */
+    protected function batchUpsert(string $modelClass, array $records, array $uniqueBy, array $updateColumns, int $chunkSize = 500): void
+    {
+        if (empty($records)) return;
+
+        $chunks = array_chunk($records, $chunkSize);
+        foreach ($chunks as $chunk) {
+            $modelClass::upsert($chunk, $uniqueBy, $updateColumns);
+        }
+    }
 }

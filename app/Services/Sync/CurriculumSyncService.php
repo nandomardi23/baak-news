@@ -8,9 +8,8 @@ use App\Models\MatkulKurikulum;
 
 class CurriculumSyncService extends BaseSyncService
 {
-    public function syncKurikulum(int $offset = 0, int $limit = 100): array
+    public function syncKurikulum(int $offset = 0, int $limit = 500): array
     {
-        $totalAll = 0;
         $totalAll = 0;
         try {
             $countResponse = $this->neoFeeder->getCountKurikulum();
@@ -22,7 +21,6 @@ class CurriculumSyncService extends BaseSyncService
         }
 
         $response = $this->neoFeeder->getKurikulum($limit, $offset);
-        
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -32,23 +30,26 @@ class CurriculumSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
-            try {
-                Kurikulum::updateOrCreate(
-                    ['id_kurikulum' => $item['id_kurikulum']],
-                    [
-                        'nama_kurikulum' => $item['nama_kurikulum'],
-                        'id_prodi' => $item['id_prodi'],
-                        'id_semester' => $item['id_semester'],
-                        'jumlah_sks_lulus' => $item['jumlah_sks_lulus'],
-                        'jumlah_sks_wajib' => $item['jumlah_sks_wajib'],
-                        'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'],
-                    ]
-                );
-                $synced++;
-            } catch (\Exception $e) {
-                $errors[] = "Kurikulum {$item['nama_kurikulum']}: " . $e->getMessage();
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_kurikulum' => $item['id_kurikulum'],
+                    'nama_kurikulum' => $item['nama_kurikulum'],
+                    'id_prodi' => $item['id_prodi'],
+                    'id_semester' => $item['id_semester'],
+                    'jumlah_sks_lulus' => $item['jumlah_sks_lulus'] ?? 0,
+                    'jumlah_sks_wajib' => $item['jumlah_sks_wajib'] ?? 0,
+                    'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'] ?? 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
             }
+
+            $this->batchUpsert(Kurikulum::class, $records, ['id_kurikulum'], [
+                'nama_kurikulum', 'id_prodi', 'id_semester', 'jumlah_sks_lulus', 'jumlah_sks_wajib', 'jumlah_sks_pilihan', 'updated_at'
+            ]);
+            $synced = count($records);
         }
 
         $nextOffset = $offset + $batchCount;
@@ -67,7 +68,7 @@ class CurriculumSyncService extends BaseSyncService
         ];
     }
 
-    public function syncMataKuliah(int $offset = 0, int $limit = 500): array
+    public function syncMataKuliah(int $offset = 0, int $limit = 2000): array
     {
         $totalAll = 0;
         try {
@@ -76,11 +77,10 @@ class CurriculumSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("SyncMataKuliah: GetCount failed. Error: " . $e->getMessage());
+             \Illuminate\Support\Facades\Log::warning("SyncMataKuliah: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset); 
-        
+        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -90,43 +90,55 @@ class CurriculumSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
-            try {
-                // 1. Sync Mata Kuliah Master
-                $mk = MataKuliah::updateOrCreate(
-                    ['id_matkul' => $item['id_matkul']],
-                    [
-                        'kode_matkul' => $item['kode_mata_kuliah'],
-                        'nama_matkul' => $item['nama_mata_kuliah'],
-                        'id_prodi' => $item['id_prodi'],
-                        'sks_mata_kuliah' => $item['sks_mata_kuliah'],
-                        'sks_tatap_muka' => $item['sks_tatap_muka'],
-                        'sks_praktek' => $item['sks_praktek'],
-                        'sks_praktek_lapangan' => $item['sks_praktek_lapangan'],
-                        'sks_simulasi' => $item['sks_simulasi'],
-                    ]
-                );
+        if (!empty($data)) {
+            $mkRecords = [];
+            $relRecords = [];
+            
+            foreach ($data as $item) {
+                // 1. Mata Kuliah Master
+                $mkRecords[] = [
+                    'id_matkul' => $item['id_matkul'],
+                    'kode_matkul' => $item['kode_mata_kuliah'],
+                    'nama_matkul' => $item['nama_mata_kuliah'],
+                    'id_prodi' => $item['id_prodi'],
+                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                    'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
+                    'sks_praktek' => $item['sks_praktek'] ?? 0,
+                    'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
+                    'sks_simulasi' => $item['sks_simulasi'] ?? 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
 
-                // 2. Sync Matkul Kurikulum Relation
+                // 2. Relation
                 if (isset($item['id_kurikulum'])) {
-                    MatkulKurikulum::updateOrCreate(
-                        ['id_matkul' => $item['id_matkul'], 'id_kurikulum' => $item['id_kurikulum']],
-                        [
-                            'semester' => $item['semester'],
-                            'sks_mata_kuliah' => $item['sks_mata_kuliah'],
-                            'sks_tatap_muka' => $item['sks_tatap_muka'],
-                            'sks_praktek' => $item['sks_praktek'],
-                            'sks_praktek_lapangan' => $item['sks_praktek_lapangan'],
-                            'sks_simulasi' => $item['sks_simulasi'],
-                            'apakah_wajib' => $item['apakah_wajib'],
-                        ]
-                    );
+                    $relRecords[] = [
+                        'id_matkul' => $item['id_matkul'],
+                        'id_kurikulum' => $item['id_kurikulum'],
+                        'semester' => $item['semester'],
+                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                        'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
+                        'sks_praktek' => $item['sks_praktek'] ?? 0,
+                        'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
+                        'sks_simulasi' => $item['sks_simulasi'] ?? 0,
+                        'apakah_wajib' => $item['apakah_wajib'] ?? 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
                 }
-
-                $synced++;
-            } catch (\Exception $e) {
-                $errors[] = "Matkul {$item['kode_mata_kuliah']}: " . $e->getMessage();
             }
+
+            $this->batchUpsert(MataKuliah::class, $mkRecords, ['id_matkul'], [
+                'kode_matkul', 'nama_matkul', 'id_prodi', 'sks_mata_kuliah', 'sks_tatap_muka', 'sks_praktek', 'sks_praktek_lapangan', 'sks_simulasi', 'updated_at'
+            ]);
+            
+            if (!empty($relRecords)) {
+                $this->batchUpsert(MatkulKurikulum::class, $relRecords, ['id_matkul', 'id_kurikulum'], [
+                    'semester', 'sks_mata_kuliah', 'sks_tatap_muka', 'sks_praktek', 'sks_praktek_lapangan', 'sks_simulasi', 'apakah_wajib', 'updated_at'
+                ]);
+            }
+            
+            $synced = count($mkRecords);
         }
 
         $nextOffset = $offset + $batchCount;

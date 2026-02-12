@@ -253,9 +253,10 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 50);
+            $limit = $request->input('limit', 2000); // Increased limit for bulk
+            $idSemester = $request->input('id_semester');
             
-            $result = $syncService->syncNilai($offset, $limit);
+            $result = $syncService->syncNilai($offset, $limit, $idSemester);
             
             return $this->successResponse('Sync Nilai berhasil', $result);
         } catch (\Exception $e) {
@@ -270,9 +271,10 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 50);
+            $limit = $request->input('limit', 1000); // Increased limit for bulk
+            $idSemester = $request->input('id_semester');
             
-            $result = $syncService->syncKrs($offset, $limit);
+            $result = $syncService->syncKrs($offset, $limit, $idSemester);
             
             return $this->successResponse('Sync KRS berhasil', $result);
         } catch (\Exception $e) {
