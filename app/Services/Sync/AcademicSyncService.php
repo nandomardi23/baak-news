@@ -360,9 +360,14 @@ class AcademicSyncService extends BaseSyncService
     
     public function syncBimbinganMahasiswa(int $offset = 0, int $limit = 500): array
     {
-        $totalAll = 0;
-        
-        // Removed GetCountBimbingMahasiswa as it is not supported
+        try {
+            $countResponse = $this->neoFeeder->getCountBimbingMahasiswa();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncBimbingan: GetCount failed. Error: " . $e->getMessage());
+        }
         
         $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset);
         
@@ -410,9 +415,14 @@ class AcademicSyncService extends BaseSyncService
     
     public function syncUjiMahasiswa(int $offset = 0, int $limit = 500): array
     {
-        $totalAll = 0;
-        
-        // Removed GetCountUjiMahasiswa as it is not supported
+        try {
+            $countResponse = $this->neoFeeder->getCountUjiMahasiswa();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+             \Illuminate\Support\Facades\Log::warning("SyncUji: GetCount failed. Error: " . $e->getMessage());
+        }
 
         $response = $this->neoFeeder->getUjiMahasiswa($limit, $offset);
         

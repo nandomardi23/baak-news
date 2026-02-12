@@ -11,7 +11,7 @@ const props = defineProps<Props>();
 
 <template>
     <div :class="cn('w-full', props.class)">
-        <div class="rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
+        <div class="w-full rounded-xl border border-slate-200 bg-white shadow-sm overflow-hidden flex flex-col">
             <!-- Header/Toolbar Slot -->
             <div v-if="$slots.toolbar" class="p-4 border-b border-slate-100 bg-white flex flex-col sm:flex-row gap-4 justify-between items-center">
                 <slot name="toolbar" />

@@ -126,7 +126,7 @@ const submitEdit = () => {
     <Head title="Program Studi" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
+        <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full min-w-0">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>

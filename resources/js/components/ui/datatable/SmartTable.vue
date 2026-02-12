@@ -134,7 +134,7 @@ const getAlignClass = (align?: string) => {
 </script>
 
 <template>
-    <DataTable>
+    <DataTable class="w-full">
         <template #toolbar>
             <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between w-full">
                 <!-- Left Side: Title or Filter Badge -->

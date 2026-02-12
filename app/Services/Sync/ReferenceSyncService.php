@@ -121,9 +121,19 @@ class ReferenceSyncService extends BaseSyncService
             }
         }
 
+        // Fetch total count for progress
+        try {
+            $countResponse = $this->neoFeeder->getCountSemester();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncSemester: GetCount failed. Error: " . $e->getMessage());
+        }
+
         $nextOffset = $offset + $batchCount;
-        $hasMore = ($batchCount === $limit);
-        $progress = 0; // Unknown progress
+        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : ($hasMore ? 0 : 100);
 
         return [
             'total' => $batchCount,
@@ -208,17 +218,29 @@ class ReferenceSyncService extends BaseSyncService
                 }
             }
             
+            // Get total count for progress
+            $totalAll = 0;
+            try {
+                $countResponse = $this->neoFeeder->getCountWilayah();
+                if ($countResponse && isset($countResponse['data'])) {
+                    $totalAll = $this->extractCount($countResponse['data']);
+                }
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("SyncWilayah: GetCount failed. Error: " . $e->getMessage());
+            }
+
             $nextOffset = $offset + $batchCount;
-            $hasMore = ($batchCount === $limit);
+            $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+            $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : ($hasMore ? 0 : 100);
             
             return [
                 'synced' => $batchCount,
                 'total' => $batchCount,
-                'total_all' => 0,
+                'total_all' => $totalAll,
                 'offset' => $offset,
                 'next_offset' => $hasMore ? $nextOffset : null,
                 'has_more' => $hasMore,
-                'progress' => 0
+                'progress' => $progress
             ];
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("SyncWilayah failed: " . $e->getMessage());

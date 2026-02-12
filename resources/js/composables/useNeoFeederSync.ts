@@ -149,6 +149,7 @@ export function useNeoFeederSync() {
                         // Update accumulator
                         initAccumulator(type);
                         accumulatedStats[type].total_synced = totalSynced;
+                        accumulatedStats[type].total_api = totalSynced; // Set total_api once finished or during steps
                         accumulatedStats[type].progress = subProgress;
                     }
                 }
