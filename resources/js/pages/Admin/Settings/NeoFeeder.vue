@@ -14,7 +14,7 @@ interface Settings {
 
 const props = defineProps<{
     settings: Settings;
-    semesters: Array<{ id_tahun_akademik: string; nama_tahun_akademik: string }>;
+    semesters: Array<{ id_semester: string; nama_semester: string }>;
 }>();
 
 const { syncStates, accumulatedStats, syncData } = useNeoFeederSync();
@@ -540,8 +540,8 @@ const connectionStatus = computed(() => {
                                         class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[150px]"
                                     >
                                         <option value="">Semua Semester</option>
-                                        <option v-for="sem in semesters" :key="sem.id_tahun_akademik" :value="sem.id_tahun_akademik">
-                                            {{ sem.nama_tahun_akademik }}
+                                        <option v-for="sem in semesters" :key="sem.id_semester" :value="sem.id_semester">
+                                            {{ sem.nama_semester }}
                                         </option>
                                     </select>
                                 </div>

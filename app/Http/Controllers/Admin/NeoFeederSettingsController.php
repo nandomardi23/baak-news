@@ -21,7 +21,7 @@ class NeoFeederSettingsController extends Controller
             'has_password' => Setting::hasValue('neo_feeder_password'),
         ];
 
-        $semesters = \App\Models\TahunAkademik::orderBy('id_tahun_akademik', 'desc')->get();
+        $semesters = \App\Models\TahunAkademik::orderBy('id_semester', 'desc')->get();
 
         return Inertia::render('Admin/Settings/NeoFeeder', [
             'settings' => $settings,

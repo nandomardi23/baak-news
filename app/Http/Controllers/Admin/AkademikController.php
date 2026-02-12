@@ -89,27 +89,4 @@ class AkademikController extends Controller
             'semesters' => $semesters,
         ]);
     }
-
-    /**
-     * Program Studi page
-     */
-    public function prodi(): Response
-    {
-        $prodiList = ProgramStudi::orderBy('nama_prodi')
-            ->get()
-            ->map(fn($prodi) => [
-                'id' => $prodi->id,
-                'id_prodi' => $prodi->id_prodi,
-                'kode_prodi' => $prodi->kode_prodi,
-                'nama_prodi' => $prodi->nama_prodi,
-                'jenjang' => $prodi->jenjang,
-                'jenis_program' => $prodi->jenis_program,
-                'akreditasi' => $prodi->akreditasi,
-                'is_active' => $prodi->is_active,
-            ]);
-
-        return Inertia::render('Admin/Akademik/Prodi', [
-            'prodiList' => $prodiList,
-        ]);
-    }
 }

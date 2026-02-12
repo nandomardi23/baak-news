@@ -89,7 +89,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::prefix('akademik')->name('akademik.')->group(function () {
         Route::resource('matakuliah', \App\Http\Controllers\Admin\MataKuliahController::class)->except(['create', 'edit', 'show']);
         Route::get('semester', [AkademikController::class, 'semester'])->name('semester');
-        Route::get('prodi', [AkademikController::class, 'prodi'])->name('prodi');
+        Route::resource('prodi', \App\Http\Controllers\Admin\ProdiController::class)->except(['create', 'edit']);
     });
 
     // Kalender Akademik
