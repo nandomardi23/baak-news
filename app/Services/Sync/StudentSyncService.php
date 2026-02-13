@@ -35,13 +35,29 @@ class StudentSyncService extends BaseSyncService
             $records = [];
             foreach ($data as $item) {
                 $angkatan = substr((string)$item['id_periode'], 0, 4);
+                
+                // Parse date - NeoFeeder returns dd-mm-yyyy format, MySQL needs yyyy-mm-dd
+                $tanggalLahir = null;
+                if (!empty($item['tanggal_lahir'])) {
+                    try {
+                        $tanggalLahir = \Carbon\Carbon::createFromFormat('d-m-Y', $item['tanggal_lahir'])->format('Y-m-d');
+                    } catch (\Exception $e) {
+                        // Try other common formats
+                        try {
+                            $tanggalLahir = \Carbon\Carbon::parse($item['tanggal_lahir'])->format('Y-m-d');
+                        } catch (\Exception $e2) {
+                            $tanggalLahir = null;
+                        }
+                    }
+                }
+
                 $records[] = [
                     'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
                     'id_mahasiswa' => $item['id_mahasiswa'],
                     'nim' => $item['nim'],
                     'nama' => $item['nama_mahasiswa'], 
                     'jenis_kelamin' => $item['jenis_kelamin'],
-                    'tanggal_lahir' => $item['tanggal_lahir'],
+                    'tanggal_lahir' => $tanggalLahir,
                     'angkatan' => $angkatan,
                     'id_prodi' => $item['id_prodi'],
                     'status_mahasiswa' => $item['nama_status_mahasiswa'],

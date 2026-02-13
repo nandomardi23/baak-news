@@ -72,7 +72,7 @@ class CurriculumSyncService extends BaseSyncService
     {
         $totalAll = 0;
         try {
-            $countResponse = $this->neoFeeder->getCountMataKuliah();
+            $countResponse = $this->neoFeeder->getCountMatkulKurikulum();
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }

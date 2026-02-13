@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\Log;
 class NeoFeederService
 {
     private Client $client;
+    private Client $quickClient;
     private string $url;
     private string $username;
     private string $password;
@@ -29,6 +30,13 @@ class NeoFeederService
         $this->client = new Client([
             'timeout' => 120, // Increased to 120s to handle slow responses
             'connect_timeout' => 30,
+            'verify' => false,
+        ]);
+
+        // Quick client for GetCount* endpoints that may hang
+        $this->quickClient = new Client([
+            'timeout' => 10,
+            'connect_timeout' => 5,
             'verify' => false,
         ]);
     }
@@ -69,6 +77,33 @@ class NeoFeederService
     /**
      * Make API request to Neo Feeder with retry logic
      */
+    /**
+     * Quick request with short timeout for non-critical calls (e.g. GetCount*)
+     * No retries - returns null on failure instead of blocking for minutes.
+     */
+    public function requestQuick(string $action, array $params = []): ?array
+    {
+        $token = $this->getToken();
+        if (!$token) return null;
+
+        try {
+            Log::info("Neo Feeder Quick Request: {$action}", ['params' => $params]);
+            $response = $this->quickClient->post($this->url, [
+                'json' => array_merge([
+                    'act' => $action,
+                    'token' => $token,
+                ], $params),
+            ]);
+
+            $body = $response->getBody()->getContents();
+            $data = json_decode($body, true);
+            return $data;
+        } catch (\Exception $e) {
+            Log::warning("Neo Feeder {$action} quick request failed: " . $e->getMessage());
+            return null;
+        }
+    }
+
     public function request(string $action, array $params = []): ?array
     {
         $token = $this->getToken();
@@ -471,11 +506,11 @@ class NeoFeederService
     }
 
     /**
-     * Get Count of Semester
+     * Get Count of Semester (uses quick timeout - this endpoint is known to hang)
      */
     public function getCountSemester(): ?array
     {
-        return $this->request('GetCountSemester', []);
+        return $this->requestQuick('GetCountSemester', []);
     }
     /**
      * Get Agama (Religion)
@@ -546,11 +581,11 @@ class NeoFeederService
     }
 
     /**
-     * Get Count of Wilayah
+     * Get Count of Wilayah (uses quick timeout - this endpoint is known to hang)
      */
     public function getCountWilayah(): ?array
     {
-        return $this->request('GetCountWilayah', []);
+        return $this->requestQuick('GetCountWilayah', []);
     }
     /**
      * Get List Kurikulum

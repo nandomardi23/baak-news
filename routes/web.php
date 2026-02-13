@@ -122,10 +122,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::post('mahasiswa/detail', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswaDetail'])->name('mahasiswa-detail');
         Route::post('dosen', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosen'])->name('dosen');
         Route::post('nilai', [\App\Http\Controllers\Admin\SyncController::class, 'syncNilai'])->name('nilai');
-        Route::post('nilai-semester', [\App\Http\Controllers\Admin\SyncController::class, 'syncNilaiSemester'])->name('nilai-semester');
-        Route::post('krs-semester', [\App\Http\Controllers\Admin\SyncController::class, 'syncKrsSemester'])->name('krs-semester');
         Route::post('krs', [\App\Http\Controllers\Admin\SyncController::class, 'syncKrs'])->name('krs');
-        Route::post('nilai-auto', [\App\Http\Controllers\Admin\SyncController::class, 'syncNilaiAuto'])->name('nilai-auto');
         Route::post('aktivitas', [\App\Http\Controllers\Admin\SyncController::class, 'syncAktivitasKuliah'])->name('aktivitas');
         Route::post('kelas-kuliah', [\App\Http\Controllers\Admin\SyncController::class, 'syncKelasKuliah'])->name('kelas-kuliah');
         Route::post('dosen-pengajar', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosenPengajar'])->name('dosen-pengajar');

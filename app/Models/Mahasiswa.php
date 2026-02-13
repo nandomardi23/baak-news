@@ -95,7 +95,9 @@ class Mahasiswa extends Model
         'tanggal_sk_yudisium',
         'nomor_ijazah',
         'ipk',
+        'ips',
         'sks_tempuh',
+        'sks_total',
         'dosen_wali_id',
     ];
 

@@ -87,17 +87,15 @@ class ReferenceSyncService extends BaseSyncService
      */
     public function syncSemester(int $offset = 0, int $limit = 100): array
     {
-        // 1. Get total count for this semester (Only on first batch or if unknown)
-        if ($offset === 0) {
-            try {
-                // We use a small timeout / direct request to avoid blocking too long for just a count
-                $countResponse = $this->neoFeeder->getCountSemester();
-                if ($countResponse && isset($countResponse['data'])) {
-                    $totalAll = $this->extractCount($countResponse['data']);
-                }
-            } catch (\Exception $e) {
-                \Illuminate\Support\Facades\Log::warning("SyncSemester: GetCount failed. Error: " . $e->getMessage());
+        // 1. Get total count
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountSemester();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
             }
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning("SyncSemester: GetCount failed. Error: " . $e->getMessage());
         }
 
         // 2. Fetch data

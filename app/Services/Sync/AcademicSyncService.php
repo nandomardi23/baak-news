@@ -6,18 +6,20 @@ use App\Models\KelasKuliah;
 use App\Models\Krs;
 use App\Models\KrsDetail;
 use App\Models\Nilai;
+use App\Models\AktivitasKuliah;
 use App\Models\AktivitasMahasiswa;
 use App\Models\AnggotaAktivitasMahasiswa;
 use App\Models\BimbinganMahasiswa;
 use App\Models\UjiMahasiswa;
 use App\Models\KonversiKampusMerdeka;
+use App\Models\Mahasiswa;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AcademicSyncService extends BaseSyncService
 {
     public function syncKelasKuliah(int $offset = 0, int $limit = 2000): array
     {
-        $totalAll = 0;
         $totalAll = 0;
         try {
             $countResponse = $this->neoFeeder->getCountKelasKuliah();
@@ -162,7 +164,8 @@ class AcademicSyncService extends BaseSyncService
     public function syncKrs(int $offset = 0, int $limit = 500, ?string $idSemester = null): array
     {
         if (!$idSemester) {
-             throw new \Exception('ID Semester diperlukan untuk sinkronisasi KRS bulk');
+            // Sync semua semester (lebih lambat tapi complete)
+            return $this->syncKrsAllSemesters($offset, $limit);
         }
 
         // 1. Get total count
@@ -256,7 +259,8 @@ class AcademicSyncService extends BaseSyncService
     public function syncNilai(int $offset = 0, int $limit = 2000, ?string $idSemester = null): array
     {
         if (!$idSemester) {
-             throw new \Exception('ID Semester diperlukan untuk sinkronisasi Nilai bulk');
+            // Sync semua semester (lebih lambat tapi complete)
+            return $this->syncNilaiAllSemesters($offset, $limit);
         }
 
         // 1. Get total count
@@ -327,7 +331,7 @@ class AcademicSyncService extends BaseSyncService
     public function syncAktivitas(int $offset = 0, int $limit = 1000, ?string $idSemester = null): array
     {
         if (!$idSemester) {
-            // Fallback to student-by-student if no semester (slow, but keeps legacy compat if needed)
+            // Fallback to student-by-student if no semester (slow, but keeps legacy compat)
             return $this->syncAktivitasLegacy($offset, $limit);
         }
 
@@ -339,7 +343,7 @@ class AcademicSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("SyncAktivitas: GetCount failed. Error: " . $e->getMessage());
+            Log::warning("SyncAktivitas: GetCount failed. Error: " . $e->getMessage());
         }
 
         // 2. Fetch bulk data
@@ -359,7 +363,6 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            // Mapping for upsert
             $records = [];
             foreach ($data as $item) {
                 $records[] = [
@@ -378,22 +381,13 @@ class AcademicSyncService extends BaseSyncService
                 ];
             }
 
-            // Perform Batch Upsert (assuming AktivitasKuliah model exists, checking...)
-            // If AktivitasKuliah model doesn't exist, we might be updating Mahasiswa table stats
-            // Looking at the legacy code, it didn't seem to save to a specific table yet OR it was just a proof of concept.
-            // Check if Model AktivitasKuliah exists.
-            
-            // For now, I'll use a generic upsert if the model exists, 
-            // otherwise I'll just count as synced to avoid crashing if table missing.
-            if (class_exists('App\Models\AktivitasKuliah')) {
-                $this->batchUpsert('App\Models\AktivitasKuliah', $records, ['id_registrasi_mahasiswa', 'id_semester'], [
-                    'ips', 'ipk', 'sks_semester', 'sks_total', 'biaya_kuliah_smt', 'updated_at'
-                ]);
-            } else {
-                // If no dedicated table, update Mahasiswa table with latest IPK/IPS if it's the latest semester?
-                // Usually better to have a dedicated table. 
-                // Let's assume for now we want to count progress.
-            }
+            // Simpan ke tabel aktivitas_kuliah
+            $this->batchUpsert(AktivitasKuliah::class, $records, ['id_registrasi_mahasiswa', 'id_semester'], [
+                'nim', 'nama_mahasiswa', 'id_status_mahasiswa', 'ips', 'ipk', 'sks_semester', 'sks_total', 'biaya_kuliah_smt', 'updated_at'
+            ]);
+
+            // Update IPK, IPS, SKS di tabel mahasiswa (ambil yang terbaru per mahasiswa)
+            $this->updateMahasiswaAkademik($data);
             
             $synced = count($records);
         }
@@ -419,8 +413,8 @@ class AcademicSyncService extends BaseSyncService
      */
     private function syncAktivitasLegacy(int $offset = 0, int $limit = 50): array
     {
-        $totalStudents = \App\Models\Mahasiswa::count();
-        $students = \App\Models\Mahasiswa::select('id_registrasi_mahasiswa', 'nim')
+        $totalStudents = Mahasiswa::count();
+        $students = Mahasiswa::select('id_registrasi_mahasiswa', 'nim')
             ->skip($offset)
             ->take($limit)
             ->get();
@@ -432,7 +426,29 @@ class AcademicSyncService extends BaseSyncService
         foreach ($students as $student) {
             try {
                 $akmData = $this->neoFeeder->getAktivitasKuliahMahasiswa($student->id_registrasi_mahasiswa);
-                if ($akmData && isset($akmData['data'])) {
+                if ($akmData && isset($akmData['data']) && !empty($akmData['data'])) {
+                    // Simpan ke tabel aktivitas_kuliah
+                    foreach ($akmData['data'] as $item) {
+                        AktivitasKuliah::updateOrCreate(
+                            [
+                                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                                'id_semester' => $item['id_semester'],
+                            ],
+                            [
+                                'nim' => $item['nim'],
+                                'nama_mahasiswa' => $item['nama_mahasiswa'],
+                                'id_status_mahasiswa' => $item['id_status_mahasiswa'],
+                                'ips' => $item['ips'] ?? 0,
+                                'ipk' => $item['ipk'] ?? 0,
+                                'sks_semester' => $item['sks_semester'] ?? 0,
+                                'sks_total' => $item['sks_total'] ?? 0,
+                                'biaya_kuliah_smt' => $item['biaya_kuliah_smt'] ?? 0,
+                            ]
+                        );
+                    }
+
+                    // Update mahasiswa table juga
+                    $this->updateMahasiswaAkademik($akmData['data']);
                     $synced++;
                 }
             } catch (\Exception $e) {
@@ -458,13 +474,14 @@ class AcademicSyncService extends BaseSyncService
     
     public function syncBimbinganMahasiswa(int $offset = 0, int $limit = 500): array
     {
+        $totalAll = 0;
         try {
             $countResponse = $this->neoFeeder->getCountBimbingMahasiswa();
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::warning("SyncBimbingan: GetCount failed. Error: " . $e->getMessage());
+            Log::warning("SyncBimbingan: GetCount failed. Error: " . $e->getMessage());
         }
         
         $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset);
@@ -513,13 +530,14 @@ class AcademicSyncService extends BaseSyncService
     
     public function syncUjiMahasiswa(int $offset = 0, int $limit = 500): array
     {
+        $totalAll = 0;
         try {
             $countResponse = $this->neoFeeder->getCountUjiMahasiswa();
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::warning("SyncUji: GetCount failed. Error: " . $e->getMessage());
+            Log::warning("SyncUji: GetCount failed. Error: " . $e->getMessage());
         }
 
         $response = $this->neoFeeder->getUjiMahasiswa($limit, $offset);
@@ -755,4 +773,147 @@ class AcademicSyncService extends BaseSyncService
         ];
     }
 
+    /**
+     * Sync KRS tanpa filter semester - ambil semua semester yang ada di DB
+     */
+    private function syncKrsAllSemesters(int $offset, int $limit): array
+    {
+        // Ambil semua semester dari DB
+        $semesters = \App\Models\TahunAkademik::orderBy('id_semester', 'desc')->pluck('id_semester');
+        
+        if ($semesters->isEmpty()) {
+            return [
+                'total' => 0, 'synced' => 0,
+                'errors' => ['Sync Semester terlebih dahulu sebelum sync KRS'],
+                'total_all' => 0, 'has_more' => false, 'progress' => 0,
+            ];
+        }
+
+        $totalSynced = 0;
+        $totalErrors = [];
+        $totalCount = 0;
+
+        // Hitung index semester berdasarkan offset 
+        $semesterIndex = intdiv($offset, $limit);
+        
+        if ($semesterIndex >= $semesters->count()) {
+            return [
+                'total' => 0, 'synced' => 0, 'errors' => [],
+                'total_all' => $semesters->count(), 'has_more' => false, 'progress' => 100,
+            ];
+        }
+
+        $currentSemester = $semesters[$semesterIndex];
+        $result = $this->syncKrs(0, $limit, $currentSemester);
+        
+        // Lanjut fetch halaman berikutnya untuk semester ini
+        while ($result['has_more'] ?? false) {
+            $nextResult = $this->syncKrs($result['next_offset'], $limit, $currentSemester);
+            $result['synced'] += $nextResult['synced'];
+            $result['total'] += $nextResult['total'];
+            $result['errors'] = array_merge($result['errors'] ?? [], $nextResult['errors'] ?? []);
+            $result = array_merge($result, [
+                'has_more' => $nextResult['has_more'],
+                'next_offset' => $nextResult['next_offset'],
+            ]);
+        }
+
+        $nextSemesterIndex = $semesterIndex + 1;
+        $hasMore = $nextSemesterIndex < $semesters->count();
+        $progress = min(100, round(($nextSemesterIndex / $semesters->count()) * 100));
+
+        return [
+            'total' => $result['total'],
+            'synced' => $result['synced'],
+            'errors' => $result['errors'] ?? [],
+            'total_all' => $semesters->count(),
+            'offset' => $offset,
+            'next_offset' => $hasMore ? ($nextSemesterIndex * $limit) : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+            'message' => "Semester {$currentSemester} selesai ({$nextSemesterIndex}/{$semesters->count()})",
+        ];
+    }
+
+    /**
+     * Sync Nilai tanpa filter semester - ambil semua semester yang ada di DB
+     */
+    private function syncNilaiAllSemesters(int $offset, int $limit): array
+    {
+        $semesters = \App\Models\TahunAkademik::orderBy('id_semester', 'desc')->pluck('id_semester');
+        
+        if ($semesters->isEmpty()) {
+            return [
+                'total' => 0, 'synced' => 0,
+                'errors' => ['Sync Semester terlebih dahulu sebelum sync Nilai'],
+                'total_all' => 0, 'has_more' => false, 'progress' => 0,
+            ];
+        }
+
+        $semesterIndex = intdiv($offset, $limit);
+        
+        if ($semesterIndex >= $semesters->count()) {
+            return [
+                'total' => 0, 'synced' => 0, 'errors' => [],
+                'total_all' => $semesters->count(), 'has_more' => false, 'progress' => 100,
+            ];
+        }
+
+        $currentSemester = $semesters[$semesterIndex];
+        $result = $this->syncNilai(0, $limit, $currentSemester);
+        
+        while ($result['has_more'] ?? false) {
+            $nextResult = $this->syncNilai($result['next_offset'], $limit, $currentSemester);
+            $result['synced'] += $nextResult['synced'];
+            $result['total'] += $nextResult['total'];
+            $result['errors'] = array_merge($result['errors'] ?? [], $nextResult['errors'] ?? []);
+            $result = array_merge($result, [
+                'has_more' => $nextResult['has_more'],
+                'next_offset' => $nextResult['next_offset'],
+            ]);
+        }
+
+        $nextSemesterIndex = $semesterIndex + 1;
+        $hasMore = $nextSemesterIndex < $semesters->count();
+        $progress = min(100, round(($nextSemesterIndex / $semesters->count()) * 100));
+
+        return [
+            'total' => $result['total'],
+            'synced' => $result['synced'],
+            'errors' => $result['errors'] ?? [],
+            'total_all' => $semesters->count(),
+            'offset' => $offset,
+            'next_offset' => $hasMore ? ($nextSemesterIndex * $limit) : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+            'message' => "Semester {$currentSemester} selesai ({$nextSemesterIndex}/{$semesters->count()})",
+        ];
+    }
+
+    /**
+     * Update IPK, IPS, dan SKS di tabel mahasiswa dari data AKM
+     */
+    private function updateMahasiswaAkademik(array $data): void
+    {
+        // Group by mahasiswa, ambil record dengan semester terbaru
+        $latestPerStudent = [];
+        foreach ($data as $item) {
+            $idReg = $item['id_registrasi_mahasiswa'];
+            if (!isset($latestPerStudent[$idReg]) || $item['id_semester'] > $latestPerStudent[$idReg]['id_semester']) {
+                $latestPerStudent[$idReg] = $item;
+            }
+        }
+
+        foreach ($latestPerStudent as $idReg => $item) {
+            try {
+                Mahasiswa::where('id_registrasi_mahasiswa', $idReg)->update([
+                    'ipk' => $item['ipk'] ?? 0,
+                    'ips' => $item['ips'] ?? 0,
+                    'sks_total' => $item['sks_total'] ?? 0,
+                ]);
+            } catch (\Exception $e) {
+                Log::warning("UpdateMahasiswaAkademik: Error for {$idReg}: " . $e->getMessage());
+            }
+        }
+    }
 }
