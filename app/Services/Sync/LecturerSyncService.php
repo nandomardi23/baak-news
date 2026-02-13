@@ -55,7 +55,7 @@ class LecturerSyncService extends BaseSyncService
         }
 
         $nextOffset = $offset + $batchCount;
-        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
         $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
 
         return [
@@ -123,7 +123,7 @@ class LecturerSyncService extends BaseSyncService
         }
 
         $nextOffset = $offset + $batchCount;
-        $hasMore = $totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit);
+        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
         $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
 
         return [
