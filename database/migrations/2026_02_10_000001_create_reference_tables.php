@@ -14,7 +14,7 @@ return new class extends Migration
         // 1. Agama
         Schema::create('ref_agama', function (Blueprint $table) {
             $table->id();
-            $table->string('id_agama')->nullable(); // From NeoFeeder
+            $table->string('id_agama')->nullable()->index(); // From NeoFeeder
             $table->string('nama_agama');
             $table->timestamps();
         });
@@ -22,7 +22,7 @@ return new class extends Migration
         // 2. Jenis Tinggal
         Schema::create('ref_jenis_tinggal', function (Blueprint $table) {
             $table->id();
-            $table->string('id_jenis_tinggal')->nullable(); // From NeoFeeder
+            $table->string('id_jenis_tinggal')->nullable()->index(); // From NeoFeeder
             $table->string('nama_jenis_tinggal');
             $table->timestamps();
         });
@@ -30,7 +30,7 @@ return new class extends Migration
         // 3. Alat Transportasi
         Schema::create('ref_alat_transportasi', function (Blueprint $table) {
             $table->id();
-            $table->string('id_alat_transportasi')->nullable(); // From NeoFeeder
+            $table->string('id_alat_transportasi')->nullable()->index(); // From NeoFeeder
             $table->string('nama_alat_transportasi');
             $table->timestamps();
         });
@@ -38,7 +38,7 @@ return new class extends Migration
         // 4. Pekerjaan
         Schema::create('ref_pekerjaan', function (Blueprint $table) {
             $table->id();
-            $table->integer('id_pekerjaan')->nullable(); // From NeoFeeder
+            $table->integer('id_pekerjaan')->nullable()->index(); // From NeoFeeder
             $table->string('nama_pekerjaan');
             $table->timestamps();
         });
@@ -46,7 +46,7 @@ return new class extends Migration
         // 5. Penghasilan
         Schema::create('ref_penghasilan', function (Blueprint $table) {
             $table->id();
-            $table->string('id_penghasilan')->nullable(); // From NeoFeeder
+            $table->string('id_penghasilan')->nullable()->index(); // From NeoFeeder
             $table->string('nama_penghasilan');
             $table->timestamps();
         });
@@ -54,7 +54,7 @@ return new class extends Migration
         // 6. Kebutuhan Khusus
         Schema::create('ref_kebutuhan_khusus', function (Blueprint $table) {
             $table->id();
-            $table->string('id_kebutuhan_khusus')->nullable(); // From NeoFeeder
+            $table->string('id_kebutuhan_khusus')->nullable()->index(); // From NeoFeeder
             $table->string('nama_kebutuhan_khusus');
             $table->timestamps();
         });
@@ -62,7 +62,7 @@ return new class extends Migration
         // 7. Pembiayaan
         Schema::create('ref_pembiayaan', function (Blueprint $table) {
             $table->id();
-            $table->string('id_pembiayaan')->nullable(); // From NeoFeeder
+            $table->string('id_pembiayaan')->nullable()->index(); // From NeoFeeder
             $table->string('nama_pembiayaan');
             $table->timestamps();
         });
