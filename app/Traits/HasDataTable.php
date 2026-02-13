@@ -46,12 +46,24 @@ trait HasDataTable
 
         // 2. Handling Sorting
         if ($request->filled('sort_field')) {
+            $field = $request->sort_field;
+            
+            // Legacy Mapping: id_tahun_akademik -> id_semester
+            if ($field === 'id_tahun_akademik') {
+                $field = 'id_semester';
+            }
+
             $direction = $request->input('sort_direction', 'asc');
-            // Basic SQL order, can be extended for related models if needed
-            $query->orderBy($request->sort_field, $direction);
-        } else {
-            // Default sort if provided or standard fallback
-            // $query->latest(); // Default behavior can be overridden
+            
+            // Safeguard: Check if column exists in the main table to avoid SQL 1054 error
+            $tableName = $query->getModel()->getTable();
+            $schema = $query->getModel()->getConnection()->getSchemaBuilder();
+            
+            if ($schema->hasColumn($tableName, $field)) {
+                $query->orderBy($field, $direction);
+            } else {
+                \Illuminate\Support\Facades\Log::warning("HasDataTable: Column '{$field}' not found in table '{$tableName}'. Sorting skipped.");
+            }
         }
 
         // 3. Handling Pagination

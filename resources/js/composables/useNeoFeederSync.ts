@@ -171,8 +171,8 @@ export function useNeoFeederSync() {
             // Special param for wilayah
             const params: any = { offset, limit: 1000 }; 
             // Adjust limits based on type for optimization
-            if (['mahasiswa', 'matakuliah', 'kelaskuliah', 'krs', 'nilai'].includes(type)) params.limit = 2000;
-            if (['biodata', 'aktivitas', 'ajardosen'].includes(type)) params.limit = 100;
+            if (['mahasiswa', 'matakuliah', 'kelaskuliah', 'krs', 'nilai', 'aktivitas'].includes(type)) params.limit = 2000;
+            if (['biodata', 'ajardosen'].includes(type)) params.limit = 100;
 
             if (['wilayah'].includes(type)) {
                 params.type = 'wilayah';

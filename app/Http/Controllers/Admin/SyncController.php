@@ -289,9 +289,10 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 50);
+            $limit = $request->input('limit', 1000); // Increased limit for bulk
+            $idSemester = $request->input('id_semester');
             
-            $result = $syncService->syncAktivitas($offset, $limit);
+            $result = $syncService->syncAktivitas($offset, $limit, $idSemester);
             
             return $this->successResponse('Sync Aktivitas Kuliah berhasil', $result);
         } catch (\Exception $e) {
