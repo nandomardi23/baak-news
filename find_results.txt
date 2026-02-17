@@ -1,0 +1,4 @@
+Latest Semester in krs (header): 
+Latest Semester in nilai: 
+Latest created_at in ajar_dosen: 
+All Distinct Semesters in KRS: 

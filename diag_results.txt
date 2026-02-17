@@ -1,0 +1,29 @@
+=== Diagnostic Results ===
+[16:46:58] Testing Mahasiswa offset 2000 with limit 10...
+[16:46:58] Mahasiswa batch 2 fetch success. Count: 10
+[16:46:58] Testing Biodata for student: 101013070 (ID: b073164e-7169-4f04-b6c1-188a6389864e)
+[16:46:58] Biodata raw response received. Data count: 1
+[16:46:58] Sample biodata keys: nama_mahasiswa, jenis_kelamin, tempat_lahir, tanggal_lahir, id_mahasiswa, id_agama, nama_agama, nik, nisn, npwp, id_negara, kewarganegaraan, jalan, dusun, rt, rw, kelurahan, kode_pos, id_wilayah, nama_wilayah, id_jenis_tinggal, nama_jenis_tinggal, id_alat_transportasi, nama_alat_transportasi, telepon, handphone, email, penerima_kps, nomor_kps, nik_ayah, nama_ayah, tanggal_lahir_ayah, id_pendidikan_ayah, nama_pendidikan_ayah, id_pekerjaan_ayah, nama_pekerjaan_ayah, id_penghasilan_ayah, nama_penghasilan_ayah, nik_ibu, nama_ibu_kandung, tanggal_lahir_ibu, id_pendidikan_ibu, nama_pendidikan_ibu, id_pekerjaan_ibu, nama_pekerjaan_ibu, id_penghasilan_ibu, nama_penghasilan_ibu, nama_wali, tanggal_lahir_wali, id_pendidikan_wali, nama_pendidikan_wali, id_pekerjaan_wali, nama_pekerjaan_wali, id_penghasilan_wali, nama_penghasilan_wali, id_kebutuhan_khusus_mahasiswa, nama_kebutuhan_khusus_mahasiswa, id_kebutuhan_khusus_ayah, nama_kebutuhan_khusus_ayah, id_kebutuhan_khusus_ibu, nama_kebutuhan_khusus_ibu, status_sync
+[16:46:58] Biodata sync result: skipped
+[16:46:58] --- Checking for Semester: 20241 ---
+[16:46:58] --- Checking for Semester: 20241 ---
+[16:46:58] Checking KRS for 20241...
+[16:47:08] KRS count for 20241: 0
+[16:47:08] Checking Nilai for 20241...
+[16:47:10] Nilai count for 20241: 4613
+[16:47:10] Checking Aktivitas Kuliah for 20241...
+[16:47:20] Aktivitas Kuliah count for 20241: 0
+[16:47:20] Found semester with data: 20241.
+[16:47:20] Testing Ajar Dosen for semester: 20241 ...
+[16:47:30] Ajar Dosen sync ERROR: Gagal menghubungi Neo Feeder API
+[16:47:30] Diagnostics complete.
+[16:51:07] Ajar Dosen sync ERROR: Gagal menghubungi Neo Feeder API
+[16:51:07] Diagnostics complete.
+[16:51:51] Ajar Dosen sync ERROR: Gagal menghubungi Neo Feeder API
+[16:51:51] Diagnostics complete.
+[16:53:26] Ajar Dosen raw request FAILED: null
+[16:53:26] Fetching Nilai sample for 20241...
+[16:53:26] Nilai Sample Keys: id_prodi, nama_program_studi, id_semester, nama_semester, id_matkul, kode_mata_kuliah, nama_mata_kuliah, sks_mata_kuliah, id_kelas_kuliah, nama_kelas_kuliah, id_registrasi_mahasiswa, id_mahasiswa, nim, nama_mahasiswa, jurusan, angkatan, nilai_angka, nilai_indeks, nilai_huruf
+[16:53:26] Checking KRS for 20241 with id_semester filter...
+[16:53:36] KRS (id_semester filter) count for 20241: 0
+[16:53:36] Diagnostics complete.

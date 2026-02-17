@@ -72,12 +72,12 @@ class LecturerSyncService extends BaseSyncService
 
     public function syncAjarDosen(int $offset = 0, int $limit = 100, ?string $idSemester = null): array
     {
-        $filter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        $filter = $idSemester ? "id_periode = '{$idSemester}'" : "";
 
         // Get total count from API
         $totalAll = 0;
         try {
-            $countResponse = $this->neoFeeder->getCountAktivitasMengajarDosen($filter);
+            $countResponse = $this->neoFeeder->requestQuick('GetCountAktivitasMengajarDosen', ['filter' => $filter]);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
@@ -113,6 +113,7 @@ class LecturerSyncService extends BaseSyncService
                         'rencana_tatap_muka' => $item['rencana_tatap_muka'] ?? 0,
                         'realisasi_tatap_muka' => $item['realisasi_tatap_muka'] ?? 0,
                         'id_jenis_evaluasi' => $item['id_jenis_evaluasi'] ?? null,
+                        'id_semester' => $idSemester ?? ($item['id_semester'] ?? $item['id_periode'] ?? null),
                     ]
                 );
                 $synced++;

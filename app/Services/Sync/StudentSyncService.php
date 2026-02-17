@@ -8,7 +8,7 @@ use App\Models\RiwayatPendidikanMahasiswa;
 
 class StudentSyncService extends BaseSyncService
 {
-    public function syncMahasiswa(int $offset = 0, int $limit = 2000): array
+    public function syncMahasiswa(int $offset = 0, int $limit = 500): array
     {
         $totalAll = 0;
         try {
@@ -130,7 +130,7 @@ class StudentSyncService extends BaseSyncService
                 $mahasiswa->id_penghasilan_ayah = $bio['id_penghasilan_ayah'];
                 $mahasiswa->nama_penghasilan_ayah = $bio['nama_penghasilan_ayah'];
                 $mahasiswa->nik_ibu = $bio['nik_ibu'];
-                $mahasiswa->nama_ibu = $bio['nama_ibu'];
+                $mahasiswa->nama_ibu = $bio['nama_ibu_kandung'];
                 $mahasiswa->tanggal_lahir_ibu = $bio['tanggal_lahir_ibu'];
                 $mahasiswa->id_pendidikan_ibu = $bio['id_pendidikan_ibu'];
                 $mahasiswa->nama_pendidikan_ibu = $bio['nama_pendidikan_ibu'];

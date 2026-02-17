@@ -49,7 +49,7 @@ class SyncController extends Controller
             
             if ($type === 'wilayah') {
                 $offset = $request->input('offset', 0);
-                $limit = $request->input('limit', 1000);
+                $limit = $request->input('limit', 500);
                 $result = $syncService->syncWilayah($offset, $limit);
                 return $this->successResponse('Sync Wilayah berhasil', $result);
             }
@@ -138,7 +138,7 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 2000);
+            $limit = $request->input('limit', 500);
             
             $result = $syncService->syncMataKuliah($offset, $limit);
             
@@ -155,7 +155,7 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 2000); 
+            $limit = $request->input('limit', 500); 
             
             $result = $syncService->syncMahasiswa($offset, $limit);
             
@@ -253,7 +253,7 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 2000); // Increased limit for bulk
+            $limit = $request->input('limit', 500); // Standardized to 500
             $idSemester = $request->input('id_semester');
             
             $result = $syncService->syncNilai($offset, $limit, $idSemester);
@@ -271,7 +271,7 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 1000); // Increased limit for bulk
+            $limit = $request->input('limit', 500); // Standardized to 500
             $idSemester = $request->input('id_semester');
             
             $result = $syncService->syncKrs($offset, $limit, $idSemester);
@@ -289,7 +289,7 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 1000); // Increased limit for bulk
+            $limit = $request->input('limit', 500); // Standardized to 500
             $idSemester = $request->input('id_semester');
             
             $result = $syncService->syncAktivitas($offset, $limit, $idSemester);
@@ -307,7 +307,7 @@ class SyncController extends Controller
     {
         try {
             $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 2000);
+            $limit = $request->input('limit', 500);
             
             $result = $syncService->syncKelasKuliah($offset, $limit);
             

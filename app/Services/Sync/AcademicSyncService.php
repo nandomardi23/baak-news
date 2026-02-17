@@ -171,7 +171,7 @@ class AcademicSyncService extends BaseSyncService
         // 1. Get total count
         $totalAll = 0;
         try {
-            $countResponse = $this->neoFeeder->request('GetCountKRSMahasiswa', ['filter' => "id_periode = '{$idSemester}'"]);
+            $countResponse = $this->neoFeeder->requestQuick('GetCountKRSMahasiswa', ['filter' => "id_periode = '{$idSemester}'"]);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
@@ -220,10 +220,14 @@ class AcademicSyncService extends BaseSyncService
             foreach ($data as $item) {
                 $parentId = $parentMap[$item['id_registrasi_mahasiswa']] ?? null;
                 if ($parentId) {
+                    // Resolve local mata_kuliah_id
+                    $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
+
                     $details[] = [
-                        'id_krs' => $parentId,
+                        'krs_id' => $parentId,
                         'id_kelas_kuliah' => $item['id_kelas_kuliah'],
                         'id_matkul' => $item['id_matkul'],
+                        'mata_kuliah_id' => $matkulId,
                         'kode_mata_kuliah' => $item['kode_mata_kuliah'],
                         'nama_mata_kuliah' => $item['nama_mata_kuliah'],
                         'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
@@ -236,7 +240,7 @@ class AcademicSyncService extends BaseSyncService
             }
 
             // Bulk Upsert Details
-            $this->batchUpsert(KrsDetail::class, $details, ['id_krs', 'id_kelas_kuliah'], ['id_matkul', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks_mata_kuliah', 'nama_kelas_kuliah', 'angkatan', 'updated_at']);
+            $this->batchUpsert(KrsDetail::class, $details, ['krs_id', 'id_kelas_kuliah', 'id_matkul'], ['mata_kuliah_id', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks_mata_kuliah', 'nama_kelas_kuliah', 'angkatan', 'updated_at']);
             $synced = count($details);
         }
 
@@ -266,7 +270,7 @@ class AcademicSyncService extends BaseSyncService
         // 1. Get total count
         $totalAll = 0;
         try {
-            $countResponse = $this->neoFeeder->request('GetCountNilaiPerkuliahanKelas', ['filter' => "id_semester = '{$idSemester}'"]);
+            $countResponse = $this->neoFeeder->requestQuick('GetCountNilaiPerkuliahanKelas', ['filter' => "id_semester = '{$idSemester}'"]);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
@@ -288,13 +292,22 @@ class AcademicSyncService extends BaseSyncService
         if (!empty($data)) {
             $records = [];
             foreach ($data as $item) {
+                // Resolve local IDs
+                $mahasiswaId = \App\Models\Mahasiswa::where('id_registrasi_mahasiswa', $item['id_registrasi_mahasiswa'])->value('id');
+                $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
+                $tahunAkademikId = \App\Models\TahunAkademik::where('id_semester', $item['id_semester'])->value('id');
+
                 $records[] = [
+                    'mahasiswa_id' => $mahasiswaId,
+                    'mata_kuliah_id' => $matkulId,
+                    'tahun_akademik_id' => $tahunAkademikId,
                     'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
                     'id_kelas_kuliah' => $item['id_kelas_kuliah'],
                     'id_matkul' => $item['id_matkul'],
                     'nilai_angka' => $item['nilai_angka'] ?? 0,
                     'nilai_huruf' => $item['nilai_huruf'] ?? '',
                     'nilai_indeks' => $item['nilai_indeks'] ?? 0,
+                    'id_semester' => $item['id_semester'],
                     'id_periode' => $item['id_semester'],
                     'nama_mata_kuliah' => $item['nama_mata_kuliah'],
                     'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
@@ -303,8 +316,8 @@ class AcademicSyncService extends BaseSyncService
                 ];
             }
 
-            $this->batchUpsert(Nilai::class, $records, ['id_registrasi_mahasiswa', 'id_kelas_kuliah'], [
-                'nilai_angka', 'nilai_huruf', 'nilai_indeks', 'id_periode', 'nama_mata_kuliah', 'sks_mata_kuliah', 'updated_at'
+            $this->batchUpsert(Nilai::class, $records, ['id_registrasi_mahasiswa', 'id_kelas_kuliah', 'id_matkul'], [
+                'mahasiswa_id', 'mata_kuliah_id', 'tahun_akademik_id', 'nilai_angka', 'nilai_huruf', 'nilai_indeks', 'id_semester', 'id_periode', 'nama_mata_kuliah', 'sks_mata_kuliah', 'updated_at'
             ]);
             $synced = count($records);
         }
@@ -338,7 +351,7 @@ class AcademicSyncService extends BaseSyncService
         // 1. Get total count for this semester
         $totalAll = 0;
         try {
-            $countResponse = $this->neoFeeder->request('GetCountAktivitasKuliahMahasiswa', ['filter' => "id_semester = '{$idSemester}'"]);
+            $countResponse = $this->neoFeeder->requestQuick('GetCountAktivitasKuliahMahasiswa', ['filter' => "id_semester = '{$idSemester}'"]);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }

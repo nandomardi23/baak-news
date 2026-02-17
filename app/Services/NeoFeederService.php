@@ -28,7 +28,7 @@ class NeoFeederService
         $this->password = Setting::getValue('neo_feeder_password', '');
         
         $this->client = new Client([
-            'timeout' => 120, // Increased to 120s to handle slow responses
+            'timeout' => 200, // Increased to 200s to handle slow responses (batch 500)
             'connect_timeout' => 30,
             'verify' => false,
         ]);
@@ -438,7 +438,7 @@ class NeoFeederService
      */
     public function getCountKelasKuliah(): ?array
     {
-        return $this->request('GetCountKelasKuliah', []);
+        return $this->requestQuick('GetCountKelasKuliah', []);
     }
 
     /**
@@ -446,7 +446,7 @@ class NeoFeederService
      */
     public function getCountMahasiswa(): ?array
     {
-        return $this->request('GetCountMahasiswa', []);
+        return $this->requestQuick('GetCountMahasiswa', []);
     }
 
     /**
@@ -454,7 +454,7 @@ class NeoFeederService
      */
     public function getCountDosen(): ?array
     {
-        return $this->request('GetCountDosen', []);
+        return $this->requestQuick('GetCountDosen', []);
     }
 
     /**
@@ -462,7 +462,7 @@ class NeoFeederService
      */
     public function getCountMataKuliah(): ?array
     {
-        return $this->request('GetCountMataKuliah', []);
+        return $this->requestQuick('GetCountMataKuliah', []);
     }
 
     /**
@@ -470,7 +470,7 @@ class NeoFeederService
      */
     public function getCountNilaiPerkuliahan(): ?array
     {
-        return $this->request('GetCountNilaiPerkuliahanKelas', []);
+        return $this->requestQuick('GetCountNilaiPerkuliahanKelas', []);
     }
 
     /**
@@ -478,7 +478,7 @@ class NeoFeederService
      */
     public function getCountPerkuliahanMahasiswa(): ?array
     {
-        return $this->request('GetCountPerkuliahanMahasiswa', []);
+        return $this->requestQuick('GetCountPerkuliahanMahasiswa', []);
     }
 
     /**
@@ -486,7 +486,7 @@ class NeoFeederService
      */
     public function getCountDosenPengajar(): ?array
     {
-        return $this->request('GetCountDosenPengajarKelasKuliah', []);
+        return $this->requestQuick('GetCountDosenPengajarKelasKuliah', []);
     }
 
     /**
@@ -494,7 +494,7 @@ class NeoFeederService
      */
     public function getCountProdi(): ?array
     {
-        return $this->request('GetCountProdi', []);
+        return $this->requestQuick('GetCountProdi', []);
     }
 
     /**
@@ -502,7 +502,7 @@ class NeoFeederService
      */
     public function getCountBiodataMahasiswa(): ?array
     {
-        return $this->request('GetCountBiodataMahasiswa', []);
+        return $this->requestQuick('GetCountBiodataMahasiswa', []);
     }
 
     /**
@@ -603,7 +603,7 @@ class NeoFeederService
      */
     public function getCountKurikulum(): ?array
     {
-        return $this->request('GetCountKurikulum', []);
+        return $this->requestQuick('GetCountKurikulum', []);
     }
 
     /**
@@ -622,7 +622,7 @@ class NeoFeederService
      */
     public function getCountMatkulKurikulum(): ?array
     {
-        return $this->request('GetCountMatkulKurikulum', []);
+        return $this->requestQuick('GetCountMatkulKurikulum', []);
     }
     /**
      * Get Skala Nilai Prodi
@@ -640,7 +640,7 @@ class NeoFeederService
      */
     public function getCountSkalaNilaiProdi(): ?array
     {
-        return $this->request('GetCountSkalaNilaiProdi', []);
+        return $this->requestQuick('GetCountSkalaNilaiProdi', []);
     }
     /**
      * Get Aktivitas Mahasiswa (Non-Class Activities: KKN, PKL, MBKM, etc.)
@@ -659,7 +659,7 @@ class NeoFeederService
      */
     public function getCountAktivitasMahasiswa(string $filter = ''): ?array
     {
-        return $this->request('GetCountAktivitasMahasiswa', [
+        return $this->requestQuick('GetCountAktivitasMahasiswa', [
             'filter' => $filter
         ]);
     }
@@ -681,7 +681,7 @@ class NeoFeederService
      */
     public function getCountAnggotaAktivitasMahasiswa(string $filter = ''): ?array
     {
-        return $this->request('GetCountAnggotaAktivitasMahasiswa', [
+        return $this->requestQuick('GetCountAnggotaAktivitasMahasiswa', [
             'filter' => $filter
         ]);
     }
@@ -703,7 +703,7 @@ class NeoFeederService
      */
     public function getCountKonversiKampusMerdeka(string $filter = ''): ?array
     {
-        return $this->request('GetCountKonversiKampusMerdeka', [
+        return $this->requestQuick('GetCountKonversiKampusMerdeka', [
             'filter' => $filter
         ]);
     }
@@ -725,7 +725,7 @@ class NeoFeederService
      */
     public function getCountAktivitasMengajarDosen(string $filter = ''): ?array
     {
-        return $this->request('GetCountAktivitasMengajarDosen', [
+        return $this->requestQuick('GetCountAktivitasMengajarDosen', [
             'filter' => $filter
         ]);
     }
@@ -746,7 +746,7 @@ class NeoFeederService
      */
     public function getCountBimbingMahasiswa(): ?array
     {
-        return $this->request('GetCountBimbingMahasiswa', []);
+        return $this->requestQuick('GetCountBimbingMahasiswa', []);
     }
 
     /**
@@ -765,7 +765,7 @@ class NeoFeederService
      */
     public function getCountUjiMahasiswa(): ?array
     {
-        return $this->request('GetCountUjiMahasiswa', []);
+        return $this->requestQuick('GetCountUjiMahasiswa', []);
     }
 
     /**
@@ -784,7 +784,7 @@ class NeoFeederService
      */
     public function getCountMahasiswaLulusDO(): ?array
     {
-        return $this->request('GetCountMahasiswaLulusDO', []);
+        return $this->requestQuick('GetCountMahasiswaLulusDO', []);
     }
 
     /**
@@ -803,7 +803,7 @@ class NeoFeederService
      */
     public function getCountRiwayatPendidikanMahasiswa(): ?array
     {
-        return $this->request('GetCountRiwayatPendidikanMahasiswa', []);
+        return $this->requestQuick('GetCountRiwayatPendidikanMahasiswa', []);
     }
 }
 
