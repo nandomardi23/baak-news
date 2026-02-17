@@ -169,14 +169,14 @@ export function useNeoFeederSync() {
             }
 
             // Special param for wilayah
-            const params: any = { offset, limit: 500 }; 
+            const params: any = { offset, limit: 100 }; 
             // Adjust limits based on type for optimization
-            if (['mahasiswa', 'matakuliah', 'kelaskuliah', 'krs', 'nilai', 'aktivitas'].includes(type)) params.limit = 500;
+            if (['mahasiswa', 'matakuliah', 'kelaskuliah', 'krs', 'nilai', 'aktivitas'].includes(type)) params.limit = 100;
             if (['biodata', 'ajardosen'].includes(type)) params.limit = 100;
 
             if (['wilayah'].includes(type)) {
                 params.type = 'wilayah';
-                params.limit = 500;
+                params.limit = 100;
             }
             
             // Add semester filter if provided
