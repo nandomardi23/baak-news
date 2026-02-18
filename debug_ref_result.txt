@@ -1,0 +1,10 @@
+--- Debug Ref Sync ---
+Token: OK
+1. Testing SyncAgama...
+Result: {"synced":8,"total":8,"total_all":8,"progress":100,"has_more":false}
+
+2. Testing SyncWilayah (Limit 100)...
+Result: {"synced":100,"total":100,"total_all":0,"offset":0,"next_offset":100,"has_more":true,"progress":0}
+
+3. Testing GetCountWilayah...
+Count: 0

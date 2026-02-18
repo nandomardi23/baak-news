@@ -139,7 +139,8 @@ export function useNeoFeederSync() {
                              only_count: false 
                          });
                          
-                         const data = res.data;
+                         // Fix: Extract .data from response.data
+                         const data = res.data.data || {};
                          totalSynced += data.synced || 0;
                              
                          syncStates[type].result = {
