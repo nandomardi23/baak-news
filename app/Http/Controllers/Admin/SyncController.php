@@ -66,6 +66,7 @@ class SyncController extends Controller
     public function syncReferensi(Request $request, ReferenceSyncService $syncService): JsonResponse
     {
         try {
+            Log::info("DEBUG SYNC REFERENSI WEB REQUEST", $request->all());
             $type = $request->input('type');
             $subType = $request->input('sub_type');
             

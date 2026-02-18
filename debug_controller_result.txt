@@ -1,0 +1,4 @@
+--- Debug Controller Simulation ---
+Calling syncReferensi...
+Status: 200
+Content: {"success":true,"message":"Sync Referensi Agama berhasil","data":{"synced":8,"total":8,"total_all":8,"progress":100,"has_more":false}}

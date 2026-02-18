@@ -135,7 +135,7 @@ export function useNeoFeederSync() {
                          
                          const res = await axios.post(route('admin.sync.referensi'), { 
                              sub_type: sub,
-                             sync_since: syncSince,
+                             sync_since: null, // Force full sync for references
                              only_count: false 
                          });
                          
@@ -210,7 +210,8 @@ export function useNeoFeederSync() {
             }
             
             if (idSemester) params.id_semester = idSemester;
-            if (syncSince) params.sync_since = syncSince;
+            // Force full sync for Wilayah to ensure data retrieval
+            if (syncSince && type !== 'wilayah') params.sync_since = syncSince;
 
             const response = await axios.post(route('admin.sync.' + endpointUrl), params);
 
