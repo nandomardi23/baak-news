@@ -231,6 +231,11 @@ class ReferenceSyncService extends BaseSyncService
                 \Illuminate\Support\Facades\Log::warning("SyncWilayah: GetCount failed. Error: " . $e->getMessage());
             }
 
+            // Fallback for UI if count failed (Wilayah is approx 8000-10000)
+            if ($totalAll == 0) {
+                 $totalAll = 10000;
+            }
+
             $nextOffset = $offset + $batchCount;
             $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
             $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : ($hasMore ? 0 : 100);
