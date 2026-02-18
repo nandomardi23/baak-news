@@ -65,7 +65,7 @@ export function useNeoFeederSync() {
 
     const routeMapping: Record<string, any> = {
         'referensi': { url: 'referensi', limit: 100, label: 'Referensi Umum' },
-        'wilayah': { url: 'wilayah', limit: 100, label: 'Data Wilayah' },
+        'wilayah': { url: 'referensi', limit: 100, label: 'Data Wilayah' },
         'prodi': { url: 'prodi', limit: 100, label: 'Program Studi' },
         'kurikulum': { url: 'kurikulum', limit: 100, label: 'Kurikulum' },
         'matakuliah': { url: 'matakuliah', limit: 100, label: 'Mata Kuliah' },
