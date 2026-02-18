@@ -1,56 +1,58 @@
 <?php
 
+use App\Services\NeoFeederService;
+
 require __DIR__ . '/vendor/autoload.php';
 
 $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-use App\Services\Sync\ReferenceSyncService;
-use App\Services\NeoFeederService;
+echo "--- Debug Sync V2 ---\n";
 
-$service = app(ReferenceSyncService::class);
-$neo = app(NeoFeederService::class);
+$neo = new NeoFeederService();
 
-echo "=== DEBUGGING REFERENCE SYNC V2 ===\n";
+// 1. Check Token
+echo "[1] Getting Token...\n";
+$token = $neo->getToken();
+echo "Token: " . ($token ? "OK" : "FAIL") . "\n";
 
-// 1. Test All Simple References (Referensi Umum)
-$methods = [
-    'syncAgama',
-    'syncJenisTinggal',
-    'syncAlatTransportasi',
-    'syncPekerjaan',
-    'syncPenghasilan',
-    'syncKebutuhanKhusus',
-    'syncPembiayaan'
-];
+if (!$token) exit;
 
-foreach ($methods as $method) {
-    try {
-        echo "Testing {$method}... ";
-        $start = microtime(true);
-        $res = $service->$method();
-        $duration = round(microtime(true) - $start, 2);
-        echo "OK ({$duration}s). Result: " . json_encode($res) . "\n";
-    } catch (\Exception $e) {
-        echo "ERROR: " . $e->getMessage() . "\n";
+// 2. Check Count Wilayah (Simulate Controller 'count' check)
+echo "\n[2] RequestQuick: GetCountWilayah\n";
+try {
+    $tStart = microtime(true);
+    // Use reflection to access requestQuick since it might be protected/public? It is public.
+    $countRaw = $neo->requestQuick('GetCountWilayah', []);
+    $tEnd = microtime(true);
+    echo "Time: " . round($tEnd - $tStart, 2) . "s\n";
+    
+    if ($countRaw === null) {
+        echo "Result: NULL (Timeout or Error)\n";
+    } else {
+        echo "Result: Possible JSON\n";
+        echo "Error Code: " . ($countRaw['error_code'] ?? 'N/A') . "\n";
+        echo "Data: " . json_encode($countRaw['data'] ?? 'No Data') . "\n";
     }
+} catch (Exception $e) {
+    echo "Exception: " . $e->getMessage() . "\n";
 }
 
-// 2. Test Sync Wilayah (Data Wilayah) - skipping GetCount for now to see if Sync itself works
-try {
-    echo "\nTesting syncWilayah (limit 5)... ";
-    $res = $service->syncWilayah(0, 5);
-    echo "OK. Result: " . json_encode($res) . "\n";
-} catch (\Exception $e) {
-    echo "ERROR: " . $e->getMessage() . "\n";
+// 3. Check GetAgama (Dictionary)
+echo "\n[3] Request: GetAgama\n";
+$agama = $neo->getAgama();
+if ($agama === null) {
+    echo "Result: NULL (Failure)\n";
+} else {
+    echo "Result: OK. Count: " . count($agama['data'] ?? []) . "\n";
 }
 
-// 3. Check GetCountWilayah specifically
-try {
-    echo "\nChecking GetCountWilayah raw response... ";
-    $raw = $neo->request('GetCountWilayah', []);
-    echo "Raw: " . json_encode($raw) . "\n";
-} catch (\Exception $e) {
-    echo "ERROR GetCountWilayah: " . $e->getMessage() . "\n";
+// 4. Check GetWilayah (Data)
+echo "\n[4] Request: GetWilayah (Limit 5)\n";
+$wilayah = $neo->getWilayah(5);
+if ($wilayah === null) {
+    echo "Result: NULL (Failure)\n";
+} else {
+    echo "Result: OK. Count: " . count($wilayah['data'] ?? []) . "\n";
 }

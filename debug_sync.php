@@ -1,48 +1,44 @@
 <?php
 
-use App\Services\Sync\ReferenceSyncService;
 use App\Services\NeoFeederService;
 
-$service = app(ReferenceSyncService::class);
-$neo = app(NeoFeederService::class);
+require __DIR__ . '/vendor/autoload.php';
 
-echo "=== DEBUGGING REFERENCE SYNC ===\n";
+$app = require_once __DIR__ . '/bootstrap/app.php';
+$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+$kernel->bootstrap();
 
-// 1. Check GetCountWilayah
+echo "--- Debugging Neo Feeder API ---\n";
+
 try {
-    echo "1. Checking GetCountWilayah raw response...\n";
-    $raw = $neo->request('GetCountWilayah', []);
-    echo "Raw Response: " . json_encode($raw) . "\n";
-} catch (\Exception $e) {
-    echo "ERROR GetCountWilayah: " . $e->getMessage() . "\n";
-}
+    $neo = new NeoFeederService();
+    
+    // Test 1: Token
+    echo "\n1. Testing Token...\n";
+    $token = $neo->getToken();
+    echo "Token: " . ($token ? substr($token, 0, 10) . "..." : "FAILED") . "\n";
 
-// 2. Test Sync Wilayah
-try {
-    echo "\n2. Testing Sync Wilayah (Limit 5)...\n";
-    $res = $service->syncWilayah(0, 5);
-    echo "Result: " . json_encode($res) . "\n";
-} catch (\Exception $e) {
-    echo "ERROR SyncWilayah: " . $e->getMessage() . "\n";
-}
-
-// 3. Test All Simple References
-$methods = [
-    'syncAgama',
-    'syncJenisTinggal',
-    'syncAlatTransportasi',
-    'syncPekerjaan',
-    'syncPenghasilan',
-    'syncKebutuhanKhusus',
-    'syncPembiayaan'
-];
-
-foreach ($methods as $method) {
-    try {
-        echo "\n3. Testing {$method}...\n";
-        $res = $service->$method();
-        echo "Result: " . json_encode($res) . "\n";
-    } catch (\Exception $e) {
-        echo "ERROR {$method}: " . $e->getMessage() . "\n";
+    if (!$token) {
+        die("Stopping: No Token.\n");
     }
+
+    // Test 2: Agama (Simple Dictionary)
+    echo "\n2. Testing GetAgama (Simple)...\n";
+    $agama = $neo->getAgama();
+    echo "Agama Response: " . json_encode($agama) . "\n";
+
+    // Test 3: Wilayah (Large Data)
+    echo "\n3. Testing GetWilayah (Limit 5)...\n";
+    $wilayah = $neo->getWilayah(5); // Request only 5
+    if ($wilayah) {
+        echo "Wilayah Count: " . count($wilayah['data'] ?? []) . "\n";
+        echo "First Item: " . json_encode($wilayah['data'][0] ?? []) . "\n";
+        echo "Error Code: " . ($wilayah['error_code'] ?? 'None') . "\n";
+        echo "Error Desc: " . ($wilayah['error_desc'] ?? 'None') . "\n";
+    } else {
+        echo "Wilayah Response is NULL (Failed).\n";
+    }
+
+} catch (Exception $e) {
+    echo "EXCEPTION: " . $e->getMessage() . "\n";
 }

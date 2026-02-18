@@ -34,7 +34,7 @@ export function useNeoFeederSync() {
     const accumulatedStats = reactive<Record<string, {
         total_synced: number;
         total_failed: number;
-        total_api: number;
+        total_api: number | null;
         progress: number;
         errors: string[];
     }>>({});
@@ -63,27 +63,27 @@ export function useNeoFeederSync() {
         konversi: { loading: false, result: null },
     });
 
-    const routeMapping: Record<string, string> = {
-        'referensi': 'referensi',
-        'wilayah': 'referensi', // Logic in syncData handles type='wilayah'
-        'prodi': 'prodi',
-        'kurikulum': 'kurikulum',
-        'matakuliah': 'matakuliah',
-        'mahasiswa': 'mahasiswa',
-        'biodata': 'biodata',
-        'aktivitas': 'aktivitas',
-        'krs': 'krs',
-        'nilai': 'nilai',
-        'kelaskuliah': 'kelas-kuliah',
-        'dosenpengajar': 'dosen-pengajar',
-        'dosen': 'dosen',
-        'semester': 'semester',
-        'ajardosen': 'ajar-dosen',
-        'bimbingan': 'bimbingan-mahasiswa',
-        'uji': 'uji-mahasiswa',
-        'aktivitasmahasiswa': 'aktivitas-mahasiswa',
-        'anggotaaktivitas': 'anggota-aktivitas-mahasiswa',
-        'konversi': 'konversi-kampus-merdeka',
+    const routeMapping: Record<string, any> = {
+        'referensi': { url: 'referensi', limit: 100, label: 'Referensi Umum' },
+        'wilayah': { url: 'wilayah', limit: 100, label: 'Data Wilayah' },
+        'prodi': { url: 'prodi', limit: 100, label: 'Program Studi' },
+        'kurikulum': { url: 'kurikulum', limit: 100, label: 'Kurikulum' },
+        'matakuliah': { url: 'matakuliah', limit: 100, label: 'Mata Kuliah' },
+        'mahasiswa': { url: 'mahasiswa', limit: 100, label: 'Mahasiswa' },
+        'biodata': { url: 'biodata', limit: 100, label: 'Biodata Mahasiswa' },
+        'aktivitas': { url: 'aktivitas', limit: 100, label: 'Aktivitas Kuliah' },
+        'krs': { url: 'krs', limit: 100, label: 'KRS Mahasiswa' },
+        'nilai': { url: 'nilai', limit: 100, label: 'Nilai Perkuliahan' },
+        'kelaskuliah': { url: 'kelas-kuliah', limit: 100, label: 'Kelas Kuliah' },
+        'dosenpengajar': { url: 'dosen-pengajar', limit: 100, label: 'Dosen Pengajar' },
+        'dosen': { url: 'dosen', limit: 100, label: 'Dosen' },
+        'semester': { url: 'semester', limit: 100, label: 'Semester' },
+        'ajardosen': { url: 'ajar-dosen', limit: 100, label: 'Ajar Dosen' },
+        'bimbingan': { url: 'bimbingan-mahasiswa', limit: 100, label: 'Bimbingan Mahasiswa' },
+        'uji': { url: 'uji-mahasiswa', limit: 100, label: 'Uji Mahasiswa' },
+        'aktivitasmahasiswa': { url: 'aktivitas-mahasiswa', limit: 100, label: 'Aktivitas Mahasiswa' },
+        'anggotaaktivitas': { url: 'anggota-aktivitas-mahasiswa', limit: 100, label: 'Anggota Aktivitas' },
+        'konversi': { url: 'konversi-kampus-merdeka', limit: 100, label: 'Konversi MBKM' },
     };
 
     /**
@@ -94,7 +94,7 @@ export function useNeoFeederSync() {
             accumulatedStats[type] = {
                 total_synced: 0,
                 total_failed: 0,
-                total_api: 0,
+                total_api: null,
                 progress: 0,
                 errors: []
             };
@@ -107,99 +107,114 @@ export function useNeoFeederSync() {
     const syncData = async (type: string, offset = 0, idSemester?: string, syncSince?: string) => {
         if (!syncStates[type] || isStopping.value) return;
 
-        // If starting fresh (offset 0), reset states
+        // --- Step 1: Initialization & Get Count (Only on first call) ---
         if (offset === 0) {
-            isStopping.value = false; // Clear stop signal on fresh start
+            isStopping.value = false;
             syncStates[type].loading = true;
             syncStates[type].result = null;
-            // Reset accumulator for this session
-            accumulatedStats[type] = {
-                total_synced: 0,
-                total_failed: 0,
-                total_api: 0,
-                progress: 0,
-                errors: []
-            };
-        }
 
-        try {
-            const endpoint = routeMapping[type];
-            if (!endpoint) throw new Error(`Unknown sync type: ${type}`);
+            // Reset accumulator
+            initAccumulator(type);
 
-            // Special handling for referensi (General Reference)
-            if (type === 'referensi' && offset === 0) {
-                const subTypes = ['agama', 'jenis_tinggal', 'alat_transportasi', 'pekerjaan', 'penghasilan', 'kebutuhan_khusus', 'pembiayaan'];
-                let totalSynced = 0;
+            try {
+                const routeConfig = routeMapping[type];
+                if (!routeConfig) throw new Error(`Unknown sync type: ${type}`);
                 
-                for (let i = 0; i < subTypes.length; i++) {
-                    if (isStopping.value) break;
-                    const sub = subTypes[i];
-                    // Update progress based on sub-type step
-                    const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
+                const endpointUrl = routeConfig.url;
+
+                // Special handling for legacy 'referensi' sub-types sync
+                if (type === 'referensi') {
+                    // ... (keep existing referensi logic)
+                     const subTypes = ['agama', 'jenis_tinggal', 'alat_transportasi', 'pekerjaan', 'penghasilan', 'kebutuhan_khusus', 'pembiayaan'];
+                     let totalSynced = 0;
+                     
+                     for (let i = 0; i < subTypes.length; i++) {
+                         if (isStopping.value) break;
+                         const sub = subTypes[i];
+                         const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
+                         
+                         const res = await axios.post(route('admin.sync.referensi'), { 
+                             sub_type: sub,
+                             sync_since: syncSince,
+                             only_count: false 
+                         });
+                         
+                         const data = res.data;
+                         totalSynced += data.synced || 0;
+                             
+                         syncStates[type].result = {
+                             success: true,
+                             message: `Syncing ${sub.replace('_', ' ')}...`,
+                             synced: totalSynced,
+                             progress: subProgress
+                         };
+                         
+                         accumulatedStats[type].total_synced = totalSynced;
+                         accumulatedStats[type].total_api = totalSynced; 
+                         accumulatedStats[type].progress = subProgress;
+                     }
+                     
+                     syncStates[type].loading = false;
+                     syncStates[type].result = {
+                         success: true,
+                         message: 'Sync Referensi Umum selesai',
+                         synced: totalSynced,
+                         progress: 100
+                     };
+                     return;
+                }
+
+                // --- Fetch Total Count First ---
+                const params: any = { only_count: true };
+                if (['wilayah'].includes(type)) params.type = 'wilayah';
+                if (idSemester) params.id_semester = idSemester;
+                if (syncSince) params.sync_since = syncSince;
+
+                const countRes = await axios.post(route('admin.sync.' + endpointUrl), params);
+                
+                if (countRes.data.success) {
+                    const totalCount = countRes.data.data.total || 0;
+                    accumulatedStats[type].total_api = totalCount;
                     
-                    
-                    // Use generic route for standard syncs
-                    // But 'referensi' sub-types use the specific 'referensi' route
-                    const res = await axios.post(route('admin.sync.referensi'), { 
-                        sub_type: sub,
-                        sync_since: syncSince
-                    });
-                    
-                    const data = res.data;
-                    totalSynced += data.synced;
-                        
-                    // Update UI state for each step
                     syncStates[type].result = {
                         success: true,
-                        message: `Syncing ${sub.replace('_', ' ')}...`,
-                        synced: totalSynced,
-                        progress: subProgress
+                        message: 'Memulai sinkronisasi...',
+                        synced: 0,
+                        total_all: totalCount,
+                        progress: 0
                     };
                     
-                    // Update accumulator
-                    initAccumulator(type);
-                    accumulatedStats[type].total_synced = totalSynced;
-                    accumulatedStats[type].total_api = totalSynced; // Set total_api once finished or during steps
-                    accumulatedStats[type].progress = subProgress;
+                    if (totalCount === 0) {
+                        console.warn("Count returned 0, but proceeding to fetch check.");
+                    }
                 }
-                
-                syncStates[type].loading = false;
-                syncStates[type].result = {
-                    success: true,
-                    message: 'Sync Referensi Umum selesai',
-                    synced: totalSynced,
-                    progress: 100
-                };
-                return;
+            } catch (error: any) {
+                console.error("Failed to get count:", error);
             }
+        }
+
+        // --- Step 2: Sync Data Batches ---
+        try {
+            const routeConfig = routeMapping[type];
+            if (!routeConfig) throw new Error(`Unknown sync type: ${type}`);
+            const endpointUrl = routeConfig.url;
+            const limit = routeConfig.limit || 100;
 
             // Prepare params
-            const params: any = { offset, limit: 100 }; 
+            const params: any = { offset, limit: limit }; 
             
-            if (['biodata', 'ajardosen'].includes(type)) params.limit = 100;
-
+            // Adjust limits for heavy/light endpoints
             if (['wilayah'].includes(type)) {
                 params.type = 'wilayah';
-                params.limit = 100;
             }
             
-            // Add semester filter if provided
-            if (idSemester) {
-                params.id_semester = idSemester;
-            }
+            if (idSemester) params.id_semester = idSemester;
+            if (syncSince) params.sync_since = syncSince;
 
-            // Add sync_since filter if provided
-            if (syncSince) {
-                params.sync_since = syncSince;
-            }
-
-            const response = await axios.post(route('admin.sync.' + endpoint), params);
+            const response = await axios.post(route('admin.sync.' + endpointUrl), params);
 
             if (response.data.success) {
                 const result = response.data.data;
-                // Add success/message from wrapper to result object if needed, 
-                // but usually we trust the data block. 
-                // Let's ensure result has success/message for NeoFeeder.vue compat
                 const fullResult: SyncResult = {
                     success: true,
                     message: response.data.message || 'Sync successful',
@@ -209,13 +224,31 @@ export function useNeoFeederSync() {
                 syncStates[type].result = fullResult;
 
                 // Update Accumulator
-                initAccumulator(type);
                 const acc = accumulatedStats[type];
                 
                 acc.total_synced += (result.synced || 0) + (result.updated || 0) + (result.inserted || 0);
                 acc.total_failed += (result.failed || 0);
-                acc.total_api = result.total_all || result.total_from_api || 0;
-                acc.progress = result.progress || 0;
+                
+                // If we got a total from API in this batch response, check if it's different/better than our initial count
+                // But usually we prefer our initial "GetCount" if available.
+                // However, sometimes GetCount fails and we rely on partials.
+                // Keep the max seen total
+                if (result.total_all > (acc.total_api ?? 0)) {
+                    acc.total_api = result.total_all;
+                }
+                
+                // Recalculate progress based on accumulated synced / total_api
+                if (acc.total_api && acc.total_api > 0) {
+                     acc.progress = Math.min(100, Math.round(((acc.total_synced + offset) / acc.total_api) * 100));
+                     // Note: offset logic above is imperfect if standard batch size varies, 
+                     // but commonly next_offset is used.
+                     // Better: use result.progress if available, OR calc locally
+                     // The backend returns progress based on offset / total. 
+                     // Let's rely on backend progress if plausible, else valid local calc.
+                     if (result.progress !== undefined) {
+                         acc.progress = result.progress;
+                     }
+                }
 
                 if (result.errors && result.errors.length > 0) {
                      acc.errors.push(...result.errors);
@@ -226,8 +259,16 @@ export function useNeoFeederSync() {
                     await syncData(type, result.next_offset, idSemester, syncSince);
                 } else {
                     syncStates[type].loading = false;
-                    if (isStopping.value) {
+                    // Final update on completion
+                    if (!isStopping.value) {
                         syncStates[type].result = {
+                            ...syncStates[type].result!,
+                            progress: 100,
+                            message: 'Sinkronisasi Selesai',
+                        };
+                        accumulatedStats[type].progress = 100;
+                    } else {
+                         syncStates[type].result = {
                             success: false,
                             message: 'Sinkronisasi diberhentikan oleh pengguna',
                             ...result
@@ -239,7 +280,6 @@ export function useNeoFeederSync() {
             }
         } catch (error: any) {
             syncStates[type].loading = false;
-            // Set result to error state so UI shows it
             syncStates[type].result = {
                 success: false,
                 message: error.response?.data?.message || error.message || 'Sync Failed',

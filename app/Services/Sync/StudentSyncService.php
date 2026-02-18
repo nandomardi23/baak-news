@@ -157,7 +157,7 @@ class StudentSyncService extends BaseSyncService
                     $mahasiswa->email = $bio['email'];
                     $mahasiswa->nik_ayah = $bio['nik_ayah'];
                     $mahasiswa->nama_ayah = $bio['nama_ayah'];
-                    $mahasiswa->tanggal_lahir_ayah = $bio['tanggal_lahir_ayah'];
+                    $mahasiswa->tanggal_lahir_ayah = $this->parseDate($bio['tanggal_lahir_ayah']);
                     $mahasiswa->id_pendidikan_ayah = $bio['id_pendidikan_ayah'];
                     $mahasiswa->nama_pendidikan_ayah = $bio['nama_pendidikan_ayah'];
                     $mahasiswa->id_pekerjaan_ayah = $bio['id_pekerjaan_ayah'];
@@ -166,7 +166,7 @@ class StudentSyncService extends BaseSyncService
                     $mahasiswa->nama_penghasilan_ayah = $bio['nama_penghasilan_ayah'];
                     $mahasiswa->nik_ibu = $bio['nik_ibu'];
                     $mahasiswa->nama_ibu = $bio['nama_ibu_kandung'];
-                    $mahasiswa->tanggal_lahir_ibu = $bio['tanggal_lahir_ibu'];
+                    $mahasiswa->tanggal_lahir_ibu = $this->parseDate($bio['tanggal_lahir_ibu']);
                     $mahasiswa->id_pendidikan_ibu = $bio['id_pendidikan_ibu'];
                     $mahasiswa->nama_pendidikan_ibu = $bio['nama_pendidikan_ibu'];
                     $mahasiswa->id_pekerjaan_ibu = $bio['id_pekerjaan_ibu'];
@@ -174,7 +174,7 @@ class StudentSyncService extends BaseSyncService
                     $mahasiswa->id_penghasilan_ibu = $bio['id_penghasilan_ibu'];
                     $mahasiswa->nama_penghasilan_ibu = $bio['nama_penghasilan_ibu'];
                     $mahasiswa->nama_wali = $bio['nama_wali'];
-                    $mahasiswa->tanggal_lahir_wali = $bio['tanggal_lahir_wali'];
+                    $mahasiswa->tanggal_lahir_wali = $this->parseDate($bio['tanggal_lahir_wali']);
                     $mahasiswa->id_pendidikan_wali = $bio['id_pendidikan_wali'];
                     $mahasiswa->nama_pendidikan_wali = $bio['nama_pendidikan_wali'];
                     $mahasiswa->id_pekerjaan_wali = $bio['id_pekerjaan_wali'];
@@ -351,5 +351,44 @@ class StudentSyncService extends BaseSyncService
             'has_more' => $hasMore,
             'progress' => $progress,
         ];
+    }
+    public function getCountMahasiswa(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountMahasiswa();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountBiodata(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountBiodataMahasiswa();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountMahasiswaLulusDO(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountMahasiswaLulusDO();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountRiwayatPendidikan(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountRiwayatPendidikanMahasiswa();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
     }
 }

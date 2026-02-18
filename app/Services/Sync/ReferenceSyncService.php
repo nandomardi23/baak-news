@@ -515,4 +515,34 @@ class ReferenceSyncService extends BaseSyncService
             ];
         }
     }
+    public function getCountProdi(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountProdi();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountSemester(): int
+    {
+        try {
+            // Note: GetCountSemester might hang in some versions, but we use requestQuick
+            $response = $this->neoFeeder->getCountSemester();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountWilayah(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountWilayah();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
 }

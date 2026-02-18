@@ -35,8 +35,8 @@ class NeoFeederService
 
         // Quick client for GetCount* endpoints that may hang
         $this->quickClient = new Client([
-            'timeout' => 10,
-            'connect_timeout' => 5,
+            'timeout' => 30, // Increased to 30s
+            'connect_timeout' => 10,
             'verify' => false,
         ]);
     }

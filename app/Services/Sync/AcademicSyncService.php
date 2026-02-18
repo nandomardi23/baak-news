@@ -196,57 +196,51 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            // Group by student to create parents first
-            $studentsData = [];
-            foreach ($data as $item) {
-                $key = $item['id_registrasi_mahasiswa'] . '_' . $item['id_periode'];
-                if (!isset($studentsData[$key])) {
-                    $studentsData[$key] = [
-                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                        'id_semester' => $item['id_periode'],
-                        'nim' => $item['nim'],
-                        'id_prodi' => $item['id_prodi'],
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
+            if (!empty($data)) {
+                foreach ($data as $item) {
+                    try {
+                        // 1. Handle Parent KRS (Header)
+                        // Use updateOrCreate to ensure ID exists and is up to date
+                        $krs = Krs::updateOrCreate(
+                            [
+                                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                                'id_semester' => $item['id_periode']
+                            ],
+                            [
+                                'nim' => $item['nim'],
+                                'id_prodi' => $item['id_prodi'],
+                                'updated_at' => now(),
+                            ]
+                        );
+
+                        // 2. Handle Detail KRS
+                        // Resolve local IDs safely
+                        $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
+                        
+                        KrsDetail::updateOrCreate(
+                            [
+                                'krs_id' => $krs->id,
+                                'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                                'id_matkul' => $item['id_matkul']
+                            ],
+                            [
+                                'mata_kuliah_id' => $matkulId,
+                                'kode_mata_kuliah' => $item['kode_mata_kuliah'],
+                                'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                                'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                                'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
+                                'angkatan' => $item['angkatan'] ?? null,
+                                'updated_at' => now(),
+                            ]
+                        );
+                        
+                        $synced++;
+                    } catch (\Exception $e) {
+                         // Log error for this specific record but allow others to continue
+                        $errors[] = "KRS {$item['nim']} - {$item['kode_mata_kuliah']}: " . $e->getMessage();
+                    }
                 }
             }
-
-            // Upsert Parents
-            Krs::upsert(array_values($studentsData), ['id_registrasi_mahasiswa', 'id_semester'], ['nim', 'id_prodi', 'updated_at']);
-
-            // Get Parent IDs for Detail mapping
-            $parentMap = Krs::whereIn('id_registrasi_mahasiswa', array_column($studentsData, 'id_registrasi_mahasiswa'))
-                ->where('id_semester', $idSemester)
-                ->get()
-                ->pluck('id', 'id_registrasi_mahasiswa');
-
-            $details = [];
-            foreach ($data as $item) {
-                $parentId = $parentMap[$item['id_registrasi_mahasiswa']] ?? null;
-                if ($parentId) {
-                    // Resolve local mata_kuliah_id
-                    $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
-
-                    $details[] = [
-                        'krs_id' => $parentId,
-                        'id_kelas_kuliah' => $item['id_kelas_kuliah'],
-                        'id_matkul' => $item['id_matkul'],
-                        'mata_kuliah_id' => $matkulId,
-                        'kode_mata_kuliah' => $item['kode_mata_kuliah'],
-                        'nama_mata_kuliah' => $item['nama_mata_kuliah'],
-                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                        'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
-                        'angkatan' => $item['angkatan'] ?? null,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
-
-            // Bulk Upsert Details
-            $this->batchUpsert(KrsDetail::class, $details, ['krs_id', 'id_kelas_kuliah', 'id_matkul'], ['mata_kuliah_id', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks_mata_kuliah', 'nama_kelas_kuliah', 'angkatan', 'updated_at']);
-            $synced = count($details);
         }
 
         $nextOffset = $offset + $batchCount;
@@ -300,34 +294,36 @@ class AcademicSyncService extends BaseSyncService
         if (!empty($data)) {
             $records = [];
             foreach ($data as $item) {
+                try {
                 // Resolve local IDs
                 $mahasiswaId = \App\Models\Mahasiswa::where('id_registrasi_mahasiswa', $item['id_registrasi_mahasiswa'])->value('id');
                 $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
                 $tahunAkademikId = \App\Models\TahunAkademik::where('id_semester', $item['id_semester'])->value('id');
 
-                $records[] = [
-                    'mahasiswa_id' => $mahasiswaId,
-                    'mata_kuliah_id' => $matkulId,
-                    'tahun_akademik_id' => $tahunAkademikId,
-                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                    'id_kelas_kuliah' => $item['id_kelas_kuliah'],
-                    'id_matkul' => $item['id_matkul'],
-                    'nilai_angka' => $item['nilai_angka'] ?? 0,
-                    'nilai_huruf' => $item['nilai_huruf'] ?? '',
-                    'nilai_indeks' => $item['nilai_indeks'] ?? 0,
-                    'id_semester' => $item['id_semester'],
-                    'id_periode' => $item['id_semester'],
-                    'nama_mata_kuliah' => $item['nama_mata_kuliah'],
-                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
+                Nilai::updateOrCreate(
+                    [
+                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                        'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                        'id_matkul' => $item['id_matkul']
+                    ],
+                    [
+                        'mahasiswa_id' => $mahasiswaId,
+                        'mata_kuliah_id' => $matkulId,
+                        'tahun_akademik_id' => $tahunAkademikId,
+                        'nilai_angka' => $item['nilai_angka'] ?? 0,
+                        'nilai_huruf' => $item['nilai_huruf'] ?? '',
+                        'nilai_indeks' => $item['nilai_indeks'] ?? 0,
+                        'id_periode' => $item['id_semester'], // store semester if needed
+                        'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                    ]
+                );
+                $synced++;
+                } catch (\Exception $e) {
+                    $errors[] = "Nilai {$item['nim']}-{$item['kode_mata_kuliah']}: " . $e->getMessage();
+                }
             }
-
-            $this->batchUpsert(Nilai::class, $records, ['id_registrasi_mahasiswa', 'id_kelas_kuliah', 'id_matkul'], [
-                'mahasiswa_id', 'mata_kuliah_id', 'tahun_akademik_id', 'nilai_angka', 'nilai_huruf', 'nilai_indeks', 'id_semester', 'id_periode', 'nama_mata_kuliah', 'sks_mata_kuliah', 'updated_at'
-            ]);
-            $synced = count($records);
+            // Batch upsert removed in favor of loop for error isolation
         }
 
         $nextOffset = $offset + $batchCount;
@@ -961,6 +957,118 @@ class AcademicSyncService extends BaseSyncService
             } catch (\Exception $e) {
                 Log::warning("UpdateMahasiswaAkademik: Error for {$idReg}: " . $e->getMessage());
             }
+        }
+    }
+    public function getCountKonversiKampusMerdeka(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        $filter = $this->getFilter($baseFilter, $syncSince);
+        try {
+            $response = $this->neoFeeder->getCountKonversiKampusMerdeka($filter);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountKelasKuliah(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountKelasKuliah();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountDosenPengajar(): int
+    {
+        try {
+            // Note: syncing uses loop over local classes, but global count is useful for total progress
+            $response = $this->neoFeeder->getCountDosenPengajar();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountKrs(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $filter = $idSemester ? "id_periode = '{$idSemester}'" : "";
+        $filter = $this->getFilter($filter, $syncSince);
+        try {
+            $response = $this->neoFeeder->requestQuick('GetCountKRSMahasiswa', ['filter' => $filter]);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountNilai(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $filter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        $filter = $this->getFilter($filter, $syncSince);
+        try {
+            $response = $this->neoFeeder->requestQuick('GetCountNilaiPerkuliahanKelas', ['filter' => $filter]);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountAktivitas(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        $filter = $this->getFilter($baseFilter, $syncSince);
+        try {
+            $response = $this->neoFeeder->requestQuick('GetCountAktivitasKuliahMahasiswa', ['filter' => $filter]);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountBimbingan(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountBimbingMahasiswa();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountUji(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountUjiMahasiswa();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountAktivitasMahasiswa(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        $filter = $this->getFilter($baseFilter, $syncSince);
+        try {
+            $response = $this->neoFeeder->getCountAktivitasMahasiswa($filter);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountAnggotaAktivitas(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
+        $filter = $this->getFilter($baseFilter, $syncSince);
+        try {
+            $response = $this->neoFeeder->getCountAnggotaAktivitasMahasiswa($filter);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
         }
     }
 }

@@ -140,4 +140,25 @@ class LecturerSyncService extends BaseSyncService
             'progress' => $progress,
         ];
     }
+    public function getCountDosen(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountDosen();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountAjarDosen(?string $idSemester = null, ?string $syncSince = null): int
+    {
+        $baseFilter = $idSemester ? "id_periode = '{$idSemester}'" : "";
+        $filter = $this->getFilter($baseFilter, $syncSince);
+        try {
+            $response = $this->neoFeeder->requestQuick('GetCountAktivitasMengajarDosen', ['filter' => $filter]);
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
 }

@@ -85,4 +85,27 @@ abstract class BaseSyncService
             return $baseFilter;
         }
     }
+
+
+    /**
+     * Helper to parse dates from NeoFeeder (often d-m-Y) to MySQL (Y-m-d)
+     */
+    protected function parseDate($dateString): ?string
+    {
+        if (empty($dateString)) {
+            return null;
+        }
+
+        try {
+            // Try standard NeoFeeder format first
+            return \Carbon\Carbon::createFromFormat('d-m-Y', $dateString)->format('Y-m-d');
+        } catch (\Exception $e) {
+            try {
+                // Try fallback format
+                return \Carbon\Carbon::parse($dateString)->format('Y-m-d');
+            } catch (\Exception $e2) {
+                return null;
+            }
+        }
+    }
 }

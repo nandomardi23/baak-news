@@ -745,7 +745,7 @@ const connectionStatus = computed(() => {
                                                         {{ syncStates[st.type]?.result?.success ? 'Selesai' : 'Gagal' }}
                                                     </div>
                                                     <span class="text-[9px] text-muted-foreground font-mono">
-                                                        {{ accumulatedStats[st.type]?.total_synced || 0 }}/{{ accumulatedStats[st.type]?.total_api || '?' }}
+                                                        {{ accumulatedStats[st.type]?.total_synced || 0 }}/{{ accumulatedStats[st.type]?.total_api ?? '?' }}
                                                     </span>
                                                 </div>
                                             </div>

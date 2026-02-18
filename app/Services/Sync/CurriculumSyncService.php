@@ -158,4 +158,23 @@ class CurriculumSyncService extends BaseSyncService
             'progress' => $progress,
         ];
     }
+    public function getCountKurikulum(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountKurikulum();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
+
+    public function getCountMataKuliah(): int
+    {
+        try {
+            $response = $this->neoFeeder->getCountMatkulKurikulum();
+            return $this->extractCount($response['data'] ?? []);
+        } catch (\Exception $e) {
+            return 0;
+        }
+    }
 }
