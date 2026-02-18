@@ -21,7 +21,7 @@ class ReferenceSyncService extends BaseSyncService
      * 
      * @return array
      */
-    public function syncProdi(int $offset = 0, int $limit = 100): array
+    public function syncProdi(int $offset = 0, int $limit = 100, ?string $syncSince = null): array
     {
         // Get total count from API
         // Get total count from API
@@ -36,7 +36,8 @@ class ReferenceSyncService extends BaseSyncService
             \Illuminate\Support\Facades\Log::warning("SyncProdi: GetCount failed, relying on pagination end. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getProdi($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getProdi($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -85,7 +86,7 @@ class ReferenceSyncService extends BaseSyncService
      * 
      * @return array
      */
-    public function syncSemester(int $offset = 0, int $limit = 100): array
+    public function syncSemester(int $offset = 0, int $limit = 100, ?string $syncSince = null): array
     {
         // 1. Get total count
         $totalAll = 0;
@@ -99,7 +100,8 @@ class ReferenceSyncService extends BaseSyncService
         }
 
         // 2. Fetch data
-        $response = $this->neoFeeder->getSemester($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getSemester($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -146,7 +148,7 @@ class ReferenceSyncService extends BaseSyncService
         ];
     }
 
-    public function syncAgama(): array
+    public function syncAgama(?string $syncSince = null): array
     {
         try {
             $response = $this->neoFeeder->getAgama();
@@ -188,10 +190,11 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncWilayah(int $offset = 0, int $limit = 1000): array
+    public function syncWilayah(int $offset = 0, int $limit = 1000, ?string $syncSince = null): array
     {
         try {
-            $response = $this->neoFeeder->getWilayah($limit, $offset);
+            $filter = $this->getFilter('', $syncSince);
+            $response = $this->neoFeeder->getWilayah($limit, $offset, $filter);
             $batchCount = 0;
 
             if ($response && isset($response['data'])) {
@@ -252,7 +255,7 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncJenisTinggal(): array
+    public function syncJenisTinggal(?string $syncSince = null): array
     {
         try {
             $response = $this->neoFeeder->getJenisTinggal();
@@ -294,7 +297,7 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncAlatTransportasi(): array
+    public function syncAlatTransportasi(?string $syncSince = null): array
     {
         try {
             $response = $this->neoFeeder->getAlatTransportasi();
@@ -336,7 +339,7 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncPekerjaan(): array
+    public function syncPekerjaan(?string $syncSince = null): array
     {
         try {
             $response = $this->neoFeeder->getPekerjaan();
@@ -378,7 +381,7 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncPenghasilan(): array
+    public function syncPenghasilan(?string $syncSince = null): array
     {
         try {
             $response = $this->neoFeeder->getPenghasilan();
@@ -420,7 +423,7 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncKebutuhanKhusus(): array
+    public function syncKebutuhanKhusus(?string $syncSince = null): array
     {
         try {
             // We request without a large limit because it often causes timeouts on some Neo Feeder versions.
@@ -471,7 +474,7 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    public function syncPembiayaan(): array
+    public function syncPembiayaan(?string $syncSince = null): array
     {
         try {
             $response = $this->neoFeeder->getPembiayaan();

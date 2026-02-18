@@ -104,6 +104,14 @@ class NeoFeederService
         }
     }
 
+    /**
+     * Get Dictionary (Schema)
+     */
+    public function getDictionary(): ?array
+    {
+        return $this->requestQuick('GetDictionary', []);
+    }
+
     public function request(string $action, array $params = []): ?array
     {
         $token = $this->getToken();
@@ -198,9 +206,10 @@ class NeoFeederService
     /**
      * Get list of mahasiswa with pagination
      */
-    public function getMahasiswa(int $limit = 2000, int $offset = 0): ?array
+    public function getMahasiswa(int $limit = 2000, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListMahasiswa', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -219,19 +228,38 @@ class NeoFeederService
     /**
      * Get biodata mahasiswa
      */
-    public function getBiodataMahasiswa(string $idMahasiswa): ?array
+    /**
+     * Get biodata mahasiswa (Bulk or Single)
+     */
+    public function getBiodataMahasiswa(?string $idMahasiswa = null, int $limit = 500, int $offset = 0, string $extraFilter = ''): ?array
     {
-        return $this->request('GetBiodataMahasiswa', [
-            'filter' => "id_mahasiswa='{$idMahasiswa}'",
-        ]);
+        $params = [
+            'limit' => $limit,
+            'offset' => $offset,
+        ];
+
+        $filters = [];
+        if ($idMahasiswa) {
+            $filters[] = "id_mahasiswa='{$idMahasiswa}'";
+        }
+        if ($extraFilter) {
+            $filters[] = $extraFilter;
+        }
+
+        if (!empty($filters)) {
+            $params['filter'] = implode(' AND ', $filters);
+        }
+
+        return $this->request('GetBiodataMahasiswa', $params);
     }
 
     /**
      * Get Program Studi list with pagination
      */
-    public function getProdi(int $limit = 100, int $offset = 0): ?array
+    public function getProdi(int $limit = 100, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetProdi', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -240,9 +268,10 @@ class NeoFeederService
     /**
      * Get Semester list with pagination
      */
-    public function getSemester(int $limit = 100, int $offset = 0): ?array
+    public function getSemester(int $limit = 100, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetSemester', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -251,9 +280,10 @@ class NeoFeederService
     /**
      * Get Mata Kuliah list with pagination
      */
-    public function getMataKuliah(int $limit = 2000, int $offset = 0): ?array
+    public function getMataKuliah(int $limit = 2000, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListMataKuliah', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -325,17 +355,22 @@ class NeoFeederService
     /**
      * Get KRS By Semester (Bulk)
      */
-    public function getKrsBySemester(string $idSemester, int $limit = 1000, int $offset = 0): ?array
+    public function getKrsBySemester(string $idSemester, int $limit = 1000, int $offset = 0, string $extraFilter = ''): ?array
     {
-        return $this->getKrsMahasiswa("id_periode = '{$idSemester}'", $limit, $offset);
+        $filter = "id_periode = '{$idSemester}'";
+        if ($extraFilter) {
+            $filter .= " AND $extraFilter";
+        }
+        return $this->getKrsMahasiswa($filter, $limit, $offset);
     }
 
     /**
      * Get list of dosen with pagination
      */
-    public function getDosen(int $limit = 500, int $offset = 0): ?array
+    public function getDosen(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListDosen', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -349,10 +384,13 @@ class NeoFeederService
      * @param int $limit Max records to fetch
      * @param int $offset Offset for pagination
      */
-    public function getNilaiBySemester(string $idSemester, int $limit = 5000, int $offset = 0): ?array
+    public function getNilaiBySemester(string $idSemester, int $limit = 5000, int $offset = 0, string $extraFilter = ''): ?array
     {
+        $baseFilter = "id_semester = '{$idSemester}'";
+        $filter = $extraFilter ? "$baseFilter AND $extraFilter" : $baseFilter;
+
         return $this->request('GetDetailNilaiPerkuliahanKelas', [
-            'filter' => "id_semester = '{$idSemester}'",
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -388,10 +426,13 @@ class NeoFeederService
      * Get Kelas Kuliah (Classes) by Semester
      * Used to sync all classes for a specific semester
      */
-    public function getKelasKuliah(string $idSemester, int $limit = 2000, int $offset = 0): ?array
+    public function getKelasKuliah(string $idSemester, int $limit = 2000, int $offset = 0, string $filter = ''): ?array
     {
+        $baseFilter = "id_semester = '{$idSemester}'";
+        $combinedFilter = $filter ? "$baseFilter AND $filter" : $baseFilter;
+
         return $this->request('GetListKelasKuliah', [
-            'filter' => "id_semester = '{$idSemester}'",
+            'filter' => $combinedFilter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -401,9 +442,10 @@ class NeoFeederService
      * Get All Kelas Kuliah (no filter)
      * Used for full sync
      */
-    public function getAllKelasKuliah(int $limit = 2000, int $offset = 0): ?array
+    public function getAllKelasKuliah(int $limit = 2000, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListKelasKuliah', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -572,9 +614,10 @@ class NeoFeederService
      * Get Wilayah (Regions) with pagination
      * There are thousands of regions, so pagination is needed.
      */
-    public function getWilayah(int $limit = 1000, int $offset = 0): ?array
+    public function getWilayah(int $limit = 1000, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetWilayah', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -590,9 +633,10 @@ class NeoFeederService
     /**
      * Get List Kurikulum
      */
-    public function getKurikulum(int $limit = 100, int $offset = 0): ?array
+    public function getKurikulum(int $limit = 100, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListKurikulum', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -609,9 +653,10 @@ class NeoFeederService
     /**
      * Get Mata Kuliah Kurikulum (Courses in a Curriculum)
      */
-    public function getMatkulKurikulum(int $limit = 2000, int $offset = 0): ?array
+    public function getMatkulKurikulum(int $limit = 2000, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetMatkulKurikulum', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -627,9 +672,10 @@ class NeoFeederService
     /**
      * Get Skala Nilai Prodi
      */
-    public function getSkalaNilaiProdi(int $limit = 500, int $offset = 0): ?array
+    public function getSkalaNilaiProdi(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListSkalaNilaiProdi', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -733,9 +779,10 @@ class NeoFeederService
     /**
      * Get List Bimbingan Mahasiswa
      */
-    public function getBimbingMahasiswa(int $limit = 500, int $offset = 0): ?array
+    public function getBimbingMahasiswa(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListBimbingMahasiswa', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -752,9 +799,10 @@ class NeoFeederService
     /**
      * Get List Uji Mahasiswa
      */
-    public function getUjiMahasiswa(int $limit = 500, int $offset = 0): ?array
+    public function getUjiMahasiswa(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListUjiMahasiswa', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -771,9 +819,10 @@ class NeoFeederService
     /**
      * Get List Mahasiswa Lulus DO
      */
-    public function getMahasiswaLulusDO(int $limit = 500, int $offset = 0): ?array
+    public function getMahasiswaLulusDO(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListMahasiswaLulusDO', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);
@@ -790,9 +839,10 @@ class NeoFeederService
     /**
      * Get List Riwayat Pendidikan Mahasiswa
      */
-    public function getRiwayatPendidikanMahasiswa(int $limit = 500, int $offset = 0): ?array
+    public function getRiwayatPendidikanMahasiswa(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
         return $this->request('GetListRiwayatPendidikanMahasiswa', [
+            'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
         ]);

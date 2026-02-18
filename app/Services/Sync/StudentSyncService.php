@@ -8,7 +8,7 @@ use App\Models\RiwayatPendidikanMahasiswa;
 
 class StudentSyncService extends BaseSyncService
 {
-    public function syncMahasiswa(int $offset = 0, int $limit = 500): array
+    public function syncMahasiswa(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
     {
         $totalAll = 0;
         try {
@@ -20,7 +20,8 @@ class StudentSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getMahasiswa($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getMahasiswa($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -51,10 +52,19 @@ class StudentSyncService extends BaseSyncService
                     }
                 }
 
+                $nim = $item['nim'];
+                if (empty($nim)) {
+                    // Fallback for missing NIM to prevent crash
+                    // Use id_mahasiswa as temporary NIM or skip
+                    // Log warning
+                    \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Missing NIM for student {$item['nama_mahasiswa']} (ID: {$item['id_mahasiswa']}). Using ID as NIM.");
+                    $nim = $item['id_mahasiswa']; 
+                }
+
                 $records[] = [
                     'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
                     'id_mahasiswa' => $item['id_mahasiswa'],
-                    'nim' => $item['nim'],
+                    'nim' => $nim,
                     'nama' => $item['nama_mahasiswa'], 
                     'jenis_kelamin' => $item['jenis_kelamin'],
                     'tanggal_lahir' => $tanggalLahir,
@@ -88,84 +98,121 @@ class StudentSyncService extends BaseSyncService
         ];
     }
 
-    public function syncBiodata(Mahasiswa $mahasiswa): ?string
+    public function syncBiodata(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
     {
-        // Keep single biodata sync as NeoFeeder only provides it per student
+        $totalAll = 0;
         try {
-            $response = $this->neoFeeder->getBiodataMahasiswa($mahasiswa->id_mahasiswa);
-            
-            if ($response && isset($response['data']) && count($response['data']) > 0) {
-                $bio = $response['data'][0];
-                
-                // Update basic biodata
-                $mahasiswa->tempat_lahir = $bio['tempat_lahir'];
-                $mahasiswa->id_agama = $bio['id_agama'];
-                $mahasiswa->nama_agama = $bio['nama_agama'];
-                $mahasiswa->nik = $bio['nik'];
-                $mahasiswa->nisn = $bio['nisn'];
-                $mahasiswa->npwp = $bio['npwp'];
-                $mahasiswa->kewarganegaraan = $bio['kewarganegaraan'];
-                $mahasiswa->jalan = $bio['jalan'];
-                $mahasiswa->dusun = $bio['dusun'];
-                $mahasiswa->rt = $bio['rt'];
-                $mahasiswa->rw = $bio['rw'];
-                $mahasiswa->kelurahan = $bio['kelurahan'];
-                $mahasiswa->kode_pos = $bio['kode_pos'];
-                $mahasiswa->id_wilayah = $bio['id_wilayah'];
-                $mahasiswa->nama_wilayah = $bio['nama_wilayah'];
-                $mahasiswa->id_jenis_tinggal = $bio['id_jenis_tinggal'];
-                $mahasiswa->nama_jenis_tinggal = $bio['nama_jenis_tinggal'];
-                $mahasiswa->id_alat_transportasi = $bio['id_alat_transportasi'];
-                $mahasiswa->nama_alat_transportasi = $bio['nama_alat_transportasi'];
-                $mahasiswa->telepon = $bio['telepon'];
-                $mahasiswa->handphone = $bio['handphone'];
-                $mahasiswa->email = $bio['email'];
-                $mahasiswa->nik_ayah = $bio['nik_ayah'];
-                $mahasiswa->nama_ayah = $bio['nama_ayah'];
-                $mahasiswa->tanggal_lahir_ayah = $bio['tanggal_lahir_ayah'];
-                $mahasiswa->id_pendidikan_ayah = $bio['id_pendidikan_ayah'];
-                $mahasiswa->nama_pendidikan_ayah = $bio['nama_pendidikan_ayah'];
-                $mahasiswa->id_pekerjaan_ayah = $bio['id_pekerjaan_ayah'];
-                $mahasiswa->nama_pekerjaan_ayah = $bio['nama_pekerjaan_ayah'];
-                $mahasiswa->id_penghasilan_ayah = $bio['id_penghasilan_ayah'];
-                $mahasiswa->nama_penghasilan_ayah = $bio['nama_penghasilan_ayah'];
-                $mahasiswa->nik_ibu = $bio['nik_ibu'];
-                $mahasiswa->nama_ibu = $bio['nama_ibu_kandung'];
-                $mahasiswa->tanggal_lahir_ibu = $bio['tanggal_lahir_ibu'];
-                $mahasiswa->id_pendidikan_ibu = $bio['id_pendidikan_ibu'];
-                $mahasiswa->nama_pendidikan_ibu = $bio['nama_pendidikan_ibu'];
-                $mahasiswa->id_pekerjaan_ibu = $bio['id_pekerjaan_ibu'];
-                $mahasiswa->nama_pekerjaan_ibu = $bio['nama_pekerjaan_ibu'];
-                $mahasiswa->id_penghasilan_ibu = $bio['id_penghasilan_ibu'];
-                $mahasiswa->nama_penghasilan_ibu = $bio['nama_penghasilan_ibu'];
-                $mahasiswa->nama_wali = $bio['nama_wali'];
-                $mahasiswa->tanggal_lahir_wali = $bio['tanggal_lahir_wali'];
-                $mahasiswa->id_pendidikan_wali = $bio['id_pendidikan_wali'];
-                $mahasiswa->nama_pendidikan_wali = $bio['nama_pendidikan_wali'];
-                $mahasiswa->id_pekerjaan_wali = $bio['id_pekerjaan_wali'];
-                $mahasiswa->nama_pekerjaan_wali = $bio['nama_pekerjaan_wali'];
-                $mahasiswa->id_penghasilan_wali = $bio['id_penghasilan_wali'];
-                $mahasiswa->nama_penghasilan_wali = $bio['nama_penghasilan_wali'];
-                $mahasiswa->id_kebutuhan_khusus_mahasiswa = $bio['id_kebutuhan_khusus_mahasiswa'];
-                $mahasiswa->nama_kebutuhan_khusus_mahasiswa = $bio['nama_kebutuhan_khusus_mahasiswa'];
-                $mahasiswa->id_kebutuhan_khusus_ayah = $bio['id_kebutuhan_khusus_ayah'];
-                $mahasiswa->nama_kebutuhan_khusus_ayah = $bio['nama_kebutuhan_khusus_ayah'];
-                $mahasiswa->id_kebutuhan_khusus_ibu = $bio['id_kebutuhan_khusus_ibu'];
-                $mahasiswa->nama_kebutuhan_khusus_ibu = $bio['nama_kebutuhan_khusus_ibu'];
-                
-                if ($mahasiswa->isDirty()) {
-                    $mahasiswa->save();
-                    return 'updated';
-                }
-                return 'skipped';
+            $countResponse = $this->neoFeeder->getCountBiodataMahasiswa();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-            return null;
+             \Illuminate\Support\Facades\Log::warning("SyncBiodata: GetCount failed. Error: " . $e->getMessage());
         }
-        return null;
+
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getBiodataMahasiswa(null, $limit, $offset, $filter);
+        
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
+        $synced = 0;
+        $errors = [];
+
+        foreach ($data as $bio) {
+            try {
+                // Find student by ID Mahasiswa
+                $mahasiswa = Mahasiswa::where('id_mahasiswa', $bio['id_mahasiswa'])->first();
+                
+                if (!$mahasiswa) {
+                    // Start looking by NIM if ID not found (fallback)
+                     $mahasiswa = Mahasiswa::where('nim', $bio['nim'])->first();
+                }
+
+                if ($mahasiswa) {
+                    $mahasiswa->tempat_lahir = $bio['tempat_lahir'];
+                    $mahasiswa->id_agama = $bio['id_agama'];
+                    $mahasiswa->nama_agama = $bio['nama_agama'];
+                    $mahasiswa->nik = $bio['nik'];
+                    $mahasiswa->nisn = $bio['nisn'];
+                    $mahasiswa->npwp = $bio['npwp'];
+                    $mahasiswa->kewarganegaraan = $bio['kewarganegaraan'];
+                    $mahasiswa->jalan = $bio['jalan'];
+                    $mahasiswa->dusun = $bio['dusun'];
+                    $mahasiswa->rt = $bio['rt'];
+                    $mahasiswa->rw = $bio['rw'];
+                    $mahasiswa->kelurahan = $bio['kelurahan'];
+                    $mahasiswa->kode_pos = $bio['kode_pos'];
+                    $mahasiswa->id_wilayah = $bio['id_wilayah'];
+                    $mahasiswa->nama_wilayah = $bio['nama_wilayah'];
+                    $mahasiswa->id_jenis_tinggal = $bio['id_jenis_tinggal'];
+                    $mahasiswa->nama_jenis_tinggal = $bio['nama_jenis_tinggal'];
+                    $mahasiswa->id_alat_transportasi = $bio['id_alat_transportasi'];
+                    $mahasiswa->nama_alat_transportasi = $bio['nama_alat_transportasi'];
+                    $mahasiswa->telepon = $bio['telepon'];
+                    $mahasiswa->handphone = $bio['handphone'];
+                    $mahasiswa->email = $bio['email'];
+                    $mahasiswa->nik_ayah = $bio['nik_ayah'];
+                    $mahasiswa->nama_ayah = $bio['nama_ayah'];
+                    $mahasiswa->tanggal_lahir_ayah = $bio['tanggal_lahir_ayah'];
+                    $mahasiswa->id_pendidikan_ayah = $bio['id_pendidikan_ayah'];
+                    $mahasiswa->nama_pendidikan_ayah = $bio['nama_pendidikan_ayah'];
+                    $mahasiswa->id_pekerjaan_ayah = $bio['id_pekerjaan_ayah'];
+                    $mahasiswa->nama_pekerjaan_ayah = $bio['nama_pekerjaan_ayah'];
+                    $mahasiswa->id_penghasilan_ayah = $bio['id_penghasilan_ayah'];
+                    $mahasiswa->nama_penghasilan_ayah = $bio['nama_penghasilan_ayah'];
+                    $mahasiswa->nik_ibu = $bio['nik_ibu'];
+                    $mahasiswa->nama_ibu = $bio['nama_ibu_kandung'];
+                    $mahasiswa->tanggal_lahir_ibu = $bio['tanggal_lahir_ibu'];
+                    $mahasiswa->id_pendidikan_ibu = $bio['id_pendidikan_ibu'];
+                    $mahasiswa->nama_pendidikan_ibu = $bio['nama_pendidikan_ibu'];
+                    $mahasiswa->id_pekerjaan_ibu = $bio['id_pekerjaan_ibu'];
+                    $mahasiswa->nama_pekerjaan_ibu = $bio['nama_pekerjaan_ibu'];
+                    $mahasiswa->id_penghasilan_ibu = $bio['id_penghasilan_ibu'];
+                    $mahasiswa->nama_penghasilan_ibu = $bio['nama_penghasilan_ibu'];
+                    $mahasiswa->nama_wali = $bio['nama_wali'];
+                    $mahasiswa->tanggal_lahir_wali = $bio['tanggal_lahir_wali'];
+                    $mahasiswa->id_pendidikan_wali = $bio['id_pendidikan_wali'];
+                    $mahasiswa->nama_pendidikan_wali = $bio['nama_pendidikan_wali'];
+                    $mahasiswa->id_pekerjaan_wali = $bio['id_pekerjaan_wali'];
+                    $mahasiswa->nama_pekerjaan_wali = $bio['nama_pekerjaan_wali'];
+                    $mahasiswa->id_penghasilan_wali = $bio['id_penghasilan_wali'];
+                    $mahasiswa->nama_penghasilan_wali = $bio['nama_penghasilan_wali'];
+                    $mahasiswa->id_kebutuhan_khusus_mahasiswa = $bio['id_kebutuhan_khusus_mahasiswa'];
+                    $mahasiswa->nama_kebutuhan_khusus_mahasiswa = $bio['nama_kebutuhan_khusus_mahasiswa'];
+                    $mahasiswa->id_kebutuhan_khusus_ayah = $bio['id_kebutuhan_khusus_ayah'];
+                    $mahasiswa->nama_kebutuhan_khusus_ayah = $bio['nama_kebutuhan_khusus_ayah'];
+                    $mahasiswa->id_kebutuhan_khusus_ibu = $bio['id_kebutuhan_khusus_ibu'];
+                    $mahasiswa->nama_kebutuhan_khusus_ibu = $bio['nama_kebutuhan_khusus_ibu'];
+                    
+                    $mahasiswa->save();
+                    $synced++;
+                }
+            } catch (\Exception $e) {
+                $errors[] = "Biodata {$bio['nama_mahasiswa']}: " . $e->getMessage();
+            }
+        }
+
+        $nextOffset = $offset + $batchCount;
+        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        return [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
     }
 
-    public function syncMahasiswaLulusDO(int $offset = 0, int $limit = 500): array
+    public function syncMahasiswaLulusDO(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
     {
         $totalAll = 0;
         try {
@@ -177,7 +224,8 @@ class StudentSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncLulusDO: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getMahasiswaLulusDO($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getMahasiswaLulusDO($limit, $offset, $filter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -235,7 +283,7 @@ class StudentSyncService extends BaseSyncService
         ];
     }
 
-    public function syncRiwayatPendidikan(int $offset = 0, int $limit = 500): array
+    public function syncRiwayatPendidikan(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
     {
         $totalAll = 0;
         try {
@@ -247,7 +295,8 @@ class StudentSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncRiwayatPendidikan: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getRiwayatPendidikanMahasiswa($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getRiwayatPendidikanMahasiswa($limit, $offset, $filter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }

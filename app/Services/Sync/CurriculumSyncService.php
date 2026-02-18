@@ -8,7 +8,7 @@ use App\Models\MatkulKurikulum;
 
 class CurriculumSyncService extends BaseSyncService
 {
-    public function syncKurikulum(int $offset = 0, int $limit = 500): array
+    public function syncKurikulum(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
     {
         $totalAll = 0;
         try {
@@ -20,7 +20,8 @@ class CurriculumSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncKurikulum: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getKurikulum($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getKurikulum($limit, $offset, $filter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -68,7 +69,7 @@ class CurriculumSyncService extends BaseSyncService
         ];
     }
 
-    public function syncMataKuliah(int $offset = 0, int $limit = 2000): array
+    public function syncMataKuliah(int $offset = 0, int $limit = 2000, ?string $syncSince = null): array
     {
         $totalAll = 0;
         try {
@@ -80,7 +81,8 @@ class CurriculumSyncService extends BaseSyncService
              \Illuminate\Support\Facades\Log::warning("SyncMataKuliah: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getMatkulKurikulum($limit, $offset, $filter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }

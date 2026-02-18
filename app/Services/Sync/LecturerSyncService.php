@@ -7,7 +7,7 @@ use App\Models\AjarDosen;
 
 class LecturerSyncService extends BaseSyncService
 {
-    public function syncDosen(int $offset = 0, int $limit = 500): array
+    public function syncDosen(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
     {
         // Get total count from API
         $totalAll = 0;
@@ -20,7 +20,8 @@ class LecturerSyncService extends BaseSyncService
             \Illuminate\Support\Facades\Log::warning("SyncDosen: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $response = $this->neoFeeder->getDosen($limit, $offset);
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getDosen($limit, $offset, $filter);
         
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -70,9 +71,10 @@ class LecturerSyncService extends BaseSyncService
         ];
     }
 
-    public function syncAjarDosen(int $offset = 0, int $limit = 100, ?string $idSemester = null): array
+    public function syncAjarDosen(int $offset = 0, int $limit = 100, ?string $idSemester = null, ?string $syncSince = null): array
     {
-        $filter = $idSemester ? "id_periode = '{$idSemester}'" : "";
+        $baseFilter = $idSemester ? "id_periode = '{$idSemester}'" : "";
+        $filter = $this->getFilter($baseFilter, $syncSince);
 
         // Get total count from API
         $totalAll = 0;

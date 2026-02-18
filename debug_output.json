@@ -1,0 +1,33 @@
+{
+    "error_code": 0,
+    "error_desc": "",
+    "jumlah": 1,
+    "data": [
+        {
+            "nama_mahasiswa": "Willy Deska Arianto",
+            "jenis_kelamin": "L",
+            "tanggal_lahir": "25-12-1987",
+            "id_perguruan_tinggi": "50cef1a2-8623-4289-978f-dccb582489cf",
+            "nipd": "091512020",
+            "ipk": "3.50",
+            "total_sks": "79",
+            "id_sms": "30029f42-8063-43cd-922c-718357f75771",
+            "id_mahasiswa": "ef6a1cba-4142-4e8b-891b-d473878d8921",
+            "id_agama": 1,
+            "nama_agama": "Islam",
+            "id_prodi": "30029f42-8063-43cd-922c-718357f75771",
+            "nama_program_studi": "S1 Ilmu Keperawatan",
+            "id_status_mahasiswa": "1",
+            "nama_status_mahasiswa": "Lulus",
+            "nim": "091512020",
+            "id_periode": "20151",
+            "nama_periode_masuk": "2015\/2016 Ganjil",
+            "id_registrasi_mahasiswa": "b4499c18-1c29-463e-b486-5db80b1e48a0",
+            "id_periode_keluar": "20172",
+            "tanggal_keluar": "31-05-2018",
+            "last_update": "13-12-2024",
+            "tgl_create": "27-10-2015",
+            "status_sync": "sudah sync"
+        }
+    ]
+}

@@ -94,6 +94,24 @@ const testConnection = async () => {
     }
 };
 
+const syncSince = ref<string>('');
+
+// Error Modal
+const errorModalOpen = ref(false);
+const selectedErrors = ref<string[]>([]);
+const errorModalTitle = ref('');
+
+const openErrorModal = (title: string, errors: string[]) => {
+    errorModalTitle.value = title;
+    selectedErrors.value = errors;
+    errorModalOpen.value = true;
+};
+
+const closeErrorModal = () => {
+    errorModalOpen.value = false;
+    selectedErrors.value = [];
+};
+
 // Sync All - Sequential
 const syncAll = async () => {
     if (isSyncingAll.value) return;
@@ -114,7 +132,8 @@ const syncAll = async () => {
         const type = syncOrder[i];
         
         // This now waits for the full recursive sync
-        await syncData(type, 0, selectedSemester.value);
+        // Pass syncSince value
+        await syncData(type, 0, selectedSemester.value, syncSince.value);
         
         if (!isSyncingAll.value) break;
         
@@ -535,13 +554,23 @@ const connectionStatus = computed(() => {
                                 </div>
                             </div>
                             
-                            <div class="flex items-center gap-4">
+                            <div class="flex flex-wrap items-center gap-4 justify-end">
+                                <!-- Date Picker (Sync Since) -->
+                                <div class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                     <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Sejak Tanggal:</label>
+                                     <input 
+                                        type="date" 
+                                        v-model="syncSince"
+                                        class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
+                                     />
+                                </div>
+
                                 <!-- Semester Selector -->
-                                <div v-if="semesters && semesters.length > 0" class="flex items-center gap-2">
-                                    <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Filter Semester:</label>
+                                <div v-if="semesters && semesters.length > 0" class="flex flex-col sm:flex-row sm:items-center gap-2">
+                                    <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Semester:</label>
                                     <select 
                                         v-model="selectedSemester" 
-                                        class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[150px]"
+                                        class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[140px] shadow-sm"
                                     >
                                         <option value="">Semua Semester</option>
                                         <option v-for="sem in semesters" :key="sem.id_semester" :value="sem.id_semester">
@@ -651,12 +680,26 @@ const connectionStatus = computed(() => {
                                                 <span class="text-xl">{{ st.icon }}</span>
                                             </div>
                                             
-                                            <!-- Sync Button -->
-                                            <button
-                                                @click="syncData(st.type, 0, selectedSemester)"
-                                                :disabled="syncStates[st.type]?.loading || !settings.has_password || isSyncingAll"
-                                                class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80 hover:bg-indigo-500 hover:text-white transition-all disabled:opacity-30"
-                                            >
+                                            <!-- Actions -->
+                                            <div class="flex items-center gap-2">
+                                                 <!-- Error Button -->
+                                                <button
+                                                    v-if="accumulatedStats[st.type]?.errors?.length > 0"
+                                                    @click="openErrorModal(st.label, accumulatedStats[st.type].errors)"
+                                                    class="flex h-8 w-8 items-center justify-center rounded-lg text-red-500 hover:bg-red-50 transition-all tooltip"
+                                                    title="Lihat Error"
+                                                >
+                                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+
+                                                <!-- Sync Button -->
+                                                <button
+                                                    @click="syncData(st.type, 0, selectedSemester, syncSince)"
+                                                    :disabled="syncStates[st.type]?.loading || !settings.has_password || isSyncingAll"
+                                                    class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80 hover:bg-indigo-500 hover:text-white transition-all disabled:opacity-30"
+                                                >
                                                 <svg v-if="syncStates[st.type]?.loading" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                 </svg>
@@ -664,6 +707,7 @@ const connectionStatus = computed(() => {
                                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                                 </svg>
                                             </button>
+                                        </div>
                                         </div>
 
                                         <!-- Content -->
@@ -718,5 +762,31 @@ const connectionStatus = computed(() => {
                 </div>
             </div>
         </div>
+        <!-- Error Detail Modal -->
+        <div v-if="errorModalOpen" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+            <div class="bg-card w-full max-w-2xl rounded-2xl shadow-2xl border flex flex-col max-h-[80vh]">
+                <div class="p-4 border-b flex justify-between items-center">
+                    <h3 class="font-semibold text-lg">Error Log: {{ errorModalTitle }}</h3>
+                    <button @click="closeErrorModal" class="p-1 hover:bg-muted rounded-full">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+                <div class="p-4 overflow-y-auto flex-1">
+                    <ul class="space-y-2">
+                        <li v-for="(err, idx) in selectedErrors" :key="idx" class="text-sm text-red-600 font-mono p-2 bg-red-50 rounded border border-red-100 break-all">
+                            {{ err }}
+                        </li>
+                    </ul>
+                </div>
+                <div class="p-4 border-t bg-muted/20 flex justify-end">
+                     <button @click="closeErrorModal" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">
+                        Tutup
+                    </button>
+                </div>
+            </div>
+        </div>
+
     </AppLayout>
 </template>

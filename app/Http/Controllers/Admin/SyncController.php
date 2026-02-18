@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Log;
 
 class SyncController extends Controller
 {
+    // Controller for handling Neo Feeder synchronization
     /**
      * Standardized Success Response
      */
@@ -39,6 +40,27 @@ class SyncController extends Controller
     }
 
     /**
+     * Generic Sync Handler to reduce duplication
+     */
+    private function handleSync(Request $request, callable $callback, string $successMessage): JsonResponse
+    {
+        try {
+            $offset = $request->input('offset', 0);
+            $limit = $request->input('limit', 100); // Default limit 100 for stability
+            $idSemester = $request->input('id_semester');
+            $syncSince = $request->input('sync_since');
+
+            // Execute the callback with processed parameters
+            $result = $callback($offset, $limit, $idSemester, $syncSince);
+
+            return $this->successResponse($successMessage, $result);
+        } catch (\Exception $e) {
+            Log::error("Sync Error: " . $e->getMessage());
+            return $this->errorResponse($e->getMessage());
+        }
+    }
+
+    /**
      * Sync Referensi (Agama, Wilayah, etc)
      */
     public function syncReferensi(Request $request, ReferenceSyncService $syncService): JsonResponse
@@ -48,395 +70,152 @@ class SyncController extends Controller
             $subType = $request->input('sub_type');
             
             if ($type === 'wilayah') {
-                $offset = $request->input('offset', 0);
-                $limit = $request->input('limit', 100);
-                $result = $syncService->syncWilayah($offset, $limit);
-                return $this->successResponse('Sync Wilayah berhasil', $result);
+                return $this->handleSync($request, function($offset, $limit, $idSemester, $syncSince) use ($syncService) {
+                    return $syncService->syncWilayah($offset, $limit, $syncSince);
+                }, 'Sync Wilayah berhasil');
             }
 
             if ($subType) {
-                $methodName = 'sync' . str_replace('_', '', ucwords($subType, '_'));
+                $methodName = 'sync' . \Illuminate\Support\Str::studly($subType);
                 if (method_exists($syncService, $methodName)) {
-                    $result = $syncService->$methodName();
-                    return $this->successResponse("Sync $subType berhasil", $result);
+                    // For simple reference syncs, offset/limit/semester are not typically used
+                    // The handleSync callback expects these, so we pass them but the service method might not use them.
+                    return $this->handleSync($request, function($offset, $limit, $idSemester, $syncSince) use ($syncService, $methodName) {
+                        return $syncService->$methodName($syncSince); // Assuming these methods don't take offset/limit/semester
+                    }, "Sync Referensi $subType berhasil");
                 }
                 return $this->errorResponse("Sub-tipe referensi $subType tidak ditemukan", 400);
             }
 
-            // Fallback: Sync all simple references (may be slow)
+            // Fallback: Sync all simple references
             $synced = 0;
-            $res = $syncService->syncAgama(); $synced += $res['synced'] ?? 0;
-            $res = $syncService->syncJenisTinggal(); $synced += $res['synced'] ?? 0;
-            $res = $syncService->syncAlatTransportasi(); $synced += $res['synced'] ?? 0;
-            $res = $syncService->syncPekerjaan(); $synced += $res['synced'] ?? 0;
-            $res = $syncService->syncPenghasilan(); $synced += $res['synced'] ?? 0;
-            $res = $syncService->syncKebutuhanKhusus(); $synced += $res['synced'] ?? 0;
-            $res = $syncService->syncPembiayaan(); $synced += $res['synced'] ?? 0;
+            $simpleSyncs = ['Agama', 'JenisTinggal', 'AlatTransportasi', 'Pekerjaan', 'Penghasilan', 'KebutuhanKhusus', 'Pembiayaan'];
+            
+            foreach ($simpleSyncs as $sync) {
+                $method = 'sync' . $sync;
+                $res = $syncService->$method();
+                $synced += $res['synced'] ?? 0;
+            }
 
-            return $this->successResponse('Sync Referensi berhasil', ['synced' => $synced]);
+            return $this->successResponse('Sync Referensi berhasil', [
+                'synced' => $synced,
+                'total' => $synced,
+                'total_all' => $synced,
+            ]);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
     }
 
-    /**
-     * Sync Program Studi
-     */
     public function syncProdi(Request $request, ReferenceSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            
-            $result = $syncService->syncProdi($offset, $limit);
-            
-            return $this->successResponse('Sync Program Studi berhasil', $result);
-        } catch (\Exception $e) {
-            Log::error('Sync Prodi Error: ' . $e->getMessage());
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncProdi($o, $l, $ss), 'Sync Prodi berhasil');
     }
 
-    /**
-     * Sync Semester
-     */
     public function syncSemester(Request $request, ReferenceSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            
-            $result = $syncService->syncSemester($offset, $limit);
-            
-            return $this->successResponse('Sync Semester berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncSemester($o, $l, $ss), 'Sync Semester berhasil');
     }
 
-    /**
-     * Sync Kurikulum
-     */
     public function syncKurikulum(Request $request, CurriculumSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            
-            $result = $syncService->syncKurikulum($offset, $limit);
-            
-            return $this->successResponse('Sync Kurikulum berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncKurikulum($o, $l, $ss), 'Sync Kurikulum berhasil');
     }
 
-    /**
-     * Sync Mata Kuliah
-     */
     public function syncMataKuliah(Request $request, CurriculumSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            
-            $result = $syncService->syncMataKuliah($offset, $limit);
-            
-            return $this->successResponse('Sync Mata Kuliah berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncMataKuliah($o, $l, $ss), 'Sync Mata Kuliah berhasil');
     }
 
-    /**
-     * Sync Mahasiswa
-     */
     public function syncMahasiswa(Request $request, StudentSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100); 
-            
-            $result = $syncService->syncMahasiswa($offset, $limit);
-            
-            return $this->successResponse('Sync Mahasiswa berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncMahasiswa($o, $l, $ss), 'Sync Mahasiswa berhasil');
     }
-    
-    /**
-     * Sync Mahasiswa Detail (Biodata) - Single Student
-     */
+
     public function syncMahasiswaDetail(Request $request, StudentSyncService $syncService): JsonResponse
     {
-        try {
-            $id = $request->input('id');
-            $mahasiswa = Mahasiswa::findOrFail($id);
-            
-            $status = $syncService->syncBiodata($mahasiswa);
-            
-            return $this->successResponse('Sync Biodata berhasil', ['status' => $status]);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncRiwayatPendidikan($o, $l, $ss), 'Sync Riwayat Pendidikan berhasil');
     }
 
-    /**
-     * Sync Biodata Mahasiswa (Batch)
-     */
+    public function syncMahasiswaLulusDO(Request $request, StudentSyncService $syncService): JsonResponse
+    {
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncMahasiswaLulusDO($o, $l, $ss), 'Sync Mahasiswa Lulus/DO berhasil');
+    }
+
     public function syncBiodata(Request $request, StudentSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 50); 
-            
-            $students = Mahasiswa::skip($offset)->take($limit)->get();
-            $totalStudents = Mahasiswa::count();
-            
-            $synced = 0;
-            $skipped = 0;
-            $errors = [];
-            
-            foreach ($students as $student) {
-                try {
-                    /** @var \App\Models\Mahasiswa $student */
-                    $res = $syncService->syncBiodata($student);
-                    if ($res === 'updated') $synced++;
-                    else $skipped++;
-                } catch (\Exception $e) {
-                    $errors[] = "Biodata {$student->nim}: " . $e->getMessage();
-                }
-            }
-            
-            $nextOffset = $offset + $students->count();
-            $hasMore = $nextOffset < $totalStudents;
-            $progress = $totalStudents > 0 ? min(100, round($nextOffset / $totalStudents * 100)) : 100;
-
-            return $this->successResponse('Sync Biodata Batch berhasil', [
-                'synced' => $synced,
-                'skipped' => $skipped,
-                'errors' => $errors,
-                'total' => $students->count(),
-                'total_all' => $totalStudents,
-                'has_more' => $hasMore,
-                'next_offset' => $hasMore ? $nextOffset : null,
-                'progress' => $progress
-            ]);
-            
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncBiodata($o, $l, $ss), 'Sync Biodata berhasil');
     }
 
-    /**
-     * Sync Dosen
-     */
     public function syncDosen(Request $request, LecturerSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
-            
-            $result = $syncService->syncDosen($offset, $limit);
-            
-            return $this->successResponse('Sync Dosen berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncDosen($o, $l, $ss), 'Sync Dosen berhasil');
     }
 
-    /**
-     * Sync Nilai (Grades)
-     */
-    public function syncNilai(Request $request, AcademicSyncService $syncService): JsonResponse
-    {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100); // Reduced to 100 for stability
-            $idSemester = $request->input('id_semester');
-            
-            $result = $syncService->syncNilai($offset, $limit, $idSemester);
-            
-            return $this->successResponse('Sync Nilai berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
-    }
-
-    /**
-     * Sync KRS
-     */
-    public function syncKrs(Request $request, AcademicSyncService $syncService): JsonResponse
-    {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100); // Reduced to 100 for stability
-            $idSemester = $request->input('id_semester');
-            
-            $result = $syncService->syncKrs($offset, $limit, $idSemester);
-            
-            return $this->successResponse('Sync KRS berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
-    }
-
-    /**
-     * Sync Aktivitas Kuliah (AKM)
-     */
-    public function syncAktivitasKuliah(Request $request, AcademicSyncService $syncService): JsonResponse
-    {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100); // Reduced to 100 for stability
-            $idSemester = $request->input('id_semester');
-            
-            $result = $syncService->syncAktivitas($offset, $limit, $idSemester);
-            
-            return $this->successResponse('Sync Aktivitas Kuliah berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
-    }
-
-    /**
-     * Sync Kelas Kuliah
-     */
-    public function syncKelasKuliah(Request $request, AcademicSyncService $syncService): JsonResponse
-    {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            
-            $result = $syncService->syncKelasKuliah($offset, $limit);
-            
-            return $this->successResponse('Sync Kelas Kuliah berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
-    }
-
-    /**
-     * Sync Dosen Pengajar
-     */
-    public function syncDosenPengajar(Request $request, AcademicSyncService $syncService): JsonResponse
-    {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            
-            $result = $syncService->syncDosenPengajar($offset, $limit);
-            
-            return $this->successResponse('Sync Dosen Pengajar berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
-    }
-    
-    /**
-     * Sync Ajar Dosen (Real Teaching Activity)
-     */
     public function syncAjarDosen(Request $request, LecturerSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 100);
-            $idSemester = $request->input('id_semester');
-
-            $result = $syncService->syncAjarDosen($offset, $limit, $idSemester);
-
-            return $this->successResponse('Sync Ajar Dosen berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncAjarDosen($o, $l, $ss), 'Sync Ajar Dosen berhasil');
     }
 
-    /**
-     * Sync Bimbingan Mahasiswa
-     */
-    public function syncBimbinganMahasiswa(Request $request, AcademicSyncService $syncService): JsonResponse
+    public function syncKrs(Request $request, AcademicSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
-
-            $result = $syncService->syncBimbinganMahasiswa($offset, $limit);
-
-            return $this->successResponse('Sync Bimbingan Mahasiswa berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, function($o, $l, $sem, $ss) use ($syncService) {
+            return $sem ? $syncService->syncKrs($o, $l, $sem, $ss) : $syncService->syncKrsAllSemesters($o, $l, $ss);
+        }, 'Sync KRS berhasil');
     }
 
-    /**
-     * Sync Uji Mahasiswa
-     */
-    public function syncUjiMahasiswa(Request $request, AcademicSyncService $syncService): JsonResponse
+    public function syncNilai(Request $request, AcademicSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
-
-            $result = $syncService->syncUjiMahasiswa($offset, $limit);
-
-            return $this->successResponse('Sync Uji Mahasiswa berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, function($o, $l, $sem, $ss) use ($syncService) {
+            return $sem ? $syncService->syncNilai($o, $l, $sem, $ss) : $syncService->syncNilaiAllSemesters($o, $l, $ss);
+        }, 'Sync Nilai berhasil');
     }
 
-    /**
-     * Sync Aktivitas Mahasiswa (Non-Class)
-     */
+    public function syncAktivitasKuliah(Request $request, AcademicSyncService $syncService): JsonResponse
+    {
+        return $this->handleSync($request, function($o, $l, $sem, $ss) use ($syncService) {
+            return $syncService->syncAktivitas($o, $l, $sem, $ss);
+        }, 'Sync Aktivitas Kuliah berhasil');
+    }
+    
+    // Alias for 'aktivitas' endpoint
+    public function syncAktivitas(Request $request, AcademicSyncService $syncService): JsonResponse
+    {
+        return $this->syncAktivitasKuliah($request, $syncService);
+    }
+
+    public function syncKelasKuliah(Request $request, AcademicSyncService $syncService): JsonResponse
+    {
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncKelasKuliah($o, $l, $ss), 'Sync Kelas Kuliah berhasil');
+    }
+
+    public function syncDosenPengajar(Request $request, AcademicSyncService $syncService): JsonResponse
+    {
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncDosenPengajar($o, $l, $ss), 'Sync Dosen Pengajar berhasil');
+    }
+
     public function syncAktivitasMahasiswa(Request $request, AcademicSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
-            $idSemester = $request->input('id_semester');
-
-            $result = $syncService->syncAktivitasMahasiswa($offset, $limit, $idSemester);
-
-            return $this->successResponse('Sync Aktivitas Mahasiswa berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncAktivitasMahasiswa($o, $l, $ss), 'Sync Aktivitas Mahasiswa berhasil');
     }
 
-    /**
-     * Sync Anggota Aktivitas Mahasiswa
-     */
     public function syncAnggotaAktivitasMahasiswa(Request $request, AcademicSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
-            $idSemester = $request->input('id_semester');
-
-            $result = $syncService->syncAnggotaAktivitasMahasiswa($offset, $limit, $idSemester);
-
-            return $this->successResponse('Sync Anggota Aktivitas Mahasiswa berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncAnggotaAktivitasMahasiswa($o, $l, $ss), 'Sync Anggota Aktivitas Mahasiswa berhasil');
     }
 
-    /**
-     * Sync Konversi Kampus Merdeka
-     */
     public function syncKonversiKampusMerdeka(Request $request, AcademicSyncService $syncService): JsonResponse
     {
-        try {
-            $offset = $request->input('offset', 0);
-            $limit = $request->input('limit', 500);
-            $idSemester = $request->input('id_semester');
-
-            $result = $syncService->syncKonversiKampusMerdeka($offset, $limit, $idSemester);
-
-            return $this->successResponse('Sync Konversi Kampus Merdeka berhasil', $result);
-        } catch (\Exception $e) {
-            return $this->errorResponse($e->getMessage());
-        }
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncKonversiKampusMerdeka($o, $l, $ss), 'Sync Konversi Kampus Merdeka berhasil');
+    }
+    
+    public function syncBimbinganMahasiswa(Request $request, AcademicSyncService $syncService): JsonResponse
+    {
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncBimbinganMahasiswa($o, $l, $ss), 'Sync Bimbingan Mahasiswa berhasil');
+    }
+    
+    public function syncUjiMahasiswa(Request $request, AcademicSyncService $syncService): JsonResponse
+    {
+        return $this->handleSync($request, fn($o, $l, $s, $ss) => $syncService->syncUjiMahasiswa($o, $l, $ss), 'Sync Uji Mahasiswa berhasil');
     }
 }

@@ -104,7 +104,7 @@ export function useNeoFeederSync() {
     /**
      * Generic Sync Function
      */
-    const syncData = async (type: string, offset = 0, idSemester?: string) => {
+    const syncData = async (type: string, offset = 0, idSemester?: string, syncSince?: string) => {
         if (!syncStates[type] || isStopping.value) return;
 
         // If starting fresh (offset 0), reset states
@@ -137,25 +137,30 @@ export function useNeoFeederSync() {
                     // Update progress based on sub-type step
                     const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
                     
-                    const res = await axios.post(route('admin.sync.' + endpoint), { sub_type: sub });
-                    if (res.data.success) {
-                        const subResult = res.data.data;
-                        totalSynced += (subResult.synced || 0);
+                    
+                    // Use generic route for standard syncs
+                    // But 'referensi' sub-types use the specific 'referensi' route
+                    const res = await axios.post(route('admin.sync.referensi'), { 
+                        sub_type: sub,
+                        sync_since: syncSince
+                    });
+                    
+                    const data = res.data;
+                    totalSynced += data.synced;
                         
-                        // Update UI state for each step
-                        syncStates[type].result = {
-                            success: true,
-                            message: `Syncing ${sub.replace('_', ' ')}...`,
-                            synced: totalSynced,
-                            progress: subProgress
-                        };
-                        
-                        // Update accumulator
-                        initAccumulator(type);
-                        accumulatedStats[type].total_synced = totalSynced;
-                        accumulatedStats[type].total_api = totalSynced; // Set total_api once finished or during steps
-                        accumulatedStats[type].progress = subProgress;
-                    }
+                    // Update UI state for each step
+                    syncStates[type].result = {
+                        success: true,
+                        message: `Syncing ${sub.replace('_', ' ')}...`,
+                        synced: totalSynced,
+                        progress: subProgress
+                    };
+                    
+                    // Update accumulator
+                    initAccumulator(type);
+                    accumulatedStats[type].total_synced = totalSynced;
+                    accumulatedStats[type].total_api = totalSynced; // Set total_api once finished or during steps
+                    accumulatedStats[type].progress = subProgress;
                 }
                 
                 syncStates[type].loading = false;
@@ -168,10 +173,9 @@ export function useNeoFeederSync() {
                 return;
             }
 
-            // Special param for wilayah
+            // Prepare params
             const params: any = { offset, limit: 100 }; 
-            // Adjust limits based on type for optimization
-            if (['mahasiswa', 'matakuliah', 'kelaskuliah', 'krs', 'nilai', 'aktivitas'].includes(type)) params.limit = 100;
+            
             if (['biodata', 'ajardosen'].includes(type)) params.limit = 100;
 
             if (['wilayah'].includes(type)) {
@@ -182,6 +186,11 @@ export function useNeoFeederSync() {
             // Add semester filter if provided
             if (idSemester) {
                 params.id_semester = idSemester;
+            }
+
+            // Add sync_since filter if provided
+            if (syncSince) {
+                params.sync_since = syncSince;
             }
 
             const response = await axios.post(route('admin.sync.' + endpoint), params);
@@ -214,7 +223,7 @@ export function useNeoFeederSync() {
 
                 // Recursive call if has_more
                 if (result.has_more && result.next_offset && !isStopping.value) {
-                    await syncData(type, result.next_offset, idSemester);
+                    await syncData(type, result.next_offset, idSemester, syncSince);
                 } else {
                     syncStates[type].loading = false;
                     if (isStopping.value) {
