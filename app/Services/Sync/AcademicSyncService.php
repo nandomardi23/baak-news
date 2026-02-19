@@ -936,13 +936,25 @@ class AcademicSyncService extends BaseSyncService
      */
     public function syncKrsAllSemesters(int $offset, int $limit, ?string $syncSince = null): array
     {
-        // Ambil semua semester dari DB
-        $semesters = \App\Models\TahunAkademik::orderBy('id_semester', 'desc')->pluck('id_semester');
-        
+        // STRATEGI BARU: Ambil semester dari riwayat Aktivitas Kuliah Mahasiswa (Real Data)
+        // Ini menghindari iterasi ke semester masa depan atau kosong.
+        $semesters = \App\Models\AktivitasKuliah::select('id_semester')
+            ->distinct()
+            ->orderBy('id_semester', 'desc')
+            ->pluck('id_semester');
+
+        // Fallback: Jika Aktivitas Kuliah kosong (belum disync), ambil dari TahunAkademik tapi dibatasi
+        if ($semesters->isEmpty()) {
+            $maxSemester = (date('Y') + 1) . '3'; 
+            $semesters = \App\Models\TahunAkademik::where('id_semester', '<=', $maxSemester)
+                ->orderBy('id_semester', 'desc')
+                ->pluck('id_semester');
+        }
+
         if ($semesters->isEmpty()) {
             return [
                 'total' => 0, 'synced' => 0,
-                'errors' => ['Sync Semester terlebih dahulu sebelum sync KRS'],
+                'errors' => ['Belum ada data Semester atau Aktivitas Kuliah. Harap Sync Semester/Aktivitas dulu.'],
                 'total_all' => 0, 'has_more' => false, 'progress' => 0,
             ];
         }
@@ -1008,12 +1020,24 @@ class AcademicSyncService extends BaseSyncService
      */
     public function syncNilaiAllSemesters(int $offset, int $limit, ?string $syncSince = null): array
     {
-        $semesters = \App\Models\TahunAkademik::orderBy('id_semester', 'desc')->pluck('id_semester');
+        // STRATEGI BARU: Ambil semester dari riwayat Aktivitas Kuliah Mahasiswa
+        $semesters = \App\Models\AktivitasKuliah::select('id_semester')
+            ->distinct()
+            ->orderBy('id_semester', 'desc')
+            ->pluck('id_semester');
+
+        // Fallback
+        if ($semesters->isEmpty()) {
+            $maxSemester = (date('Y') + 1) . '3';
+            $semesters = \App\Models\TahunAkademik::where('id_semester', '<=', $maxSemester)
+                ->orderBy('id_semester', 'desc')
+                ->pluck('id_semester');
+        }
         
         if ($semesters->isEmpty()) {
             return [
                 'total' => 0, 'synced' => 0,
-                'errors' => ['Sync Semester terlebih dahulu sebelum sync Nilai'],
+                'errors' => ['Belum ada data Semester atau Aktivitas Kuliah.'],
                 'total_all' => 0, 'has_more' => false, 'progress' => 0,
             ];
         }

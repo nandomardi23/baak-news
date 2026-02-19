@@ -132,6 +132,11 @@ class Mahasiswa extends Model
         return $this->hasMany(Nilai::class, 'mahasiswa_id');
     }
 
+    public function aktivitasKuliah(): HasMany
+    {
+        return $this->hasMany(AktivitasKuliah::class, 'id_registrasi_mahasiswa', 'id_registrasi_mahasiswa');
+    }
+
     /**
      * Get formatted alamat lengkap
      */
