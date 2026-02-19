@@ -340,6 +340,17 @@ class NeoFeederService
     }
 
     /**
+     * Get Bimbingan Mahasiswa
+     */
+    public function getBimbinganMahasiswa(int $limit = 500, int $offset = 0): ?array
+    {
+        return $this->request('GetListBimbinganMahasiswa', [
+            'limit' => $limit,
+            'offset' => $offset,
+        ]);
+    }
+
+    /**
      * Get KRS (Class Enrollment) Mahasiswa
      * Can filter by Student ID (specific) or Semester ID (Bulk)
      */

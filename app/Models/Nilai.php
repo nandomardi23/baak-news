@@ -18,6 +18,12 @@ class Nilai extends Model
         'nilai_angka',
         'nilai_huruf',
         'nilai_indeks',
+        // Sync Columns
+        'id_registrasi_mahasiswa',
+        'id_matkul',
+        'nama_mata_kuliah',
+        'sks_mata_kuliah',
+        'id_periode',
     ];
 
     protected $casts = [

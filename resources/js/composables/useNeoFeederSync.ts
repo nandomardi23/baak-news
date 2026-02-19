@@ -207,6 +207,7 @@ export function useNeoFeederSync() {
             // Adjust limits for heavy/light endpoints
             if (['wilayah'].includes(type)) {
                 params.type = 'wilayah';
+                params.limit = 500; // Speed up Wilayah (lightweight data)
             }
             
             if (idSemester) params.id_semester = idSemester;

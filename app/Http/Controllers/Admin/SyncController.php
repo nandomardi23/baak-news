@@ -45,6 +45,10 @@ class SyncController extends Controller
     private function handleSync(Request $request, callable $callback, string $successMessage): JsonResponse
     {
         try {
+            // Optimization: Prevent timeout and memory leaks during heavy sync
+            set_time_limit(300); 
+            \Illuminate\Support\Facades\DB::disableQueryLog();
+
             $offset = $request->input('offset', 0);
             $limit = $request->input('limit', 100); // Default limit 100 for stability
             $idSemester = $request->input('id_semester');
@@ -66,7 +70,6 @@ class SyncController extends Controller
     public function syncReferensi(Request $request, ReferenceSyncService $syncService): JsonResponse
     {
         try {
-            Log::info("DEBUG SYNC REFERENSI WEB REQUEST", $request->all());
             $type = $request->input('type');
             $subType = $request->input('sub_type');
             

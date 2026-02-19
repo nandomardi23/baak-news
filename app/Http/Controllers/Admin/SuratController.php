@@ -224,6 +224,9 @@ class SuratController extends Controller
     /**
      * Bulk approve multiple surat
      */
+    /**
+     * Bulk approve multiple surat
+     */
     public function bulkApprove(Request $request): RedirectResponse
     {
         $request->validate([
@@ -231,13 +234,16 @@ class SuratController extends Controller
             'ids.*' => 'exists:surat_pengajuan,id',
         ]);
 
+        // Optimization: Fetch all records in one query
+        $suratList = SuratPengajuan::whereIn('id', $request->ids)->where('status', 'pending')->get();
         $count = 0;
-        foreach ($request->ids as $id) {
-            $surat = SuratPengajuan::find($id);
-            if ($surat && $surat->status === 'pending') {
-                $surat->approve(auth()->id());
-                $count++;
-            }
+
+        foreach ($suratList as $surat) {
+            /** @var SuratPengajuan $surat */
+            $surat->approve(auth()->id());
+            // Log is handled inside approve or we can batch log, but keeping it simple for now
+            ActivityLog::log('approved', "Menyetujui pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}", $surat);
+            $count++;
         }
 
         return back()->with('success', "{$count} surat berhasil disetujui");
@@ -254,13 +260,15 @@ class SuratController extends Controller
             'catatan' => 'nullable|string|max:500',
         ]);
 
+        // Optimization: Fetch all records in one query
+        $suratList = SuratPengajuan::whereIn('id', $request->ids)->where('status', 'pending')->get();
         $count = 0;
-        foreach ($request->ids as $id) {
-            $surat = SuratPengajuan::find($id);
-            if ($surat && $surat->status === 'pending') {
-                $surat->reject(auth()->id(), $request->catatan);
-                $count++;
-            }
+
+        foreach ($suratList as $surat) {
+            /** @var SuratPengajuan $surat */
+            $surat->reject(auth()->id(), $request->catatan);
+            ActivityLog::log('rejected', "Menolak pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}", $surat);
+            $count++;
         }
 
         return back()->with('success', "{$count} surat berhasil ditolak");

@@ -165,7 +165,6 @@ class AcademicSyncService extends BaseSyncService
     public function syncKrs(int $offset = 0, int $limit = 500, ?string $idSemester = null, ?string $syncSince = null): array
     {
         if (!$idSemester) {
-            // Sync semua semester (lebih lambat tapi complete)
             return $this->syncKrsAllSemesters($offset, $limit, $syncSince);
         }
 
@@ -179,11 +178,10 @@ class AcademicSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("SyncKrs: GetCount failed. Error: " . $e->getMessage());
+            Log::warning("SyncKrs: GetCount failed. Error: " . $e->getMessage());
         }
 
         // 2. Fetch bulk data
-        // For getKrsBySemester, we use the extraFilter arg for syncSince logic
         $dateFilter = $syncSince ? $this->getFilter('', $syncSince) : '';
         $response = $this->neoFeeder->getKrsBySemester($idSemester, $limit, $offset, $dateFilter);
         if (!$response) {
@@ -196,49 +194,74 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            if (!empty($data)) {
-                foreach ($data as $item) {
-                    try {
-                        // 1. Handle Parent KRS (Header)
-                        // Use updateOrCreate to ensure ID exists and is up to date
-                        $krs = Krs::updateOrCreate(
-                            [
-                                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                                'id_semester' => $item['id_periode']
-                            ],
-                            [
-                                'nim' => $item['nim'],
-                                'id_prodi' => $item['id_prodi'],
-                                'updated_at' => now(),
-                            ]
-                        );
+            // Optimization: Pre-fetch mappings
+            $idRegMahasiswas = collect($data)->pluck('id_registrasi_mahasiswa')->unique()->filter()->toArray();
+            $idMatkuls = collect($data)->pluck('id_matkul')->unique()->filter()->toArray();
+            
+            // Map: id_registrasi_mahasiswa -> id
+            // We need to fetch by id_registrasi_mahasiswa because that's what we have from API
+            $mahasiswaMap = Mahasiswa::whereIn('id_registrasi_mahasiswa', $idRegMahasiswas)
+                ->pluck('id', 'id_registrasi_mahasiswa'); // key=neo_id, value=local_id
 
-                        // 2. Handle Detail KRS
-                        // Resolve local IDs safely
-                        $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
-                        
-                        KrsDetail::updateOrCreate(
-                            [
-                                'krs_id' => $krs->id,
-                                'id_kelas_kuliah' => $item['id_kelas_kuliah'],
-                                'id_matkul' => $item['id_matkul']
-                            ],
-                            [
-                                'mata_kuliah_id' => $matkulId,
-                                'kode_mata_kuliah' => $item['kode_mata_kuliah'],
-                                'nama_mata_kuliah' => $item['nama_mata_kuliah'],
-                                'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                                'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
-                                'angkatan' => $item['angkatan'] ?? null,
-                                'updated_at' => now(),
-                            ]
-                        );
-                        
-                        $synced++;
-                    } catch (\Exception $e) {
-                         // Log error for this specific record but allow others to continue
-                        $errors[] = "KRS {$item['nim']} - {$item['kode_mata_kuliah']}: " . $e->getMessage();
-                    }
+            // Map: id_matkul -> id
+            $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
+                ->pluck('id', 'id_matkul');
+
+            // Map: id_semester -> id (Should be constant as we have $idSemester, but let's be safe)
+            $semesterId = \App\Models\TahunAkademik::where('id_semester', $idSemester)->value('id');
+
+            foreach ($data as $item) {
+                try {
+                    // Skip if local mahasiswa not found (optimization: don't even try if mapping missing)
+                     $mahasiswaId = $mahasiswaMap[$item['id_registrasi_mahasiswa']] ?? null;
+                     if (!$mahasiswaId) {
+                         // Optional: You could log this, but it might spam. 
+                         // Usually we only sync KRS for students we have.
+                         continue; 
+                     }
+
+                    // 1. Handle Parent KRS (Header)
+                    // Use updateOrCreate but with cached ID availability
+                    // We can't easily upsert parent then child in one go because we need parent ID.
+                    // But we can optimize by checking if we already processed this student in this loop? 
+                    // No, updateOrCreate is fine for Header as there are few Headers per batch (1 per student).
+                    $krs = Krs::updateOrCreate(
+                        [
+                            'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                            'id_semester' => $item['id_periode']
+                        ],
+                        [
+                            'mahasiswa_id' => $mahasiswaId, // Direct ID set
+                            'tahun_akademik_id' => $semesterId,
+                            'nim' => $item['nim'],
+                            'id_prodi' => $item['id_prodi'],
+                            'updated_at' => now(),
+                        ]
+                    );
+
+                    // 2. Handle Detail KRS
+                    $matkulLocalId = $matkulMap[$item['id_matkul']] ?? null;
+                    
+                    KrsDetail::updateOrCreate(
+                        [
+                            'krs_id' => $krs->id, // Dependent on parent
+                            'id_matkul' => $item['id_matkul']
+                        ],
+                        [
+                            'id_kelas_kuliah' => $item['id_kelas_kuliah'] ?? null, // Handle missing class ID (e.g. non-class enrollment)
+                            'mata_kuliah_id' => $matkulLocalId,
+                            'kode_mata_kuliah' => $item['kode_mata_kuliah'],
+                            'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                            'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                            'nama_kelas_kuliah' => $item['nama_kelas_kuliah'] ?? null,
+                            'angkatan' => $item['angkatan'] ?? null,
+                            'updated_at' => now(),
+                        ]
+                    );
+                    
+                    $synced++;
+                } catch (\Exception $e) {
+                    $errors[] = "KRS {$item['nim']} - {$item['kode_mata_kuliah']}: " . $e->getMessage();
                 }
             }
         }
@@ -262,7 +285,6 @@ class AcademicSyncService extends BaseSyncService
     public function syncNilai(int $offset = 0, int $limit = 2000, ?string $idSemester = null, ?string $syncSince = null): array
     {
         if (!$idSemester) {
-            // Sync semua semester (lebih lambat tapi complete)
             return $this->syncNilaiAllSemesters($offset, $limit, $syncSince);
         }
 
@@ -276,7 +298,7 @@ class AcademicSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("SyncNilai: GetCount failed. Error: " . $e->getMessage());
+            Log::warning("SyncNilai: GetCount failed. Error: " . $e->getMessage());
         }
 
         // 2. Fetch bulk data
@@ -292,38 +314,100 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            foreach ($data as $item) {
-                try {
-                // Resolve local IDs
-                $mahasiswaId = \App\Models\Mahasiswa::where('id_registrasi_mahasiswa', $item['id_registrasi_mahasiswa'])->value('id');
-                $matkulId = \App\Models\MataKuliah::where('id_matkul', $item['id_matkul'])->value('id');
-                $tahunAkademikId = \App\Models\TahunAkademik::where('id_semester', $item['id_semester'])->value('id');
+            // Optimization: Pre-fetch mappings
+            $idRegMahasiswas = collect($data)->pluck('id_registrasi_mahasiswa')->unique()->filter()->toArray();
+            $idMatkuls = collect($data)->pluck('id_matkul')->unique()->filter()->toArray();
+            
+            $mahasiswaMap = Mahasiswa::whereIn('id_registrasi_mahasiswa', $idRegMahasiswas)
+                ->pluck('id', 'id_registrasi_mahasiswa');
+            
+            $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
+                ->pluck('id', 'id_matkul');
+                
+            $semesterId = \App\Models\TahunAkademik::where('id_semester', $idSemester)->value('id');
 
-                Nilai::updateOrCreate(
-                    [
-                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                        'id_kelas_kuliah' => $item['id_kelas_kuliah'],
-                        'id_matkul' => $item['id_matkul']
-                    ],
-                    [
-                        'mahasiswa_id' => $mahasiswaId,
-                        'mata_kuliah_id' => $matkulId,
-                        'tahun_akademik_id' => $tahunAkademikId,
-                        'nilai_angka' => $item['nilai_angka'] ?? 0,
-                        'nilai_huruf' => $item['nilai_huruf'] ?? '',
-                        'nilai_indeks' => $item['nilai_indeks'] ?? 0,
-                        'id_periode' => $item['id_semester'], // store semester if needed
-                        'nama_mata_kuliah' => $item['nama_mata_kuliah'],
-                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                    ]
-                );
-                $synced++;
+            $upsertData = [];
+            foreach ($data as $item) {
+                 // Skip if local mahasiswa not found
+                 $mahasiswaId = $mahasiswaMap[$item['id_registrasi_mahasiswa']] ?? null;
+                 if (!$mahasiswaId) continue;
+                 
+                 $matkulId = $matkulMap[$item['id_matkul']] ?? null;
+                 
+                 // Validasi: Jangan insert jika Mata Kuliah belum disync (Mencegah Constraint Violation)
+                 if (!$matkulId) {
+                     $errors[] = "Nilai {$item['nim']} - {$item['kode_mata_kuliah']}: Mata Kuliah belum disinkronisasi (ID: {$item['id_matkul']})";
+                     continue;
+                 }
+
+                 $upsertData[] = [
+                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                    'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                    'id_matkul' => $item['id_matkul'],
+                    // Local IDs
+                    'mahasiswa_id' => $mahasiswaId,
+                    'mata_kuliah_id' => $matkulId,
+                    'tahun_akademik_id' => $semesterId,
+                    // Data
+                    'nilai_angka' => $item['nilai_angka'] ?? 0,
+                    'nilai_huruf' => $item['nilai_huruf'] ?? '',
+                    'nilai_indeks' => $item['nilai_indeks'] ?? 0,
+                    'id_periode' => $item['id_semester'],
+                    'nama_mata_kuliah' => $item['nama_mata_kuliah'] ?? '',
+                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                    'updated_at' => now(), 
+                 ];
+            }
+
+            // Batch Upsert
+            if (!empty($upsertData)) {
+                try {
+                    Nilai::upsert(
+                        $upsertData,
+                        ['id_registrasi_mahasiswa', 'id_kelas_kuliah', 'id_matkul'], 
+                        ['nilai_angka', 'nilai_huruf', 'nilai_indeks', 'updated_at', 'mahasiswa_id', 'mata_kuliah_id'] 
+                    );
+                    $synced = count($upsertData);
                 } catch (\Exception $e) {
-                    $errors[] = "Nilai {$item['nim']}-{$item['kode_mata_kuliah']}: " . $e->getMessage();
+                     // Fallback to loop if bulk fails
+                     foreach ($data as $item) {
+                         try {
+                              $mahasiswaId = $mahasiswaMap[$item['id_registrasi_mahasiswa']] ?? null;
+                              $matkulId = $matkulMap[$item['id_matkul']] ?? null;
+                              
+                              if(!$mahasiswaId) continue;
+                              
+                              // Validasi Check Again
+                              if (!$matkulId) {
+                                  // Already logged in first pass, but good to be safe if Logic changes
+                                  continue;
+                              }
+
+                              Nilai::updateOrCreate(
+                                  [
+                                      'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                                      'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                                      'id_matkul' => $item['id_matkul']
+                                  ],
+                                  [
+                                      'mahasiswa_id' => $mahasiswaId,
+                                      'mata_kuliah_id' => $matkulId,
+                                      'tahun_akademik_id' => $semesterId,
+                                      'nilai_angka' => $item['nilai_angka'] ?? 0,
+                                      'nilai_huruf' => $item['nilai_huruf'] ?? '',
+                                      'nilai_indeks' => $item['nilai_indeks'] ?? 0,
+                                      'id_periode' => $item['id_semester'],
+                                      'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                                      'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                                  ]
+                              );
+                              $synced++;
+                         } catch (\Exception $inner) {
+                             $errors[] = "Nilai Line Error: " . $inner->getMessage();
+                         }
+                     }
                 }
             }
-            // Batch upsert removed in favor of loop for error isolation
         }
 
         $nextOffset = $offset + $batchCount;
@@ -402,14 +486,38 @@ class AcademicSyncService extends BaseSyncService
             }
 
             // Simpan ke tabel aktivitas_kuliah
-            $this->batchUpsert(AktivitasKuliah::class, $records, ['id_registrasi_mahasiswa', 'id_semester'], [
-                'nim', 'nama_mahasiswa', 'id_status_mahasiswa', 'ips', 'ipk', 'sks_semester', 'sks_total', 'biaya_kuliah_smt', 'updated_at'
-            ]);
+            try {
+                AktivitasKuliah::upsert(
+                    $records, 
+                    ['id_registrasi_mahasiswa', 'id_semester'], 
+                    ['nim', 'nama_mahasiswa', 'id_status_mahasiswa', 'ips', 'ipk', 'sks_semester', 'sks_total', 'biaya_kuliah_smt', 'updated_at']
+                );
+                $synced = count($records);
+            } catch (\Exception $e) {
+                // Fallback: If bulk fails, try one by one to find the culprit
+                foreach ($records as $record) {
+                    try {
+                        AktivitasKuliah::updateOrCreate(
+                            [
+                                'id_registrasi_mahasiswa' => $record['id_registrasi_mahasiswa'],
+                                'id_semester' => $record['id_semester']
+                            ],
+                            collect($record)->except(['id_registrasi_mahasiswa', 'id_semester', 'created_at'])->toArray()
+                        );
+                        $synced++;
+                    } catch (\Exception $inner) {
+                        $errors[] = "Aktivitas {$record['nim']} (Sem: {$record['id_semester']}): " . $inner->getMessage();
+                    }
+                }
+            }
 
             // Update IPK, IPS, SKS di tabel mahasiswa (ambil yang terbaru per mahasiswa)
-            $this->updateMahasiswaAkademik($data);
-            
-            $synced = count($records);
+            // Wrap in try-catch to be safe
+            try {
+                $this->updateMahasiswaAkademik($data);
+            } catch (\Exception $e) {
+                 Log::warning("UpdateMahasiswaAkademik Failed: " . $e->getMessage());
+            }
         }
         
         $nextOffset = $offset + $batchCount;
@@ -518,11 +626,23 @@ class AcademicSyncService extends BaseSyncService
 
         foreach ($data as $item) {
             try {
+                // Fix: Handle missing id_bimbingan_mahasiswa
+                $idAktivitas = $item['id_aktivitas_mahasiswa'] ?? null;
+                $idDosen = $item['id_dosen'] ?? null;
+
+                if (!$idAktivitas || !$idDosen) {
+                    continue; // Skip if essential keys are missing
+                }
+
+                $idBimbingan = $item['id_bimbingan_mahasiswa'] ?? md5($idAktivitas . $idDosen);
+
                 BimbinganMahasiswa::updateOrCreate(
-                    ['id_bimbingan_mahasiswa' => $item['id_bimbingan_mahasiswa']],
                     [
-                        'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? '',
-                        'id_dosen' => $item['id_dosen'] ?? '',
+                        'id_aktivitas_mahasiswa' => $idAktivitas,
+                        'id_dosen' => $idDosen
+                    ],
+                    [
+                        'id_bimbingan_mahasiswa' => $idBimbingan,
                         'pembimbing_ke' => $item['pembimbing_ke'] ?? null,
                         'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
                     ]
@@ -576,7 +696,7 @@ class AcademicSyncService extends BaseSyncService
         foreach ($data as $item) {
             try {
                 UjiMahasiswa::updateOrCreate(
-                    ['id_uji' => $item['id_uji']],
+                    ['id_uji_mahasiswa' => $item['id_uji_mahasiswa']],
                     [
                         'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? '',
                         'id_dosen' => $item['id_dosen'] ?? '',
@@ -634,16 +754,23 @@ class AcademicSyncService extends BaseSyncService
 
         foreach ($data as $item) {
             try {
+                // Fix: DB column is id_aktivitas, API might be id_aktivitas or id_aktivitas_mahasiswa
+                $idAktivitas = $item['id_aktivitas'] ?? $item['id_aktivitas_mahasiswa'] ?? null;
+                
+                if (!$idAktivitas) {
+                    continue; // Skip if ID is missing
+                }
+
                 AktivitasMahasiswa::updateOrCreate(
-                    ['id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa']],
+                    ['id_aktivitas' => $idAktivitas],
                     [
-                        'id_jenis_aktivitas' => $item['id_jenis_aktivitas'],
-                        'nama_jenis_aktivitas' => $item['nama_jenis_aktivitas'],
-                        'id_prodi' => $item['id_prodi'],
-                        'id_semester' => $item['id_semester'],
-                        'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'],
-                        'keterangan_aktivitas_mahasiswa' => $item['keterangan_aktivitas_mahasiswa'] ?? null,
-                        'lokasi_kegiatan' => $item['lokasi_kegiatan'] ?? null,
+                        'id_jenis_aktivitas' => $item['id_jenis_aktivitas'] ?? null,
+                        'nama_jenis_aktivitas' => $item['nama_jenis_aktivitas'] ?? null,
+                        'id_prodi' => $item['id_prodi'] ?? null,
+                        'id_semester' => $item['id_semester'] ?? null,
+                        'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? $item['judul'] ?? null,
+                        'keterangan_aktivitas_mahasiswa' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
+                        'lokasi_kegiatan' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
                         'sk_tugas' => $item['sk_tugas'] ?? null,
                         'tanggal_sk_tugas' => $item['tanggal_sk_tugas'] ?? null,
                     ]
@@ -698,10 +825,13 @@ class AcademicSyncService extends BaseSyncService
 
         foreach ($data as $item) {
             try {
+                // Fix: DB column is id_aktivitas, handle missing keys
+                $idAktivitas = $item['id_aktivitas'] ?? $item['id_aktivitas_mahasiswa'] ?? null;
+                
                 AnggotaAktivitasMahasiswa::updateOrCreate(
                     ['id_anggota' => $item['id_anggota']],
                     [
-                        'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'],
+                        'id_aktivitas' => $idAktivitas, // Fixed column name
                         'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
                         'nim' => $item['nim'],
                         'nama_mahasiswa' => $item['nama_mahasiswa'],
@@ -730,7 +860,7 @@ class AcademicSyncService extends BaseSyncService
             'progress' => $progress,
         ];
     }
-    
+
     public function syncKonversiKampusMerdeka(int $offset = 0, int $limit = 500, ?string $idSemester = null, ?string $syncSince = null): array
     {
         $totalAll = 0;
@@ -769,7 +899,7 @@ class AcademicSyncService extends BaseSyncService
                         'nilai_huruf' => $item['nilai_huruf'],
                         'nilai_indeks' => $item['nilai_indeks'],
                         'id_semester' => $item['id_semester'],
-                        'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'],
+                        'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? null, // Allow null
                         'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? null,
                         'id_anggota' => $item['id_anggota'] ?? null,
                         'nim' => $item['nim'] ?? null,

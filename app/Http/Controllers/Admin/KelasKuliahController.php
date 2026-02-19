@@ -7,7 +7,6 @@ use App\Models\KelasKuliah;
 use App\Models\MataKuliah;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
-use App\Services\NeoFeederService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -78,7 +77,7 @@ class KelasKuliahController extends Controller
         ]);
     }
 
-    public function show(KelasKuliah $kelasKuliah, NeoFeederService $neoFeeder): Response
+    public function show(KelasKuliah $kelasKuliah): Response
     {
         $kelasKuliah->load([
             'programStudi', 
@@ -96,24 +95,6 @@ class KelasKuliahController extends Controller
             'angkatan' => $krsDetail->krs?->mahasiswa?->angkatan,
             'prodi' => $krsDetail->krs?->mahasiswa?->programStudi?->nama_prodi,
         ])->filter(fn($m) => $m['nim'] !== null)->values();
-
-        // If no local data, try fetching from API
-        if ($peserta->isEmpty() && $kelasKuliah->id_kelas_kuliah) {
-            try {
-                $apiResponse = $neoFeeder->getPesertaKelasKuliah($kelasKuliah->id_kelas_kuliah);
-                if ($apiResponse && !empty($apiResponse['data'])) {
-                    $peserta = collect($apiResponse['data'])->map(fn($item) => [
-                        'id' => $item['id_registrasi_mahasiswa'] ?? null,
-                        'nim' => $item['nim'] ?? null,
-                        'nama' => $item['nama_mahasiswa'] ?? null,
-                        'angkatan' => $item['angkatan'] ?? null,
-                        'prodi' => $item['nama_program_studi'] ?? null,
-                    ])->values();
-                }
-            } catch (\Exception $e) {
-                // Ignore API errors, just show empty
-            }
-        }
 
         return Inertia::render('Admin/KelasKuliah/Show', [
             'kelasKuliah' => [

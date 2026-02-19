@@ -127,7 +127,7 @@ class StudentSyncService extends BaseSyncService
                 // Find student by ID Mahasiswa
                 $mahasiswa = Mahasiswa::where('id_mahasiswa', $bio['id_mahasiswa'])->first();
                 
-                if (!$mahasiswa) {
+                if (!$mahasiswa && isset($bio['nim'])) {
                     // Start looking by NIM if ID not found (fallback)
                      $mahasiswa = Mahasiswa::where('nim', $bio['nim'])->first();
                 }

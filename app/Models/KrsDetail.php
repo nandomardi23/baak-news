@@ -16,6 +16,13 @@ class KrsDetail extends Model
         'nama_kelas',
         'dosen_id',
         'nama_dosen',
+        // Sync Columns
+        'id_matkul',
+        'kode_mata_kuliah',
+        'nama_mata_kuliah',
+        'sks_mata_kuliah',
+        'nama_kelas_kuliah',
+        'angkatan',
     ];
 
     public function krs(): BelongsTo
