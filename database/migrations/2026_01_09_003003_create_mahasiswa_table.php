@@ -4,17 +4,16 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('mahasiswa', function (Blueprint $table) {
             $table->id();
-            $table->string('id_mahasiswa', 50)->unique()->comment('ID dari Neo Feeder');
+            $table->string('id_mahasiswa', 50)->comment('ID dari Neo Feeder');
             $table->string('nim', 50)->unique();
             $table->string('nama', 150);
             $table->string('nama_mahasiswa', 150)->nullable();
-            
+
             $table->string('tempat_lahir')->nullable();
             $table->date('tanggal_lahir')->nullable();
             $table->enum('jenis_kelamin', ['L', 'P'])->nullable();
@@ -26,7 +25,7 @@ return new class extends Migration
             $table->string('kewarganegaraan')->nullable();
 
             // Address Info
-            $table->string('jalan', 150)->nullable();
+            $table->text('jalan')->nullable();
             $table->text('alamat')->nullable();
             $table->string('dusun', 100)->nullable();
             $table->string('rt', 10)->nullable();
@@ -101,7 +100,9 @@ return new class extends Migration
             $table->string('nama_status_mahasiswa', 100)->nullable();
             $table->string('id_registrasi_mahasiswa')->nullable()->comment('ID Registrasi dari Neo Feeder');
             $table->decimal('ipk', 4, 2)->nullable();
+            $table->decimal('ips', 4, 2)->nullable();
             $table->integer('sks_tempuh')->nullable();
+            $table->integer('sks_total')->nullable();
             $table->foreignId('dosen_wali_id')->nullable()->constrained('dosen')->nullOnDelete();
 
             // Graduation / Keluar
@@ -122,12 +123,13 @@ return new class extends Migration
             $table->string('provinsi_ortu')->nullable();
             $table->string('pekerjaan_ayah')->nullable();
             $table->string('pekerjaan_ibu')->nullable();
-            
+
             $table->timestamps();
-            
+
             $table->index('nim');
             $table->index('nama');
             $table->index('program_studi_id');
+            $table->index('id_mahasiswa');
         });
     }
 
