@@ -10,13 +10,20 @@ export function useStatusBadge() {
      */
     const getBadgeClass = (badge: string): string => {
         const classes: Record<string, string> = {
-            warning: 'bg-amber-50 text-amber-700 border-amber-200',
-            success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-            danger: 'bg-red-50 text-red-700 border-red-200',
-            info: 'bg-blue-50 text-blue-700 border-blue-200',
+            // Badge-type keys (from backend status_badge)
+            warning: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+            success: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+            danger: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+            info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
             secondary: 'bg-slate-50 text-slate-600 border-slate-200',
+            // Status keys (used in Surat/Show)
+            pending: 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400',
+            processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
+            approved: 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400',
+            rejected: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+            printed: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
         };
-        return classes[badge] || classes.secondary;
+        return classes[badge] || 'bg-gray-100 text-gray-800';
     };
 
     /**

@@ -4,6 +4,7 @@ import { type BreadcrumbItem } from '@/types';
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { ref, computed } from 'vue';
+import { useStatusBadge } from '@/composables/useStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -148,10 +149,7 @@ const submitDelete = () => {
     });
 };
 
-const getStatusBadge = (status: string | null) => {
-    if (status === 'Aktif') return 'bg-emerald-100 text-emerald-700 border-emerald-200';
-    return 'bg-gray-100 text-gray-700 border-gray-200';
-};
+const { getStatusBadge } = useStatusBadge();
 </script>
 
 <template>

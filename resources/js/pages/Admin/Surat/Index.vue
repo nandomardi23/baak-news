@@ -3,6 +3,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { useStatusBadge } from '@/composables/useStatusBadge';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Eye, Printer, Trash2 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -62,11 +63,7 @@ const deleteSurat = (id: number) => {
     }
 };
 
-const getBadgeClass = (badge: string) => {
-    // Mapping backend badge classes to Tailwind if needed, or using directly
-    // Assuming backend returns full tailwind classes string like 'bg-green-100 ...'
-    return badge;
-};
+const { getBadgeClass } = useStatusBadge();
 </script>
 
 <template>
