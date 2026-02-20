@@ -48,7 +48,90 @@ class DashboardController extends Controller
         });
     }
 
-    // ... (other methods unchanged) ...
+    private function getMahasiswaPerProdi(): array
+    {
+        return ProgramStudi::active()
+            ->withCount(['mahasiswa' => fn($q) => $q->active()])
+            ->orderByDesc('mahasiswa_count')
+            ->get()
+            ->map(fn($prodi) => [
+                'nama' => $prodi->nama_prodi ?? $prodi->nama,
+                'total' => $prodi->mahasiswa_count,
+            ])
+            ->toArray();
+    }
+
+    private function getSuratPerStatus(): array
+    {
+        return SuratPengajuan::selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->toArray();
+    }
+
+    private function getRecentPengajuan()
+    {
+        return SuratPengajuan::with('mahasiswa:id,nim,nama')
+            ->latest()
+            ->take(10)
+            ->get()
+            ->map(fn($s) => [
+                'id' => $s->id,
+                'mahasiswa' => [
+                    'nim' => $s->mahasiswa->nim ?? '-',
+                    'nama' => $s->mahasiswa->nama ?? '-',
+                ],
+                'jenis_surat' => $s->jenis_surat,
+                'status' => $s->status,
+                'status_label' => $s->status_label,
+                'status_badge' => $s->status_badge,
+                'created_at' => $s->created_at->format('d M Y'),
+            ]);
+    }
+
+    private function getPengajuanPerJenis(): array
+    {
+        return SuratPengajuan::selectRaw('jenis_surat, count(*) as total')
+            ->groupBy('jenis_surat')
+            ->pluck('total', 'jenis_surat')
+            ->toArray();
+    }
+
+    private function getMahasiswaPerAngkatan(): array
+    {
+        return Mahasiswa::active()
+            ->selectRaw('angkatan, count(*) as total')
+            ->groupBy('angkatan')
+            ->orderByDesc('angkatan')
+            ->get()
+            ->map(fn($m) => [
+                'angkatan' => (string) $m->angkatan,
+                'total' => $m->total,
+            ])
+            ->toArray();
+    }
+
+    private function getIpkDistribution(): array
+    {
+        $ranges = [
+            '3.50 - 4.00' => [3.50, 4.00],
+            '3.00 - 3.49' => [3.00, 3.49],
+            '2.50 - 2.99' => [2.50, 2.99],
+            '2.00 - 2.49' => [2.00, 2.49],
+            '< 2.00' => [0, 1.99],
+        ];
+
+        $result = [];
+        foreach ($ranges as $label => [$min, $max]) {
+            $result[] = [
+                'range' => $label,
+                'total' => Mahasiswa::active()
+                    ->whereBetween('ipk', [$min, $max])
+                    ->count(),
+            ];
+        }
+        return $result;
+    }
 
     private function getMonthlyPengajuan()
     {
