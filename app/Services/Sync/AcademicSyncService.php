@@ -436,6 +436,16 @@ class AcademicSyncService extends BaseSyncService
             return $this->syncAktivitasLegacy($offset, $limit);
         }
 
+        // Optimization: Skip future semesters
+        $maxSemester = (date('Y') + 1) . '3';
+        if ($idSemester > $maxSemester) {
+            return [
+                'synced' => 0, 'total' => 0, 'total_all' => 0,
+                'progress' => 100, 'has_more' => false,
+                'message' => 'Semester masa depan dilewati'
+            ];
+        }
+
         $baseFilter = "id_semester = '{$idSemester}'";
         $filter = $this->getFilter($baseFilter, $syncSince);
 
@@ -931,19 +941,23 @@ class AcademicSyncService extends BaseSyncService
     /**
      * Sync KRS tanpa filter semester - ambil semua semester yang ada di DB
      */
-    /**
-     * Sync KRS tanpa filter semester - ambil semua semester yang ada di DB
-     */
     public function syncKrsAllSemesters(int $offset, int $limit, ?string $syncSince = null): array
     {
-        // STRATEGI BARU: Ambil semester dari riwayat Aktivitas Kuliah Mahasiswa (Real Data)
-        // Ini menghindari iterasi ke semester masa depan atau kosong.
-        $semesters = \App\Models\AktivitasKuliah::select('id_semester')
+        // STRATEGI BARU V2: State Encoding di Offset
+        // Offset = (SemesterIndex * 1,000,000) + InternalOffset
+        // Ini memungkinkan kita memecah 1 semester menjadi banyak request kecil tanpa looping internal (anti-timeout).
+        
+        $OFFSET_MULTIPLIER = 1000000;
+        $semesterIndex = intdiv($offset, $OFFSET_MULTIPLIER);
+        $internalOffset = $offset % $OFFSET_MULTIPLIER;
+
+        // 1. Ambil daftar semester (Prioritas Aktivitas Kuliah)
+        $semesters = AktivitasKuliah::select('id_semester')
             ->distinct()
             ->orderBy('id_semester', 'desc')
             ->pluck('id_semester');
 
-        // Fallback: Jika Aktivitas Kuliah kosong (belum disync), ambil dari TahunAkademik tapi dibatasi
+        // Fallback ke TahunAkademik jika kosong
         if ($semesters->isEmpty()) {
             $maxSemester = (date('Y') + 1) . '3'; 
             $semesters = \App\Models\TahunAkademik::where('id_semester', '<=', $maxSemester)
@@ -954,74 +968,74 @@ class AcademicSyncService extends BaseSyncService
         if ($semesters->isEmpty()) {
             return [
                 'total' => 0, 'synced' => 0,
-                'errors' => ['Belum ada data Semester atau Aktivitas Kuliah. Harap Sync Semester/Aktivitas dulu.'],
+                'errors' => ['Belum ada data Semester.'],
                 'total_all' => 0, 'has_more' => false, 'progress' => 0,
             ];
         }
 
-        $semesterIndex = intdiv($offset, $limit);
-        
+        // 2. Cek apakah index valid
         if ($semesterIndex >= $semesters->count()) {
-            return [
+             return [
                 'total' => 0, 'synced' => 0, 'errors' => [],
-                'total_all' => $semesters->count() * $limit, 'has_more' => false, 'progress' => 100,
+                'total_all' => $semesters->count() * $OFFSET_MULTIPLIER, 
+                'has_more' => false, 'progress' => 100,
             ];
         }
 
         $currentSemester = $semesters[$semesterIndex];
-        $result = $this->syncKrs(0, $limit, $currentSemester, $syncSince);
-        
-        // Lanjut fetch halaman berikutnya untuk semester ini
-        // Loop internal untuk menghabiskan satu semester sekaligus
-        // Note: Ini bisa timeout jika semester sangat besar. 
-        // Idealnya kita return partial dan resume, tapi struktur "AllSemester" ini berasumsi 1 request = 1 semester.
-        // Untuk kestabilan, jika data > limit, kita ambil sisanya di request yang sama (looping)
-        // ATAU kita ubah struktur agar offset itu record-based.
-        // TAPI karena user minta quick fix: kita pertahankan loop internal tapi hati-hati timeout.
-        while ($result['has_more'] ?? false) {
-            // Safety break untuk menghindari infinite loop / timeout
-            if (($result['total'] ?? 0) > 5000) break; 
 
-            $nextResult = $this->syncKrs($result['next_offset'], $limit, $currentSemester, $syncSince);
-            $result['synced'] += $nextResult['synced'];
-            $result['total'] += $nextResult['total'];
-            $result['errors'] = array_merge($result['errors'] ?? [], $nextResult['errors'] ?? []);
-            $result = array_merge($result, [
-                'has_more' => $nextResult['has_more'],
-                'next_offset' => $nextResult['next_offset'],
-            ]);
+        // 3. Sync HANYA batch ini (Limit sesuai request, misal 100)
+        // Kita gunakan $limit yang dikirim frontend (misal 100), bukan loop sampai habis.
+        // STOP LOOPING! Looping di sini bikin timeout. Biarkan frontend yang looping request.
+        $result = $this->syncKrs($internalOffset, $limit, $currentSemester, $syncSince);
+        
+        // 4. Tentukan Next Offset
+        // Jika semester ini masih ada data ($result['has_more']), kita lanjut di semester yang sama
+        // Jika habis, kita lompat ke semester berikutnya (Index + 1, Offset 0)
+        
+        $hasMoreDataInSemester = $result['has_more'];
+        
+        if ($hasMoreDataInSemester) {
+            $nextInternalOffset = $result['next_offset']; // Biasanya current + limit
+            $newGlobalOffset = ($semesterIndex * $OFFSET_MULTIPLIER) + $nextInternalOffset;
+            $hasMore = true;
+        } else {
+            // Pindah ke semester berikutnya
+            $newGlobalOffset = ($semesterIndex + 1) * $OFFSET_MULTIPLIER;
+            $hasMore = ($semesterIndex + 1) < $semesters->count();
         }
 
-        $nextSemesterIndex = $semesterIndex + 1;
-        $hasMore = $nextSemesterIndex < $semesters->count();
-        // Calculate progress based on Scaled Total
-        $totalAllScaled = $semesters->count() * $limit;
-        $currentProgressScaled = $nextSemesterIndex * $limit;
-        $progress = min(100, round(($currentProgressScaled / $totalAllScaled) * 100));
-
+        // 5. Progress Calculation
+        $totalAllScaled = $semesters->count() * $OFFSET_MULTIPLIER;
+        // Progress sekarang = Offset Global / Total Scaled
+        
+        // Kita kembalikan total dari batch ini saja
         return [
             'total' => $result['total'],
             'synced' => $result['synced'],
             'errors' => $result['errors'] ?? [],
-            'total_all' => $totalAllScaled, // Scaled total to match offset mechanism
+            'total_all' => $totalAllScaled, // Kunci agar progress bar jalan mulus
             'offset' => $offset,
-            'next_offset' => $hasMore ? ($nextSemesterIndex * $limit) : null,
+            'next_offset' => $hasMore ? $newGlobalOffset : null,
             'has_more' => $hasMore,
-            'progress' => $progress,
-            'message' => "Semester {$currentSemester} selesai ({$nextSemesterIndex}/{$semesters->count()})",
+            'progress' => min(100, round(($offset / $totalAllScaled) * 100)),
+            'message' => "Sync Semester {$currentSemester}..."
         ];
     }
 
     /**
      * Sync Nilai tanpa filter semester - ambil semua semester yang ada di DB
      */
-    /**
-     * Sync Nilai tanpa filter semester - ambil semua semester yang ada di DB
-     */
     public function syncNilaiAllSemesters(int $offset, int $limit, ?string $syncSince = null): array
     {
-        // STRATEGI BARU: Ambil semester dari riwayat Aktivitas Kuliah Mahasiswa
-        $semesters = \App\Models\AktivitasKuliah::select('id_semester')
+        // STRATEGI BARU V2: State Encoding di Offset (Sama dengan KRS)
+        
+        $OFFSET_MULTIPLIER = 1000000;
+        $semesterIndex = intdiv($offset, $OFFSET_MULTIPLIER);
+        $internalOffset = $offset % $OFFSET_MULTIPLIER;
+
+        // 1. Ambil daftar semester (Prioritas Aktivitas Kuliah)
+        $semesters = AktivitasKuliah::select('id_semester')
             ->distinct()
             ->orderBy('id_semester', 'desc')
             ->pluck('id_semester');
@@ -1042,37 +1056,34 @@ class AcademicSyncService extends BaseSyncService
             ];
         }
 
-        $semesterIndex = intdiv($offset, $limit);
-        
         if ($semesterIndex >= $semesters->count()) {
             return [
                 'total' => 0, 'synced' => 0, 'errors' => [],
-                'total_all' => $semesters->count() * $limit, 'has_more' => false, 'progress' => 100,
+                'total_all' => $semesters->count() * $OFFSET_MULTIPLIER, 
+                'has_more' => false, 'progress' => 100,
             ];
         }
 
         $currentSemester = $semesters[$semesterIndex];
-        $result = $this->syncNilai(0, $limit, $currentSemester, $syncSince);
         
-        while ($result['has_more'] ?? false) {
-             if (($result['total'] ?? 0) > 5000) break; // Safety break
-
-            $nextResult = $this->syncNilai($result['next_offset'], $limit, $currentSemester, $syncSince);
-            $result['synced'] += $nextResult['synced'];
-            $result['total'] += $nextResult['total'];
-            $result['errors'] = array_merge($result['errors'] ?? [], $nextResult['errors'] ?? []);
-            $result = array_merge($result, [
-                'has_more' => $nextResult['has_more'],
-                'next_offset' => $nextResult['next_offset'],
-            ]);
+        // 3. Sync HANYA batch ini
+        $result = $this->syncNilai($internalOffset, $limit, $currentSemester, $syncSince);
+        
+        // 4. Determine Next Offset
+        $hasMoreDataInSemester = $result['has_more'];
+        
+        if ($hasMoreDataInSemester) {
+            $nextInternalOffset = $result['next_offset'];
+            $newGlobalOffset = ($semesterIndex * $OFFSET_MULTIPLIER) + $nextInternalOffset;
+            $hasMore = true;
+        } else {
+            // Next semester
+            $newGlobalOffset = ($semesterIndex + 1) * $OFFSET_MULTIPLIER;
+            $hasMore = ($semesterIndex + 1) < $semesters->count();
         }
 
-        $nextSemesterIndex = $semesterIndex + 1;
-        $hasMore = $nextSemesterIndex < $semesters->count();
-        
-        $totalAllScaled = $semesters->count() * $limit;
-        $currentProgressScaled = $nextSemesterIndex * $limit;
-        $progress = min(100, round(($currentProgressScaled / $totalAllScaled) * 100));
+        // 5. Progress Calculation
+        $totalAllScaled = $semesters->count() * $OFFSET_MULTIPLIER;
 
         return [
             'total' => $result['total'],
@@ -1080,10 +1091,10 @@ class AcademicSyncService extends BaseSyncService
             'errors' => $result['errors'] ?? [],
             'total_all' => $totalAllScaled,
             'offset' => $offset,
-            'next_offset' => $hasMore ? ($nextSemesterIndex * $limit) : null,
+            'next_offset' => $hasMore ? $newGlobalOffset : null,
             'has_more' => $hasMore,
-            'progress' => $progress,
-            'message' => "Semester {$currentSemester} selesai ({$nextSemesterIndex}/{$semesters->count()})",
+            'progress' => min(100, round(($offset / $totalAllScaled) * 100)),
+             'message' => "Sync Semester {$currentSemester}..."
         ];
     }
 
