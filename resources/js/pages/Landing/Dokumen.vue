@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import LandingLayout from '@/layouts/LandingLayout.vue';
+import { useStatusBadge } from '@/composables/useStatusBadge';
 
 interface Mahasiswa {
     id: number;
@@ -35,44 +36,14 @@ const props = defineProps<{
     recentPengajuan: Pengajuan[];
 }>();
 
-const isMobileMenuOpen = ref(false);
-
-const getBadgeClass = (badge: string) => {
-    const classes: Record<string, string> = {
-        warning: 'bg-amber-100 text-amber-800',
-        success: 'bg-emerald-100 text-emerald-800',
-        danger: 'bg-red-100 text-red-800',
-        info: 'bg-blue-100 text-blue-800',
-    };
-    return classes[badge] || 'bg-gray-100 text-gray-800';
-};
+const { getBadgeClass } = useStatusBadge();
 </script>
 
 <template>
     <Head :title="`Dokumen - ${mahasiswa.nama}`" />
 
-    <div class="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30 text-slate-800">
-        <!-- Navbar -->
-        <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16 items-center">
-                    <Link href="/" class="flex items-center gap-3 group">
-                        <div class="w-10 h-10 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                        </div>
-                        <span class="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-700 to-indigo-600">SHT-BAAK</span>
-                    </Link>
-                    <div class="hidden md:flex items-center gap-4">
-                        <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
-                        <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
-                        <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
+    <LandingLayout variant="simple">
         <div class="max-w-5xl mx-auto py-8 px-4 sm:py-12">
-            <!-- Back Button -->
             <Link href="/" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition font-medium group">
                 <svg class="w-5 h-5 mr-2 group-hover:-translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/></svg>
                 Kembali ke Beranda
@@ -101,9 +72,7 @@ const getBadgeClass = (badge: string) => {
                 </div>
             </div>
 
-            <!-- Documents Grid -->
             <div class="grid lg:grid-cols-3 gap-6">
-                <!-- Main Documents Section -->
                 <div class="lg:col-span-2 space-y-6">
                     <!-- Semester Documents -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
@@ -113,13 +82,12 @@ const getBadgeClass = (badge: string) => {
                             </div>
                             <div>
                                 <h2 class="text-lg font-bold text-slate-900">Dokumen Per Semester</h2>
-                                <p class="text-sm text-slate-500">Cetak KRS & KHS</p>
+                                <p class="text-sm text-slate-500">Cetak KRS &amp; KHS</p>
                             </div>
                         </div>
 
                         <div v-if="semesters.length > 0" class="space-y-3">
-                            <div v-for="sem in semesters" :key="sem.id" 
-                                class="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
+                            <div v-for="sem in semesters" :key="sem.id" class="flex items-center justify-between p-4 bg-slate-50 rounded-xl hover:bg-slate-100 transition">
                                 <div>
                                     <p class="font-semibold text-slate-800">{{ sem.nama }}</p>
                                     <div class="flex gap-2 mt-1">
@@ -128,23 +96,17 @@ const getBadgeClass = (badge: string) => {
                                     </div>
                                 </div>
                                 <div class="flex gap-2 flex-wrap">
-                                    <a v-if="sem.has_krs" 
-                                        :href="`/dokumen/${mahasiswa.id}/krs/${sem.id}/print`" 
-                                        target="_blank"
+                                    <a v-if="sem.has_krs" :href="`/dokumen/${mahasiswa.id}/krs/${sem.id}/print`" target="_blank"
                                         class="px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                         KRS
                                     </a>
-                                    <a v-if="sem.has_nilai" 
-                                        :href="`/dokumen/${mahasiswa.id}/khs/${sem.id}/print`" 
-                                        target="_blank"
+                                    <a v-if="sem.has_nilai" :href="`/dokumen/${mahasiswa.id}/khs/${sem.id}/print`" target="_blank"
                                         class="px-3 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
                                         KHS
                                     </a>
-                                    <a v-if="sem.has_krs" 
-                                        :href="`/dokumen/${mahasiswa.id}/kartu-ujian/${sem.id}/print`" 
-                                        target="_blank"
+                                    <a v-if="sem.has_krs" :href="`/dokumen/${mahasiswa.id}/kartu-ujian/${sem.id}/print`" target="_blank"
                                         class="px-3 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition flex items-center gap-1">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
                                         Kartu Ujian
@@ -158,7 +120,7 @@ const getBadgeClass = (badge: string) => {
                         </div>
                     </div>
 
-                    <!-- Transkrip Section -->
+                    <!-- Transkrip -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
                         <div class="flex items-center gap-3 mb-5">
                             <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
@@ -170,23 +132,14 @@ const getBadgeClass = (badge: string) => {
                             </div>
                         </div>
                         <div class="flex gap-3">
-                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/reguler`" 
-                                target="_blank"
-                                class="flex-1 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition text-center">
-                                Cetak Transkrip Reguler
-                            </a>
-                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/rpl`" 
-                                target="_blank"
-                                class="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition text-center">
-                                Cetak Transkrip RPL
-                            </a>
+                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/reguler`" target="_blank" class="flex-1 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition text-center">Cetak Transkrip Reguler</a>
+                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/rpl`" target="_blank" class="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition text-center">Cetak Transkrip RPL</a>
                         </div>
                     </div>
                 </div>
 
-                <!-- Sidebar: Surat Keterangan -->
+                <!-- Sidebar -->
                 <div class="space-y-6">
-                    <!-- Request Letter -->
                     <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
                         <div class="flex items-center gap-3 mb-5">
                             <div class="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center text-amber-600">
@@ -197,18 +150,10 @@ const getBadgeClass = (badge: string) => {
                                 <p class="text-sm text-slate-500">Perlu approval admin</p>
                             </div>
                         </div>
-                        
-                        <Link :href="`/pengajuan/${mahasiswa.id}`"
-                            class="block w-full py-3 bg-linear-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl hover:from-amber-600 hover:to-orange-600 transition text-center shadow-lg shadow-amber-500/20">
-                            Ajukan Surat Keterangan
-                        </Link>
-                        
-                        <p class="text-xs text-slate-400 mt-3 text-center">
-                            Untuk surat yang memerlukan tanda tangan resmi
-                        </p>
+                        <Link :href="`/pengajuan/${mahasiswa.id}`" class="block w-full py-3 bg-linear-to-r from-amber-500 to-orange-500 text-white font-medium rounded-xl hover:from-amber-600 hover:to-orange-600 transition text-center shadow-lg shadow-amber-500/20">Ajukan Surat Keterangan</Link>
+                        <p class="text-xs text-slate-400 mt-3 text-center">Untuk surat yang memerlukan tanda tangan resmi</p>
                     </div>
 
-                    <!-- Recent Requests -->
                     <div v-if="recentPengajuan.length > 0" class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
                         <h3 class="font-bold text-slate-900 mb-4">Pengajuan Terakhir</h3>
                         <div class="space-y-3">
@@ -217,17 +162,13 @@ const getBadgeClass = (badge: string) => {
                                     <p class="font-medium text-slate-700">{{ p.jenis_surat }}</p>
                                     <p class="text-xs text-slate-400">{{ p.created_at }}</p>
                                 </div>
-                                <span :class="getBadgeClass(p.status_badge)" class="px-2 py-1 rounded-full text-xs font-medium">
-                                    {{ p.status_label }}
-                                </span>
+                                <span :class="getBadgeClass(p.status_badge)" class="px-2 py-1 rounded-full text-xs font-medium">{{ p.status_label }}</span>
                             </div>
                         </div>
-                        <Link :href="`/status/${mahasiswa.id}`" class="block mt-4 text-center text-sm text-blue-600 hover:underline">
-                            Lihat Semua →
-                        </Link>
+                        <Link :href="`/status/${mahasiswa.id}`" class="block mt-4 text-center text-sm text-blue-600 hover:underline">Lihat Semua →</Link>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </LandingLayout>
 </template>

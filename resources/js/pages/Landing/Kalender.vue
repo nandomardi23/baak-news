@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
+import LandingLayout from '@/layouts/LandingLayout.vue';
 
 interface KalenderItem {
     id: number;
@@ -47,27 +48,14 @@ const groupedByMonth = computed(() => {
 <template>
     <Head title="Kalender Akademik" />
 
-    <div class="min-h-screen bg-linear-to-br from-slate-50 to-blue-50 dark:from-slate-900 dark:to-slate-800">
-        <!-- Header -->
-        <header class="bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b sticky top-0 z-40">
-            <div class="max-w-6xl mx-auto px-4 py-4">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-3">
-                        <a href="/" class="text-2xl font-bold text-blue-600">📅</a>
-                        <div>
-                            <h1 class="font-bold text-lg">Kalender Akademik</h1>
-                            <p class="text-sm text-muted-foreground">{{ tahunAkademik?.nama }}</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center gap-4">
-                        <Link href="/" class="text-sm font-medium hover:text-blue-600 transition-colors">Home</Link>
-                        <Link href="/profil" class="text-sm font-medium hover:text-blue-600 transition-colors">Profil</Link>
-                    </div>
-                </div>
-            </div>
-        </header>
-
+    <LandingLayout variant="simple">
         <main class="max-w-6xl mx-auto px-4 py-8">
+            <!-- Page Title -->
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-slate-900">📅 Kalender Akademik</h1>
+                <p class="text-sm text-slate-500">{{ tahunAkademik?.nama }}</p>
+            </div>
+
             <div class="grid lg:grid-cols-3 gap-8">
                 <!-- Main Timeline -->
                 <div class="lg:col-span-2">
@@ -187,12 +175,5 @@ const groupedByMonth = computed(() => {
                 </div>
             </div>
         </main>
-
-        <!-- Footer -->
-        <footer class="border-t bg-white/50 dark:bg-slate-900/50 backdrop-blur mt-12">
-            <div class="max-w-6xl mx-auto px-4 py-6 text-center text-sm text-muted-foreground">
-                © {{ new Date().getFullYear() }} BAAK - Sistem Informasi Akademik
-            </div>
-        </footer>
-    </div>
+    </LandingLayout>
 </template>

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import LandingLayout from '@/layouts/LandingLayout.vue';
 
 interface Mahasiswa {
     id: number;
@@ -14,49 +14,12 @@ defineProps<{
     mahasiswa: Mahasiswa[];
     search: string;
 }>();
-
-const isMobileMenuOpen = ref(false);
 </script>
 
 <template>
     <Head :title="`Hasil Pencarian: ${search}`" />
 
-    <div class="min-h-screen bg-linear-to-br from-slate-50 via-white to-blue-50/30 text-slate-800">
-        <!-- Navbar -->
-        <nav class="sticky top-0 z-50 bg-white/90 backdrop-blur-lg border-b border-slate-100 shadow-sm">
-            <div class="w-full mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-16 items-center">
-                    <Link href="/" class="flex items-center gap-3 group">
-                        <div class="w-10 h-10 bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/20 text-white group-hover:shadow-blue-500/40 transition">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                        </div>
-                        <span class="text-xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-700 to-indigo-600">SHT-BAAK</span>
-                    </Link>
-                    <!-- Mobile Menu Button -->
-                    <button @click="isMobileMenuOpen = !isMobileMenuOpen" class="md:hidden p-2 rounded-lg hover:bg-slate-100">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path v-if="!isMobileMenuOpen" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
-                            <path v-else stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-                        </svg>
-                    </button>
-                    <!-- Desktop Nav -->
-                    <div class="hidden md:flex items-center gap-4">
-                        <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
-                        <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
-                        <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
-                    </div>
-                </div>
-            </div>
-            <!-- Mobile Menu -->
-            <div v-if="isMobileMenuOpen" class="md:hidden border-t border-slate-100 bg-white/95 backdrop-blur-lg">
-                <div class="px-4 py-3 space-y-2">
-                    <Link href="/" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Beranda</Link>
-                    <Link href="/profil" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Profil</Link>
-                    <Link href="/login" class="block px-4 py-2 bg-blue-600 text-white font-medium rounded-lg text-center">Login Admin</Link>
-                </div>
-            </div>
-        </nav>
-
+    <LandingLayout variant="simple">
         <div class="w-full mx-auto py-8 px-4 sm:py-12">
             <!-- Back Button -->
             <Link href="/" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-6 transition font-medium group">
@@ -146,5 +109,5 @@ const isMobileMenuOpen = ref(false);
                 </div>
             </div>
         </div>
-    </div>
+    </LandingLayout>
 </template>

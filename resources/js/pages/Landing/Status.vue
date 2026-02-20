@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import LandingLayout from '@/layouts/LandingLayout.vue';
+import { useStatusBadge } from '@/composables/useStatusBadge';
 
 interface Mahasiswa {
     id: number;
@@ -24,43 +26,13 @@ defineProps<{
     pengajuan: Pengajuan[];
 }>();
 
-const getBadgeClass = (badge: string) => {
-    const classes: Record<string, string> = {
-        warning: 'bg-amber-50 text-amber-700 border-amber-200',
-        success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-        danger: 'bg-red-50 text-red-700 border-red-200',
-        info: 'bg-blue-50 text-blue-700 border-blue-200',
-        secondary: 'bg-slate-50 text-slate-600 border-slate-200',
-    };
-    return classes[badge] || classes.secondary;
-};
+const { getBadgeClass } = useStatusBadge();
 </script>
 
 <template>
     <Head title="Status Pengajuan" />
 
-    <div class="min-h-screen bg-slate-50 text-slate-800">
-        <!-- Navbar -->
-        <nav class="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-100 shadow-sm">
-            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div class="flex justify-between h-20 items-center">
-                    <Link href="/" class="flex items-center gap-3">
-                         <!-- Logo Icon wrapper -->
-                        <div class="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 text-white">
-                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
-                        </div>
-                        <h1 class="text-2xl font-bold bg-clip-text text-transparent bg-linear-to-r from-blue-700 to-blue-500">SHT-BAAK</h1>
-                    </Link>
-                    
-                    <div class="hidden md:flex items-center gap-4">
-                        <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
-                        <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
-                        <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
-                    </div>
-                </div>
-            </div>
-        </nav>
-
+    <LandingLayout variant="simple">
         <div class="max-w-4xl mx-auto py-12 px-4">
             <!-- Back Button -->
             <Link href="/" class="inline-flex items-center text-slate-500 hover:text-blue-600 mb-8 transition font-medium">
@@ -71,9 +43,6 @@ const getBadgeClass = (badge: string) => {
             </Link>
 
             <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-xl">
-                <!-- Success Message (Static example removed or dynamic if needed) -->
-                <!-- Assuming layout is general status list -->
-
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-900 mb-2">Status Pengajuan Surat</h2>
@@ -149,5 +118,5 @@ const getBadgeClass = (badge: string) => {
                 </div>
             </div>
         </div>
-    </div>
+    </LandingLayout>
 </template>
