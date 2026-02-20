@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('dosen', function (Blueprint $table) {
@@ -17,6 +16,7 @@ return new class extends Migration
             $table->string('gelar_depan', 50)->nullable();
             $table->string('gelar_belakang', 100)->nullable();
             $table->string('jenis_kelamin', 1)->nullable();
+            $table->string('id_agama')->nullable();
             $table->string('tempat_lahir')->nullable();
             $table->date('tanggal_lahir')->nullable();
             $table->string('jabatan_fungsional')->nullable();
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->foreignId('program_studi_id')->nullable()->constrained('program_studi')->nullOnDelete();
             $table->string('id_prodi')->nullable();
             $table->timestamps();
-            
+
             $table->index('nidn');
             $table->index('nama');
             $table->index('program_studi_id');

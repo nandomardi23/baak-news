@@ -53,8 +53,8 @@ class AcademicSyncService extends BaseSyncService
                     'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
                     'sks' => $item['sks'],
                     'bahasan' => $item['bahasan'] ?? null,
-                    'tanggal_mulai_efektif' => $item['tanggal_mulai_efektif'] ?? null,
-                    'tanggal_akhir_efektif' => $item['tanggal_akhir_efektif'] ?? null,
+                    'tanggal_mulai_efektif' => isset($item['tanggal_mulai_efektif']) ? date('Y-m-d', strtotime($item['tanggal_mulai_efektif'])) : null,
+                    'tanggal_akhir_efektif' => isset($item['tanggal_akhir_efektif']) ? date('Y-m-d', strtotime($item['tanggal_akhir_efektif'])) : null,
                     'updated_at' => now(),
                     'created_at' => now(),
                 ];
@@ -223,8 +223,11 @@ class AcademicSyncService extends BaseSyncService
 
         // 1. Get total count
         $totalAll = 0;
+        // Optimization: GetCount API is too slow for filtered query (takes ~30s).
+        // Since frontend already called /count upfront, we don't need it per batch.
+        // Pagination logic will gracefully fallback to ($batchCount === $limit). 
+        /*
         $filter = $this->getFilter("id_periode = '{$idSemester}'", $syncSince);
-
         try {
             $countResponse = $this->neoFeeder->requestQuick('GetCountKRSMahasiswa', ['filter' => $filter]);
             if ($countResponse && isset($countResponse['data'])) {
@@ -233,6 +236,7 @@ class AcademicSyncService extends BaseSyncService
         } catch (\Exception $e) {
             Log::warning("SyncKrs: GetCount failed. Error: " . $e->getMessage());
         }
+        */
 
         // 2. Fetch bulk data
         $dateFilter = $syncSince ? $this->getFilter('', $syncSince) : '';
@@ -256,6 +260,33 @@ class AcademicSyncService extends BaseSyncService
 
             $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
                 ->pluck('id', 'id_matkul');
+
+            // --- AUTO-CREATE MISSING MATKUL TO AVOID FOREIGN KEY ERROR ---
+            $missingMatkuls = [];
+            foreach ($data as $item) {
+                if (!empty($item['id_matkul']) && !isset($matkulMap[$item['id_matkul']])) {
+                    $missingMatkuls[$item['id_matkul']] = [
+                        'id_matkul' => $item['id_matkul'],
+                        'kode_matkul' => $item['kode_mata_kuliah'] ?? '-',
+                        'nama_matkul' => $item['nama_mata_kuliah'] ?? '-',
+                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            if (!empty($missingMatkuls)) {
+                \App\Models\MataKuliah::upsert(
+                    array_values($missingMatkuls),
+                    ['id_matkul'],
+                    ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'updated_at']
+                );
+                // Refresh matkulMap
+                $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
+                    ->pluck('id', 'id_matkul');
+            }
+            // -----------------------------------------------------------
 
             $semesterId = \App\Models\TahunAkademik::where('id_semester', $idSemester)->value('id');
 
@@ -367,8 +398,8 @@ class AcademicSyncService extends BaseSyncService
 
         // 1. Get total count
         $totalAll = 0;
+        /*
         $filter = $this->getFilter("id_semester = '{$idSemester}'", $syncSince);
-
         try {
             $countResponse = $this->neoFeeder->requestQuick('GetCountNilaiPerkuliahanKelas', ['filter' => $filter]);
             if ($countResponse && isset($countResponse['data'])) {
@@ -377,6 +408,7 @@ class AcademicSyncService extends BaseSyncService
         } catch (\Exception $e) {
             Log::warning("SyncNilai: GetCount failed. Error: " . $e->getMessage());
         }
+        */
 
         // 2. Fetch bulk data
         $dateFilter = $syncSince ? $this->getFilter('', $syncSince) : '';
@@ -401,6 +433,33 @@ class AcademicSyncService extends BaseSyncService
             $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
                 ->pluck('id', 'id_matkul');
 
+            // --- AUTO-CREATE MISSING MATKUL TO AVOID FOREIGN KEY ERROR ---
+            $missingMatkuls = [];
+            foreach ($data as $item) {
+                if (!empty($item['id_matkul']) && !isset($matkulMap[$item['id_matkul']])) {
+                    $missingMatkuls[$item['id_matkul']] = [
+                        'id_matkul' => $item['id_matkul'],
+                        'kode_matkul' => $item['kode_mata_kuliah'] ?? '-',
+                        'nama_matkul' => $item['nama_mata_kuliah'] ?? '-',
+                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+            }
+
+            if (!empty($missingMatkuls)) {
+                \App\Models\MataKuliah::upsert(
+                    array_values($missingMatkuls),
+                    ['id_matkul'],
+                    ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'updated_at']
+                );
+                // Refresh matkulMap
+                $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
+                    ->pluck('id', 'id_matkul');
+            }
+            // -----------------------------------------------------------
+
             $semesterId = \App\Models\TahunAkademik::where('id_semester', $idSemester)->value('id');
 
             $upsertData = [];
@@ -411,12 +470,6 @@ class AcademicSyncService extends BaseSyncService
                     continue;
 
                 $matkulId = $matkulMap[$item['id_matkul']] ?? null;
-
-                // Validasi: Jangan insert jika Mata Kuliah belum disync (Mencegah Constraint Violation)
-                if (!$matkulId) {
-                    $errors[] = "Nilai {$item['nim']} - {$item['kode_mata_kuliah']}: Mata Kuliah belum disinkronisasi (ID: {$item['id_matkul']})";
-                    continue;
-                }
 
                 $upsertData[] = [
                     'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
@@ -532,7 +585,9 @@ class AcademicSyncService extends BaseSyncService
         $filter = $this->getFilter($baseFilter, $syncSince);
 
         // 1. Get total count for this semester
+        // 1. Get total count
         $totalAll = 0;
+        /*
         try {
             $countResponse = $this->neoFeeder->requestQuick('GetCountAktivitasKuliahMahasiswa', ['filter' => $filter]);
             if ($countResponse && isset($countResponse['data'])) {
@@ -541,6 +596,7 @@ class AcademicSyncService extends BaseSyncService
         } catch (\Exception $e) {
             Log::warning("SyncAktivitas: GetCount failed. Error: " . $e->getMessage());
         }
+        */
 
         // 2. Fetch bulk data
         $response = $this->neoFeeder->request('GetAktivitasKuliahMahasiswa', [

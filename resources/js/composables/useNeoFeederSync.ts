@@ -72,7 +72,7 @@ export function useNeoFeederSync() {
         'mahasiswa': { url: 'mahasiswa', limit: 100, label: 'Mahasiswa' },
         'biodata': { url: 'biodata', limit: 100, label: 'Biodata Mahasiswa' },
         'aktivitas': { url: 'aktivitas', limit: 100, label: 'Aktivitas Kuliah' },
-        'krs': { url: 'krs', limit: 100, label: 'KRS Mahasiswa' },
+        'krs': { url: 'krs', limit: 1000, label: 'KRS Mahasiswa' },
         'nilai': { url: 'nilai', limit: 100, label: 'Nilai Perkuliahan' },
         'kelaskuliah': { url: 'kelas-kuliah', limit: 100, label: 'Kelas Kuliah' },
         'dosenpengajar': { url: 'dosen-pengajar', limit: 100, label: 'Dosen Pengajar' },
@@ -186,7 +186,7 @@ export function useNeoFeederSync() {
                     };
                     
                     if (totalCount === 0) {
-                        console.warn("Count returned 0, but proceeding to fetch check.");
+                        console.debug(`[${type}] Count returned 0, proceeding with sync.`);
                     }
                 }
             } catch (error: any) {

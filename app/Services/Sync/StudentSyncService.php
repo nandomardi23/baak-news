@@ -17,12 +17,12 @@ class StudentSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: GetCount failed. Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: GetCount failed. Error: " . $e->getMessage());
         }
 
         $filter = $this->getFilter('', $syncSince);
         $response = $this->neoFeeder->getMahasiswa($limit, $offset, $filter);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -34,9 +34,10 @@ class StudentSyncService extends BaseSyncService
 
         if (!empty($data)) {
             $records = [];
+            $prodiMap = \App\Models\ProgramStudi::pluck('id', 'id_prodi')->toArray();
             foreach ($data as $item) {
-                $angkatan = substr((string)$item['id_periode'], 0, 4);
-                
+                $angkatan = substr((string) $item['id_periode'], 0, 4);
+
                 // Parse date - NeoFeeder returns dd-mm-yyyy format, MySQL needs yyyy-mm-dd
                 $tanggalLahir = null;
                 if (!empty($item['tanggal_lahir'])) {
@@ -58,18 +59,19 @@ class StudentSyncService extends BaseSyncService
                     // Use id_mahasiswa as temporary NIM or skip
                     // Log warning
                     \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Missing NIM for student {$item['nama_mahasiswa']} (ID: {$item['id_mahasiswa']}). Using ID as NIM.");
-                    $nim = $item['id_mahasiswa']; 
+                    $nim = $item['id_mahasiswa'];
                 }
 
                 $records[] = [
                     'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
                     'id_mahasiswa' => $item['id_mahasiswa'],
                     'nim' => $nim,
-                    'nama' => $item['nama_mahasiswa'], 
+                    'nama' => $item['nama_mahasiswa'],
                     'jenis_kelamin' => $item['jenis_kelamin'],
                     'tanggal_lahir' => $tanggalLahir,
                     'angkatan' => $angkatan,
                     'id_prodi' => $item['id_prodi'],
+                    'program_studi_id' => $prodiMap[$item['id_prodi']] ?? null,
                     'status_mahasiswa' => $item['nama_status_mahasiswa'],
                     'created_at' => now(),
                     'updated_at' => now(),
@@ -77,7 +79,16 @@ class StudentSyncService extends BaseSyncService
             }
 
             $this->batchUpsert(Mahasiswa::class, $records, ['id_registrasi_mahasiswa'], [
-                'id_mahasiswa', 'nim', 'nama', 'jenis_kelamin', 'tanggal_lahir', 'angkatan', 'id_prodi', 'status_mahasiswa', 'updated_at'
+                'id_mahasiswa',
+                'nim',
+                'nama',
+                'jenis_kelamin',
+                'tanggal_lahir',
+                'angkatan',
+                'id_prodi',
+                'program_studi_id',
+                'status_mahasiswa',
+                'updated_at'
             ]);
             $synced = count($records);
         }
@@ -107,12 +118,12 @@ class StudentSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::warning("SyncBiodata: GetCount failed. Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning("SyncBiodata: GetCount failed. Error: " . $e->getMessage());
         }
 
         $filter = $this->getFilter('', $syncSince);
         $response = $this->neoFeeder->getBiodataMahasiswa(null, $limit, $offset, $filter);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -126,10 +137,10 @@ class StudentSyncService extends BaseSyncService
             try {
                 // Find student by ID Mahasiswa
                 $mahasiswa = Mahasiswa::where('id_mahasiswa', $bio['id_mahasiswa'])->first();
-                
+
                 if (!$mahasiswa && isset($bio['nim'])) {
                     // Start looking by NIM if ID not found (fallback)
-                     $mahasiswa = Mahasiswa::where('nim', $bio['nim'])->first();
+                    $mahasiswa = Mahasiswa::where('nim', $bio['nim'])->first();
                 }
 
                 if ($mahasiswa) {
@@ -187,7 +198,7 @@ class StudentSyncService extends BaseSyncService
                     $mahasiswa->nama_kebutuhan_khusus_ayah = $bio['nama_kebutuhan_khusus_ayah'];
                     $mahasiswa->id_kebutuhan_khusus_ibu = $bio['id_kebutuhan_khusus_ibu'];
                     $mahasiswa->nama_kebutuhan_khusus_ibu = $bio['nama_kebutuhan_khusus_ibu'];
-                    
+
                     $mahasiswa->save();
                     $synced++;
                 }
@@ -221,7 +232,7 @@ class StudentSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::warning("SyncLulusDO: GetCount failed. Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning("SyncLulusDO: GetCount failed. Error: " . $e->getMessage());
         }
 
         $filter = $this->getFilter('', $syncSince);
@@ -262,7 +273,23 @@ class StudentSyncService extends BaseSyncService
             }
 
             $this->batchUpsert(MahasiswaLulusDO::class, $records, ['id_registrasi_mahasiswa'], [
-                'id_mahasiswa', 'nim', 'nama_mahasiswa', 'id_jenis_keluar', 'nama_jenis_keluar', 'tanggal_keluar', 'id_periode_keluar', 'keterangan_keluar', 'nomor_sk_yudisium', 'tanggal_sk_yudisium', 'ipk', 'nomor_ijazah', 'jalur_skripsi', 'judul_skripsi', 'bulan_awal_bimbingan', 'bulan_akhir_bimbingan', 'updated_at'
+                'id_mahasiswa',
+                'nim',
+                'nama_mahasiswa',
+                'id_jenis_keluar',
+                'nama_jenis_keluar',
+                'tanggal_keluar',
+                'id_periode_keluar',
+                'keterangan_keluar',
+                'nomor_sk_yudisium',
+                'tanggal_sk_yudisium',
+                'ipk',
+                'nomor_ijazah',
+                'jalur_skripsi',
+                'judul_skripsi',
+                'bulan_awal_bimbingan',
+                'bulan_akhir_bimbingan',
+                'updated_at'
             ]);
             $synced = count($records);
         }
@@ -292,7 +319,7 @@ class StudentSyncService extends BaseSyncService
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
-             \Illuminate\Support\Facades\Log::warning("SyncRiwayatPendidikan: GetCount failed. Error: " . $e->getMessage());
+            \Illuminate\Support\Facades\Log::warning("SyncRiwayatPendidikan: GetCount failed. Error: " . $e->getMessage());
         }
 
         $filter = $this->getFilter('', $syncSince);
@@ -332,7 +359,22 @@ class StudentSyncService extends BaseSyncService
             }
 
             $this->batchUpsert(RiwayatPendidikanMahasiswa::class, $records, ['id_registrasi_mahasiswa'], [
-                'id_mahasiswa', 'nim', 'nama_mahasiswa', 'id_jenis_daftar', 'nama_jenis_daftar', 'id_jalur_daftar', 'nama_jalur_daftar', 'id_periode_masuk', 'tanggal_daftar', 'id_perguruan_tinggi_asal', 'nama_perguruan_tinggi_asal', 'id_prodi_asal', 'nama_prodi_asal', 'sks_diakui', 'biaya_masuk', 'updated_at'
+                'id_mahasiswa',
+                'nim',
+                'nama_mahasiswa',
+                'id_jenis_daftar',
+                'nama_jenis_daftar',
+                'id_jalur_daftar',
+                'nama_jalur_daftar',
+                'id_periode_masuk',
+                'tanggal_daftar',
+                'id_perguruan_tinggi_asal',
+                'nama_perguruan_tinggi_asal',
+                'id_prodi_asal',
+                'nama_prodi_asal',
+                'sks_diakui',
+                'biaya_masuk',
+                'updated_at'
             ]);
             $synced = count($records);
         }

@@ -39,4 +39,9 @@ class KrsDetail extends Model
     {
         return $this->belongsTo(MataKuliah::class, 'mata_kuliah_id');
     }
+
+    public function kelasKuliah(): BelongsTo
+    {
+        return $this->belongsTo(KelasKuliah::class, 'id_kelas_kuliah', 'id_kelas_kuliah');
+    }
 }

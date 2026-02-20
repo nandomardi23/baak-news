@@ -42,7 +42,7 @@ class LecturerSyncService extends BaseSyncService
                     'nip' => $item['nip'],
                     'jenis_kelamin' => $item['jenis_kelamin'],
                     'id_agama' => $item['id_agama'],
-                    'tanggal_lahir' => $item['tanggal_lahir'],
+                    'tanggal_lahir' => isset($item['tanggal_lahir']) ? date('Y-m-d', strtotime($item['tanggal_lahir'])) : null,
                     'id_status_aktif' => $item['id_status_aktif'],
                     'status_aktif' => $item['nama_status_aktif'],
                     'id_prodi' => $item['id_prodi'] ?? null,

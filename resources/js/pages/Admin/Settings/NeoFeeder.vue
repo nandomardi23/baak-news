@@ -390,6 +390,8 @@ const connectionStatus = computed(() => {
                                         </svg>
                                     </div>
                                     <input
+                                        id="neofeeder-url"
+                                        name="url"
                                         v-model="form.url"
                                         type="url"
                                         class="w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-background transition-all"
@@ -412,6 +414,8 @@ const connectionStatus = computed(() => {
                                         </svg>
                                     </div>
                                     <input
+                                        id="neofeeder-username"
+                                        name="username"
                                         v-model="form.username"
                                         type="text"
                                         class="w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-background transition-all"
@@ -432,6 +436,8 @@ const connectionStatus = computed(() => {
                                         </svg>
                                     </div>
                                     <input
+                                        id="neofeeder-password"
+                                        name="password"
                                         v-model="form.password"
                                         type="password"
                                         class="w-full pl-10 pr-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-background transition-all"
@@ -560,6 +566,8 @@ const connectionStatus = computed(() => {
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-2">
                                      <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Sejak Tanggal:</label>
                                      <input 
+                                        id="sync-since-date"
+                                        name="sync_since"
                                         type="date" 
                                         v-model="syncSince"
                                         class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
@@ -570,6 +578,8 @@ const connectionStatus = computed(() => {
                                 <div v-if="semesters && semesters.length > 0" class="flex flex-col sm:flex-row sm:items-center gap-2">
                                     <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Semester:</label>
                                     <select 
+                                        id="sync-semester"
+                                        name="semester"
                                         v-model="selectedSemester" 
                                         class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[140px] shadow-sm"
                                     >
