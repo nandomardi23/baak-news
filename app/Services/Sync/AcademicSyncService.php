@@ -42,24 +42,36 @@ class AcademicSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                    'id_prodi' => $item['id_prodi'],
+                    'id_semester' => $item['id_semester'],
+                    'id_matkul' => $item['id_matkul'],
+                    'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
+                    'sks' => $item['sks'],
+                    'bahasan' => $item['bahasan'] ?? null,
+                    'tanggal_mulai_efektif' => $item['tanggal_mulai_efektif'] ?? null,
+                    'tanggal_akhir_efektif' => $item['tanggal_akhir_efektif'] ?? null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
             try {
-                KelasKuliah::updateOrCreate(
-                    ['id_kelas_kuliah' => $item['id_kelas_kuliah']],
-                    [
-                        'id_prodi' => $item['id_prodi'],
-                        'id_semester' => $item['id_semester'],
-                        'id_matkul' => $item['id_matkul'],
-                        'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
-                        'sks' => $item['sks'],
-                        'bahasan' => $item['bahasan'] ?? null,
-                        'tanggal_mulai_efektif' => $item['tanggal_mulai_efektif'] ?? null,
-                        'tanggal_akhir_efektif' => $item['tanggal_akhir_efektif'] ?? null,
-                    ]
-                );
-                $synced++;
+                foreach (array_chunk($records, 500) as $chunk) {
+                    KelasKuliah::upsert(
+                        $chunk,
+                        ['id_kelas_kuliah'],
+                        ['id_prodi', 'id_semester', 'id_matkul', 'nama_kelas_kuliah', 'sks', 'bahasan', 'tanggal_mulai_efektif', 'tanggal_akhir_efektif', 'updated_at']
+                    );
+                }
+                $synced = count($records);
             } catch (\Exception $e) {
-                $errors[] = "Kelas {$item['nama_kelas_kuliah']}: " . $e->getMessage();
+                $errors[] = "Kelas Kuliah Batch Error: " . $e->getMessage();
+                Log::error("KelasKuliah batch upsert failed", ['error' => $e->getMessage()]);
             }
         }
 
@@ -79,78 +91,123 @@ class AcademicSyncService extends BaseSyncService
         ];
     }
 
-    public function syncDosenPengajar(int $offset = 0, int $limit = 100, ?string $syncSince = null): array
+    public function syncDosenPengajar(int $offset = 0, int $limit = 2000, ?string $syncSince = null): array
     {
-        // Use local KelasKuliah count since we iterate local classes, not API records
-        $totalClasses = KelasKuliah::count();
-
-        // 2. Determine batch sizing for internal loop
-        // We will loop through local classes to fetch lecturers
-        $localClasses = KelasKuliah::skip($offset)->take($limit)->get();
-        if ($localClasses->isEmpty()) {
-            return [
-                'total' => 0,
-                'synced' => 0,
-                'errors' => [],
-                'total_all' => $totalClasses,
-                'offset' => $offset,
-                'next_offset' => null,
-                'has_more' => false,
-                'progress' => 100,
-            ];
+        // 1. Get total count from API
+        $totalAll = 0;
+        try {
+            $countResponse = $this->neoFeeder->getCountDosenPengajar();
+            if ($countResponse && isset($countResponse['data'])) {
+                $totalAll = $this->extractCount($countResponse['data']);
+            }
+        } catch (\Exception $e) {
+            Log::warning("SyncDosenPengajar: GetCount failed. Error: " . $e->getMessage());
         }
 
+        // 2. Fetch ALL dosen pengajar records in bulk (single API call with pagination)
+        $filter = $this->getFilter('', $syncSince);
+        $response = $this->neoFeeder->getAllDosenPengajarKelasKuliah($limit, $offset, $filter);
+
+        if (!$response) {
+            throw new \Exception('Gagal menghubungi Neo Feeder API');
+        }
+
+        $data = $response['data'] ?? [];
+        $batchCount = count($data);
         $synced = 0;
         $errors = [];
-        $batchCount = $localClasses->count();
 
-        /** @var \App\Models\KelasKuliah $kelas */
-        foreach ($localClasses as $kelas) {
-            try {
-                $lecturers = $this->neoFeeder->getDosenPengajarKelasKuliah($kelas->id_kelas_kuliah);
+        if (!empty($data)) {
+            // 3. Pre-fetch local ID mappings (2 queries)
+            $apiKelasIds = collect($data)->pluck('id_kelas_kuliah')->unique()->filter()->toArray();
+            $apiDosenIds = collect($data)->pluck('id_dosen')->unique()->filter()->toArray();
 
-                if ($lecturers && isset($lecturers['data'])) {
-                    // Sync Pivot Table (dosen_pengajar_kelas)
-                    // First, detach all existing lecturers for this class to handle removals
-                    $kelas->dosenPengajar()->detach();
+            // Map: id_kelas_kuliah (NeoFeeder) -> local kelas_kuliah.id
+            $kelasMap = KelasKuliah::whereIn('id_kelas_kuliah', $apiKelasIds)
+                ->pluck('id', 'id_kelas_kuliah');
 
-                    foreach ($lecturers['data'] as $lecturer) {
-                        try {
-                            $dosenId = $lecturer['id_dosen'];
+            // Map: id_dosen (NeoFeeder) -> local dosen.id
+            $dosenMap = \App\Models\Dosen::whereIn('id_dosen', $apiDosenIds)
+                ->pluck('id', 'id_dosen');
 
-                            // Attach to pivot
-                            $kelas->dosenPengajar()->attach($dosenId, [
-                                'id_aktivitas_mengajar' => $lecturer['id_aktivitas_mengajar'] ?? null,
-                                'id_registrasi_dosen' => $lecturer['id_registrasi_dosen'] ?? null,
-                                'sks_substansi_total' => $lecturer['sks_substansi_total'] ?? 0,
-                                'rencana_tatap_muka' => $lecturer['rencana_tatap_muka'] ?? 0,
-                                'realisasi_tatap_muka' => $lecturer['realisasi_tatap_muka'] ?? 0,
-                                'id_jenis_evaluasi' => $lecturer['id_jenis_evaluasi'] ?? null,
-                            ]);
+            // 4. Build pivot records
+            $pivotRecords = [];
+            $kelasDosenUpdates = []; // For legacy id_dosen column on kelas_kuliah
 
-                            // Legacy update (optional, keeps old column filled for backward compat)
-                            $kelas->update(['id_dosen' => $dosenId]);
+            foreach ($data as $item) {
+                $kelasLocalId = $kelasMap[$item['id_kelas_kuliah']] ?? null;
+                $dosenLocalId = $dosenMap[$item['id_dosen']] ?? null;
 
-                        } catch (\Exception $e) {
-                            // Ignore pivot duplicates or missing dosen
+                if (!$kelasLocalId || !$dosenLocalId)
+                    continue;
+
+                $pivotRecords[] = [
+                    'kelas_kuliah_id' => $kelasLocalId,
+                    'id_kelas_kuliah' => $item['id_kelas_kuliah'],
+                    'dosen_id' => $dosenLocalId,
+                    'id_dosen' => $item['id_dosen'],
+                    'id_aktivitas_mengajar' => $item['id_aktivitas_mengajar'] ?? null,
+                    'id_registrasi_dosen' => $item['id_registrasi_dosen'] ?? null,
+                    'sks_substansi_total' => $item['sks_substansi_total'] ?? 0,
+                    'rencana_tatap_muka' => $item['rencana_tatap_muka'] ?? 0,
+                    'realisasi_tatap_muka' => $item['realisasi_tatap_muka'] ?? 0,
+                    'id_jenis_evaluasi' => $item['id_jenis_evaluasi'] ?? null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+
+                // Track last dosen for legacy column
+                $kelasDosenUpdates[$item['id_kelas_kuliah']] = $item['id_dosen'];
+            }
+
+            // 5. Batch upsert pivot table
+            if (!empty($pivotRecords)) {
+                try {
+                    foreach (array_chunk($pivotRecords, 500) as $chunk) {
+                        DB::table('dosen_pengajar_kelas')->upsert(
+                            $chunk,
+                            ['kelas_kuliah_id', 'dosen_id'],
+                            ['id_aktivitas_mengajar', 'id_registrasi_dosen', 'sks_substansi_total', 'rencana_tatap_muka', 'realisasi_tatap_muka', 'id_jenis_evaluasi', 'updated_at']
+                        );
+                    }
+                    $synced = count($pivotRecords);
+                } catch (\Exception $e) {
+                    $errors[] = "Dosen Pengajar Batch Error: " . $e->getMessage();
+                    Log::error("DosenPengajar batch upsert failed", ['error' => $e->getMessage()]);
+                }
+            }
+
+            // 6. Batch update legacy id_dosen column on kelas_kuliah
+            if (!empty($kelasDosenUpdates)) {
+                try {
+                    $dosenLocalMap = \App\Models\Dosen::whereIn('id_dosen', array_values($kelasDosenUpdates))
+                        ->pluck('id', 'id_dosen');
+
+                    foreach (array_chunk(array_keys($kelasDosenUpdates), 500) as $chunk) {
+                        foreach ($chunk as $kelasId) {
+                            $dosenIdNeo = $kelasDosenUpdates[$kelasId];
+                            $dosenLocalId = $dosenLocalMap[$dosenIdNeo] ?? null;
+                            if ($dosenLocalId) {
+                                KelasKuliah::where('id_kelas_kuliah', $kelasId)
+                                    ->update(['id_dosen' => $dosenLocalId]);
+                            }
                         }
                     }
-                    $synced++;
+                } catch (\Exception $e) {
+                    Log::warning("DosenPengajar legacy update failed: " . $e->getMessage());
                 }
-            } catch (\Exception $e) {
-                $errors[] = "Dosen Pengajar {$kelas->nama_kelas_kuliah}: " . $e->getMessage();
             }
         }
 
         $nextOffset = $offset + $batchCount;
-        $hasMore = $nextOffset < $totalClasses;
-        $progress = $totalClasses > 0 ? min(100, round($nextOffset / $totalClasses * 100)) : 100;
+        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
 
         return [
             'total' => $batchCount,
             'synced' => $synced,
             'errors' => $errors,
-            'total_all' => $totalClasses,
+            'total_all' => $totalAll,
             'offset' => $offset,
             'next_offset' => $hasMore ? $nextOffset : null,
             'has_more' => $hasMore,
@@ -659,32 +716,40 @@ class AcademicSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
-            try {
-                // Fix: Handle missing id_bimbingan_mahasiswa
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
                 $idAktivitas = $item['id_aktivitas_mahasiswa'] ?? null;
                 $idDosen = $item['id_dosen'] ?? null;
 
-                if (!$idAktivitas || !$idDosen) {
-                    continue; // Skip if essential keys are missing
+                if (!$idAktivitas || !$idDosen)
+                    continue;
+
+                $records[] = [
+                    'id_aktivitas_mahasiswa' => $idAktivitas,
+                    'id_dosen' => $idDosen,
+                    'id_bimbingan_mahasiswa' => $item['id_bimbingan_mahasiswa'] ?? md5($idAktivitas . $idDosen),
+                    'pembimbing_ke' => $item['pembimbing_ke'] ?? null,
+                    'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
+            if (!empty($records)) {
+                try {
+                    foreach (array_chunk($records, 500) as $chunk) {
+                        BimbinganMahasiswa::upsert(
+                            $chunk,
+                            ['id_aktivitas_mahasiswa', 'id_dosen'],
+                            ['id_bimbingan_mahasiswa', 'pembimbing_ke', 'id_kategori_kegiatan', 'updated_at']
+                        );
+                    }
+                    $synced = count($records);
+                } catch (\Exception $e) {
+                    $errors[] = "Bimbingan Batch Error: " . $e->getMessage();
+                    Log::error("Bimbingan batch upsert failed", ['error' => $e->getMessage()]);
                 }
-
-                $idBimbingan = $item['id_bimbingan_mahasiswa'] ?? md5($idAktivitas . $idDosen);
-
-                BimbinganMahasiswa::updateOrCreate(
-                    [
-                        'id_aktivitas_mahasiswa' => $idAktivitas,
-                        'id_dosen' => $idDosen
-                    ],
-                    [
-                        'id_bimbingan_mahasiswa' => $idBimbingan,
-                        'pembimbing_ke' => $item['pembimbing_ke'] ?? null,
-                        'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
-                    ]
-                );
-                $synced++;
-            } catch (\Exception $e) {
-                $errors[] = "Bimbingan Sync Error: " . $e->getMessage();
             }
         }
 
@@ -728,20 +793,32 @@ class AcademicSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_uji_mahasiswa' => $item['id_uji_mahasiswa'],
+                    'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? '',
+                    'id_dosen' => $item['id_dosen'] ?? '',
+                    'penguji_ke' => $item['penguji_ke'] ?? null,
+                    'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
             try {
-                UjiMahasiswa::updateOrCreate(
-                    ['id_uji_mahasiswa' => $item['id_uji_mahasiswa']],
-                    [
-                        'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? '',
-                        'id_dosen' => $item['id_dosen'] ?? '',
-                        'penguji_ke' => $item['penguji_ke'] ?? null,
-                        'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
-                    ]
-                );
-                $synced++;
+                foreach (array_chunk($records, 500) as $chunk) {
+                    UjiMahasiswa::upsert(
+                        $chunk,
+                        ['id_uji_mahasiswa'],
+                        ['id_aktivitas_mahasiswa', 'id_dosen', 'penguji_ke', 'id_kategori_kegiatan', 'updated_at']
+                    );
+                }
+                $synced = count($records);
             } catch (\Exception $e) {
-                $errors[] = "Uji Sync Error: " . $e->getMessage();
+                $errors[] = "Uji Batch Error: " . $e->getMessage();
+                Log::error("Uji batch upsert failed", ['error' => $e->getMessage()]);
             }
         }
 
@@ -787,32 +864,43 @@ class AcademicSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
-            try {
-                // Fix: DB column is id_aktivitas, API might be id_aktivitas or id_aktivitas_mahasiswa
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
                 $idAktivitas = $item['id_aktivitas'] ?? $item['id_aktivitas_mahasiswa'] ?? null;
+                if (!$idAktivitas)
+                    continue;
 
-                if (!$idAktivitas) {
-                    continue; // Skip if ID is missing
+                $records[] = [
+                    'id_aktivitas' => $idAktivitas,
+                    'id_jenis_aktivitas' => $item['id_jenis_aktivitas'] ?? null,
+                    'nama_jenis_aktivitas' => $item['nama_jenis_aktivitas'] ?? null,
+                    'id_prodi' => $item['id_prodi'] ?? null,
+                    'id_semester' => $item['id_semester'] ?? null,
+                    'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? $item['judul'] ?? null,
+                    'keterangan_aktivitas_mahasiswa' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
+                    'lokasi_kegiatan' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
+                    'sk_tugas' => $item['sk_tugas'] ?? null,
+                    'tanggal_sk_tugas' => $item['tanggal_sk_tugas'] ?? null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
+            if (!empty($records)) {
+                try {
+                    foreach (array_chunk($records, 500) as $chunk) {
+                        AktivitasMahasiswa::upsert(
+                            $chunk,
+                            ['id_aktivitas'],
+                            ['id_jenis_aktivitas', 'nama_jenis_aktivitas', 'id_prodi', 'id_semester', 'judul_aktivitas_mahasiswa', 'keterangan_aktivitas_mahasiswa', 'lokasi_kegiatan', 'sk_tugas', 'tanggal_sk_tugas', 'updated_at']
+                        );
+                    }
+                    $synced = count($records);
+                } catch (\Exception $e) {
+                    $errors[] = "Aktivitas Mhs Batch Error: " . $e->getMessage();
+                    Log::error("AktivitasMahasiswa batch upsert failed", ['error' => $e->getMessage()]);
                 }
-
-                AktivitasMahasiswa::updateOrCreate(
-                    ['id_aktivitas' => $idAktivitas],
-                    [
-                        'id_jenis_aktivitas' => $item['id_jenis_aktivitas'] ?? null,
-                        'nama_jenis_aktivitas' => $item['nama_jenis_aktivitas'] ?? null,
-                        'id_prodi' => $item['id_prodi'] ?? null,
-                        'id_semester' => $item['id_semester'] ?? null,
-                        'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? $item['judul'] ?? null,
-                        'keterangan_aktivitas_mahasiswa' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
-                        'lokasi_kegiatan' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
-                        'sk_tugas' => $item['sk_tugas'] ?? null,
-                        'tanggal_sk_tugas' => $item['tanggal_sk_tugas'] ?? null,
-                    ]
-                );
-                $synced++;
-            } catch (\Exception $e) {
-                $errors[] = "Aktivitas Mhs Error: " . $e->getMessage();
             }
         }
 
@@ -858,25 +946,36 @@ class AcademicSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
-            try {
-                // Fix: DB column is id_aktivitas, handle missing keys
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
                 $idAktivitas = $item['id_aktivitas'] ?? $item['id_aktivitas_mahasiswa'] ?? null;
 
-                AnggotaAktivitasMahasiswa::updateOrCreate(
-                    ['id_anggota' => $item['id_anggota']],
-                    [
-                        'id_aktivitas' => $idAktivitas, // Fixed column name
-                        'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                        'nim' => $item['nim'],
-                        'nama_mahasiswa' => $item['nama_mahasiswa'],
-                        'id_peran_anggota' => $item['id_peran_anggota'],
-                        'nama_peran_anggota' => $item['nama_peran_anggota'],
-                    ]
-                );
-                $synced++;
+                $records[] = [
+                    'id_anggota' => $item['id_anggota'],
+                    'id_aktivitas' => $idAktivitas,
+                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                    'nim' => $item['nim'],
+                    'nama_mahasiswa' => $item['nama_mahasiswa'],
+                    'id_peran_anggota' => $item['id_peran_anggota'],
+                    'nama_peran_anggota' => $item['nama_peran_anggota'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
+            try {
+                foreach (array_chunk($records, 500) as $chunk) {
+                    AnggotaAktivitasMahasiswa::upsert(
+                        $chunk,
+                        ['id_anggota'],
+                        ['id_aktivitas', 'id_registrasi_mahasiswa', 'nim', 'nama_mahasiswa', 'id_peran_anggota', 'nama_peran_anggota', 'updated_at']
+                    );
+                }
+                $synced = count($records);
             } catch (\Exception $e) {
-                $errors[] = "Anggota Error: " . $e->getMessage();
+                $errors[] = "Anggota Batch Error: " . $e->getMessage();
+                Log::error("AnggotaAktivitas batch upsert failed", ['error' => $e->getMessage()]);
             }
         }
 
@@ -922,28 +1021,40 @@ class AcademicSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_konversi_aktivitas' => $item['id_konversi_aktivitas'],
+                    'id_matkul' => $item['id_matkul'],
+                    'nama_mata_kuliah' => $item['nama_mata_kuliah'],
+                    'sks_mata_kuliah' => $item['sks_mata_kuliah'],
+                    'nilai_angka' => $item['nilai_angka'],
+                    'nilai_huruf' => $item['nilai_huruf'],
+                    'nilai_indeks' => $item['nilai_indeks'],
+                    'id_semester' => $item['id_semester'],
+                    'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? null,
+                    'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? null,
+                    'id_anggota' => $item['id_anggota'] ?? null,
+                    'nim' => $item['nim'] ?? null,
+                    'nama_mahasiswa' => $item['nama_mahasiswa'] ?? null,
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
             try {
-                KonversiKampusMerdeka::updateOrCreate(
-                    ['id_konversi_aktivitas' => $item['id_konversi_aktivitas']],
-                    [
-                        'id_matkul' => $item['id_matkul'],
-                        'nama_mata_kuliah' => $item['nama_mata_kuliah'],
-                        'sks_mata_kuliah' => $item['sks_mata_kuliah'],
-                        'nilai_angka' => $item['nilai_angka'],
-                        'nilai_huruf' => $item['nilai_huruf'],
-                        'nilai_indeks' => $item['nilai_indeks'],
-                        'id_semester' => $item['id_semester'],
-                        'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? null, // Allow null
-                        'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? null,
-                        'id_anggota' => $item['id_anggota'] ?? null,
-                        'nim' => $item['nim'] ?? null,
-                        'nama_mahasiswa' => $item['nama_mahasiswa'] ?? null,
-                    ]
-                );
-                $synced++;
+                foreach (array_chunk($records, 500) as $chunk) {
+                    KonversiKampusMerdeka::upsert(
+                        $chunk,
+                        ['id_konversi_aktivitas'],
+                        ['id_matkul', 'nama_mata_kuliah', 'sks_mata_kuliah', 'nilai_angka', 'nilai_huruf', 'nilai_indeks', 'id_semester', 'id_aktivitas_mahasiswa', 'judul_aktivitas_mahasiswa', 'id_anggota', 'nim', 'nama_mahasiswa', 'updated_at']
+                    );
+                }
+                $synced = count($records);
             } catch (\Exception $e) {
-                $errors[] = "Konversi Error: " . $e->getMessage();
+                $errors[] = "Konversi Batch Error: " . $e->getMessage();
+                Log::error("KonversiKampusMerdeka batch upsert failed", ['error' => $e->getMessage()]);
             }
         }
 

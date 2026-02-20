@@ -38,7 +38,7 @@ class ReferenceSyncService extends BaseSyncService
 
         $filter = $this->getFilter('', $syncSince);
         $response = $this->neoFeeder->getProdi($limit, $offset, $filter);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -48,19 +48,28 @@ class ReferenceSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_prodi' => $item['id_prodi'],
+                    'kode_prodi' => $item['kode_program_studi'],
+                    'nama_prodi' => $item['nama_program_studi'],
+                    'jenjang' => $item['nama_jenjang_pendidikan'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
             try {
-                ProgramStudi::updateOrCreate(
-                    ['id_prodi' => $item['id_prodi']],
-                    [
-                        'kode_prodi' => $item['kode_program_studi'],
-                        'nama_prodi' => $item['nama_program_studi'],
-                        'jenjang' => $item['nama_jenjang_pendidikan'],
-                    ]
+                ProgramStudi::upsert(
+                    $records,
+                    ['id_prodi'],
+                    ['kode_prodi', 'nama_prodi', 'jenjang', 'updated_at']
                 );
-                $synced++;
+                $synced = count($records);
             } catch (\Exception $e) {
-                $errors[] = "Prodi {$item['nama_program_studi']}: " . $e->getMessage();
+                $errors[] = "Prodi Batch Error: " . $e->getMessage();
             }
         }
 
@@ -102,7 +111,7 @@ class ReferenceSyncService extends BaseSyncService
         // 2. Fetch data
         $filter = $this->getFilter('', $syncSince);
         $response = $this->neoFeeder->getSemester($limit, $offset, $filter);
-        
+
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
         }
@@ -112,23 +121,31 @@ class ReferenceSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
-        foreach ($data as $item) {
+        if (!empty($data)) {
+            $records = [];
+            foreach ($data as $item) {
+                $records[] = [
+                    'id_semester' => $item['id_semester'],
+                    'nama_semester' => $item['nama_semester'],
+                    'tahun' => $item['id_tahun_ajaran'],
+                    'semester' => $item['semester'] == 1 ? 'ganjil' : 'genap',
+                    'tanggal_mulai' => $item['tanggal_mulai'],
+                    'tanggal_selesai' => $item['tanggal_selesai'],
+                    'is_active' => $item['a_periode_aktif'] == '1',
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ];
+            }
+
             try {
-                \App\Models\TahunAkademik::updateOrCreate(
-                    ['id_semester' => $item['id_semester']],
-                    [
-                        'nama_semester' => $item['nama_semester'],
-                        'tahun' => $item['id_tahun_ajaran'], // Mapping id_tahun_ajaran to tahun
-                        'semester' => $item['semester'] == 1 ? 'ganjil' : 'genap', // Adjust based on data
-                        'tanggal_mulai' => $item['tanggal_mulai'],
-                        'tanggal_selesai' => $item['tanggal_selesai'],
-                        'is_active' => $item['a_periode_aktif'] == '1',
-                    ]
+                \App\Models\TahunAkademik::upsert(
+                    $records,
+                    ['id_semester'],
+                    ['nama_semester', 'tahun', 'semester', 'tanggal_mulai', 'tanggal_selesai', 'is_active', 'updated_at']
                 );
-                $synced++;
+                $synced = count($records);
             } catch (\Exception $e) {
-                // Specific catch to allow continuing
-                $errors[] = "Semester {$item['nama_semester']}: " . $e->getMessage();
+                $errors[] = "Semester Batch Error: " . $e->getMessage();
             }
         }
 
@@ -209,7 +226,7 @@ class ReferenceSyncService extends BaseSyncService
                         'id_negara' => $item['id_negara'],
                         'nama_wilayah' => $item['nama_wilayah'],
                         'id_induk_wilayah' => $item['id_induk_wilayah'],
-                        'id_level_wilayah' => (int)$item['id_level_wilayah'],
+                        'id_level_wilayah' => (int) $item['id_level_wilayah'],
                         'created_at' => $now,
                         'updated_at' => $now,
                     ];
@@ -219,7 +236,7 @@ class ReferenceSyncService extends BaseSyncService
                     RefWilayah::upsert($records, ['id_wilayah'], ['id_negara', 'nama_wilayah', 'id_induk_wilayah', 'id_level_wilayah', 'updated_at']);
                 }
             }
-            
+
             // Get total count for progress
             $totalAll = 0;
             try {
@@ -233,13 +250,13 @@ class ReferenceSyncService extends BaseSyncService
 
             // Fallback for UI if count failed (Wilayah is approx 8000-10000)
             if ($totalAll == 0) {
-                 $totalAll = 10000;
+                $totalAll = 10000;
             }
 
             $nextOffset = $offset + $batchCount;
             $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
             $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : ($hasMore ? 0 : 100);
-            
+
             return [
                 'synced' => $batchCount,
                 'total' => $batchCount,
@@ -438,24 +455,33 @@ class ReferenceSyncService extends BaseSyncService
             $skipped = 0;
 
             if ($response && isset($response['data'])) {
+                $records = [];
                 foreach ($response['data'] as $item) {
-                    $id = (int)$item['id_kebutuhan_khusus'];
+                    $id = (int) $item['id_kebutuhan_khusus'];
                     $name = $item['nama_kebutuhan_khusus'];
 
-                    // Base categories have IDs that are powers of 2 (1, 2, 4, 8, etc.)
-                    // and typically don't have commas in the name (which indicate combinations).
                     $isPowerOfTwo = ($id > 0) && (($id & ($id - 1)) === 0);
                     $isSingleName = !str_contains($name, ',');
 
                     if ($isPowerOfTwo || $isSingleName) {
-                        RefKebutuhanKhusus::updateOrCreate(
-                            ['id_kebutuhan_khusus' => $item['id_kebutuhan_khusus']],
-                            ['nama_kebutuhan_khusus' => $item['nama_kebutuhan_khusus']]
-                        );
-                        $synced++;
+                        $records[] = [
+                            'id_kebutuhan_khusus' => $item['id_kebutuhan_khusus'],
+                            'nama_kebutuhan_khusus' => $item['nama_kebutuhan_khusus'],
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ];
                     } else {
                         $skipped++;
                     }
+                }
+
+                if (!empty($records)) {
+                    RefKebutuhanKhusus::upsert(
+                        $records,
+                        ['id_kebutuhan_khusus'],
+                        ['nama_kebutuhan_khusus', 'updated_at']
+                    );
+                    $synced = count($records);
                 }
             }
             return [

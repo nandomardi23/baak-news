@@ -26,7 +26,7 @@ class NeoFeederService
         $this->url = Setting::getValue('neo_feeder_url', '');
         $this->username = Setting::getValue('neo_feeder_username', '');
         $this->password = Setting::getValue('neo_feeder_password', '');
-        
+
         $this->client = new Client([
             'timeout' => 200, // Increased to 200s to handle slow responses (batch 500)
             'connect_timeout' => 30,
@@ -60,7 +60,7 @@ class NeoFeederService
             ]);
 
             $data = json_decode($response->getBody()->getContents(), true);
-            
+
             if (isset($data['data']['token'])) {
                 $this->token = $data['data']['token'];
                 return $this->token;
@@ -84,7 +84,8 @@ class NeoFeederService
     public function requestQuick(string $action, array $params = []): ?array
     {
         $token = $this->getToken();
-        if (!$token) return null;
+        if (!$token)
+            return null;
 
         try {
             Log::info("Neo Feeder Quick Request: {$action}", ['params' => $params]);
@@ -132,7 +133,7 @@ class NeoFeederService
                 }
 
                 Log::info("Neo Feeder Request: {$action}", ['params' => $params]);
-                
+
                 $response = $this->client->post($this->url, [
                     'json' => array_merge([
                         'act' => $action,
@@ -430,6 +431,19 @@ class NeoFeederService
         return $this->request('GetDosenPengajarKelasKuliah', [
             'filter' => "id_kelas_kuliah = '{$idKelasKuliah}'",
             'limit' => 10, // Usually only 1-2 lecturers per class
+        ]);
+    }
+
+    /**
+     * Get ALL Dosen Pengajar Kelas Kuliah in bulk (with pagination)
+     * Used for optimized batch sync instead of per-class API calls
+     */
+    public function getAllDosenPengajarKelasKuliah(int $limit = 2000, int $offset = 0, string $filter = ''): ?array
+    {
+        return $this->request('GetDosenPengajarKelasKuliah', [
+            'filter' => $filter,
+            'limit' => $limit,
+            'offset' => $offset,
         ]);
     }
 
