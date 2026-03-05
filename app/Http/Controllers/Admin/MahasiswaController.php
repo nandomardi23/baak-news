@@ -63,8 +63,17 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    public function show(Mahasiswa $mahasiswa): Response
+    public function show(Mahasiswa $mahasiswa, NeoFeederSyncService $syncService): Response
     {
+        // Auto-sync KRS jika belum ada di database
+        if ($mahasiswa->id_registrasi_mahasiswa && $mahasiswa->krs()->count() === 0) {
+            try {
+                $syncService->syncKrsMahasiswa($mahasiswa->id_registrasi_mahasiswa);
+            } catch (\Exception $e) {
+                \Log::warning("Auto-sync KRS failed for {$mahasiswa->nim}: " . $e->getMessage());
+            }
+        }
+
         $mahasiswa->load(['programStudi', 'dosenWali', 'nilai.mataKuliah', 'nilai.tahunAkademik', 'krs.details.mataKuliah', 'krs.details.dosen', 'krs.tahunAkademik', 'krs.details.kelasKuliah.dosenPengajar']);
 
         // Filter: Semesters with Nilai OR Krs
@@ -148,7 +157,7 @@ class MahasiswaController extends Controller
         ]);
 
         $mahasiswa->update([
-             'dosen_wali_id' => $validated['dosen_wali_id']
+            'dosen_wali_id' => $validated['dosen_wali_id']
         ]);
 
         return redirect()->back()->with('success', 'Berhasil memperbarui Dosen Wali.');
@@ -181,7 +190,7 @@ class MahasiswaController extends Controller
     {
         $tahunAkademik = TahunAkademik::orderBy('id_semester', 'desc')->get();
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
-        
+
         // Get unique angkatan values
         $angkatanList = Mahasiswa::active()
             ->whereNotNull('angkatan')
@@ -192,12 +201,12 @@ class MahasiswaController extends Controller
 
         $mahasiswa = collect();
         $selectedTa = null;
-        
+
         if ($request->filled('tahun_akademik_id')) {
             $selectedTa = TahunAkademik::find($request->tahun_akademik_id);
-            
+
             $query = Mahasiswa::with(['programStudi'])
-                ->whereHas('krs', function($q) use ($request) {
+                ->whereHas('krs', function ($q) use ($request) {
                     $q->where('tahun_akademik_id', $request->tahun_akademik_id);
                 })
                 ->active();
@@ -244,15 +253,18 @@ class MahasiswaController extends Controller
         ]);
 
         $tahunAkademik = TahunAkademik::findOrFail($request->tahun_akademik_id);
-        
+
         // Build query for students who have KRS in this semester
-        $query = Mahasiswa::with(['programStudi', 'krs' => function($q) use ($tahunAkademik) {
-            $q->where('tahun_akademik_id', $tahunAkademik->id);
-        }])
-        ->whereHas('krs', function($q) use ($tahunAkademik) {
-            $q->where('tahun_akademik_id', $tahunAkademik->id);
-        })
-        ->active();
+        $query = Mahasiswa::with([
+            'programStudi',
+            'krs' => function ($q) use ($tahunAkademik) {
+                $q->where('tahun_akademik_id', $tahunAkademik->id);
+            }
+        ])
+            ->whereHas('krs', function ($q) use ($tahunAkademik) {
+                $q->where('tahun_akademik_id', $tahunAkademik->id);
+            })
+            ->active();
 
         if ($request->filled('angkatan')) {
             $query->where('angkatan', $request->angkatan);
@@ -271,9 +283,9 @@ class MahasiswaController extends Controller
         try {
             $pdfService = new \App\Services\Pdfs\KartuUjianService();
             $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik);
-            
+
             $path = storage_path('app/public/surat/' . $filename);
-            
+
             return response()->file($path, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             \Log::error("Error generating batch kartu ujian", [
@@ -289,27 +301,27 @@ class MahasiswaController extends Controller
      * Helper method to generate and download PDF - eliminates code duplication
      */
     private function generateAndDownloadPdf(
-        string $type, 
-        Mahasiswa $mahasiswa, 
-        ?TahunAkademik $tahunAkademik = null, 
+        string $type,
+        Mahasiswa $mahasiswa,
+        ?TahunAkademik $tahunAkademik = null,
         string $jenis = 'reguler'
     ): BinaryFileResponse|\Illuminate\Http\Response {
         try {
             $pdfService = app(PdfGeneratorService::class);
-            
-            $filename = match($type) {
+
+            $filename = match ($type) {
                 'krs' => $pdfService->generateKrs($mahasiswa, $tahunAkademik),
                 'khs' => $pdfService->generateKhs($mahasiswa, $tahunAkademik),
                 'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik),
                 'transkrip' => $pdfService->generateTranskrip($mahasiswa, $jenis),
             };
-            
+
             $path = storage_path('app/public/surat/' . $filename);
-            
+
             if (!file_exists($path)) {
                 return response('PDF file not found', 500);
             }
-            
+
             return response()->file($path, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
         } catch (\Exception $e) {
             \Log::error("Error generating {$type} PDF", [
@@ -367,9 +379,9 @@ class MahasiswaController extends Controller
     {
         $prodiId = $request->input('prodi') ? (int) $request->input('prodi') : null;
         $search = $request->input('search');
-        
+
         $filename = 'mahasiswa_' . date('Y-m-d_His') . '.xlsx';
-        
+
         return Excel::download(
             new MahasiswaExport($prodiId, $search),
             $filename
@@ -380,16 +392,16 @@ class MahasiswaController extends Controller
     {
         try {
             if (!$mahasiswa->id_registrasi_mahasiswa) {
-                 throw new \Exception("Mahasiswa belum memiliki ID Registrasi");
+                throw new \Exception("Mahasiswa belum memiliki ID Registrasi");
             }
 
             $result = $syncService->syncKrsMahasiswa($mahasiswa->id_registrasi_mahasiswa);
-            
+
             $msg = "Berhasil sync KRS: {$result['synced']} semester synced.";
             if (!empty($result['errors'])) {
                 $msg .= " Errors: " . count($result['errors']);
             }
-            
+
             return redirect()->back()->with('success', $msg);
         } catch (\Exception $e) {
             return redirect()->back()->with('error', 'Gagal sync KRS: ' . $e->getMessage());
