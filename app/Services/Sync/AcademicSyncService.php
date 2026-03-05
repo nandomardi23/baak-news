@@ -933,9 +933,9 @@ class AcademicSyncService extends BaseSyncService
                     'nama_jenis_aktivitas' => $item['nama_jenis_aktivitas'] ?? null,
                     'id_prodi' => $item['id_prodi'] ?? null,
                     'id_semester' => $item['id_semester'] ?? null,
-                    'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? $item['judul'] ?? null,
-                    'keterangan_aktivitas_mahasiswa' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
-                    'lokasi_kegiatan' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
+                    'judul' => $item['judul_aktivitas_mahasiswa'] ?? $item['judul'] ?? null,
+                    'keterangan' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
+                    'lokasi' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
                     'sk_tugas' => $item['sk_tugas'] ?? null,
                     'tanggal_sk_tugas' => $item['tanggal_sk_tugas'] ?? null,
                     'updated_at' => now(),
@@ -949,7 +949,7 @@ class AcademicSyncService extends BaseSyncService
                         AktivitasMahasiswa::upsert(
                             $chunk,
                             ['id_aktivitas'],
-                            ['id_jenis_aktivitas', 'nama_jenis_aktivitas', 'id_prodi', 'id_semester', 'judul_aktivitas_mahasiswa', 'keterangan_aktivitas_mahasiswa', 'lokasi_kegiatan', 'sk_tugas', 'tanggal_sk_tugas', 'updated_at']
+                            ['id_jenis_aktivitas', 'nama_jenis_aktivitas', 'id_prodi', 'id_semester', 'judul', 'keterangan', 'lokasi', 'sk_tugas', 'tanggal_sk_tugas', 'updated_at']
                         );
                     }
                     $synced = count($records);
