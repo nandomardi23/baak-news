@@ -95,8 +95,15 @@ const testConnection = async () => {
     }
 };
 
-const syncSince = ref<string>('');
-
+const forceSync = ref<boolean>(false);
+const syncSince = computed(() => {
+    // If force sync is checked, send empty string to fetch all data
+    if (forceSync.value) return '';
+    
+    // Otherwise, we don't send anything right now (the backend Service will auto-calculate)
+    // You could also implement logic to fetch the last sync date from the DB dynamically here
+    return 'AUTO';
+});
 // Error Modal
 const errorModalOpen = ref(false);
 const selectedErrors = ref<string[]>([]);
@@ -562,16 +569,17 @@ const connectionStatus = computed(() => {
                             </div>
                             
                             <div class="flex flex-wrap items-center gap-4 justify-end">
-                                <!-- Date Picker (Sync Since) -->
+                                <!-- Date Picker (Sync Since) / Force Sync -->
                                 <div class="flex flex-col sm:flex-row sm:items-center gap-2">
-                                     <label class="text-xs font-medium text-muted-foreground whitespace-nowrap">Sejak Tanggal:</label>
-                                     <input 
-                                        id="sync-since-date"
-                                        name="sync_since"
-                                        type="date" 
-                                        v-model="syncSince"
-                                        class="text-xs bg-background border rounded-lg px-3 py-2 outline-none focus:ring-2 focus:ring-indigo-500 transition-all shadow-sm"
-                                     />
+                                     <label class="flex items-center gap-2 text-sm font-medium text-muted-foreground whitespace-nowrap cursor-pointer hover:text-foreground transition-colors">
+                                         <input 
+                                            id="force-sync-checkbox"
+                                            type="checkbox" 
+                                            v-model="forceSync"
+                                            class="rounded border-gray-300 text-indigo-600 shadow-sm focus:ring-indigo-500 w-4 h-4 cursor-pointer"
+                                         />
+                                         Paksa Sinkronisasi Ulang (Ambil Semua Data)
+                                     </label>
                                 </div>
 
                                 <!-- Semester Selector -->

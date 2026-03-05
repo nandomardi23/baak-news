@@ -30,15 +30,15 @@ abstract class BaseSyncService
                 return (int) $data['count'];
             }
             if (isset($data[0])) {
-                 if (is_numeric($data[0])) {
+                if (is_numeric($data[0])) {
                     return (int) $data[0];
-                 }
-                 if (is_array($data[0]) && isset($data[0]['count'])) {
+                }
+                if (is_array($data[0]) && isset($data[0]['count'])) {
                     return (int) $data[0]['count'];
-                 }
+                }
             }
         }
-        
+
         // Try direct key access if single object
         if (is_object($data) && isset($data->count)) {
             return (int) $data->count;
@@ -52,7 +52,8 @@ abstract class BaseSyncService
      */
     protected function batchUpsert(string $modelClass, array $records, array $uniqueBy, array $updateColumns, int $chunkSize = 500): void
     {
-        if (empty($records)) return;
+        if (empty($records))
+            return;
 
         $chunks = array_chunk($records, $chunkSize);
         foreach ($chunks as $chunk) {
@@ -63,16 +64,34 @@ abstract class BaseSyncService
 
     /**
      * Helper to construct filter string with sync_since
+     * If syncSince is 'AUTO' and a Model class is provided, it fetches the latest updated_at from that model.
+     * Otherwise, it uses the provided date string.
      */
-    protected function getFilter(string $baseFilter, ?string $syncSince): string
+    protected function getFilter(string $baseFilter, ?string $syncSince, ?string $modelClass = null): string
     {
         if (empty($syncSince)) {
             return $baseFilter;
         }
 
         try {
-            // Convert to Y-m-d (Standard SQL format)
-            $date = \Carbon\Carbon::parse($syncSince)->format('Y-m-d');
+            if ($syncSince === 'AUTO' && $modelClass) {
+                // Fetch the latest updated_at from the database
+                $latestRecord = $modelClass::orderBy('updated_at', 'desc')->first();
+                if ($latestRecord && $latestRecord->updated_at) {
+                    // Backdate by 1 day to be safe and ensure we don't miss records updated on the same day after the last sync
+                    $date = \Carbon\Carbon::parse($latestRecord->updated_at)->subDay()->format('Y-m-d');
+                } else {
+                    // No records found, do a full sync
+                    return $baseFilter;
+                }
+            } elseif ($syncSince !== 'AUTO') {
+                // Convert specific date string to Y-m-d (Standard SQL format)
+                $date = \Carbon\Carbon::parse($syncSince)->format('Y-m-d');
+            } else {
+                // AUTO was sent but no model provided, fallback to full sync
+                return $baseFilter;
+            }
+
             $dateFilter = "last_update >= '$date'";
 
             if (empty($baseFilter)) {
@@ -81,7 +100,7 @@ abstract class BaseSyncService
 
             return "$baseFilter AND $dateFilter";
         } catch (\Exception $e) {
-            \Illuminate\Support\Facades\Log::warning("BaseSyncService: Invalid sync_since date format: $syncSince");
+            \Illuminate\Support\Facades\Log::warning("BaseSyncService: Error determining sync_since date: " . $e->getMessage());
             return $baseFilter;
         }
     }

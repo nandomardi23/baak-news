@@ -239,7 +239,7 @@ class AcademicSyncService extends BaseSyncService
         */
 
         // 2. Fetch bulk data
-        $dateFilter = $syncSince ? $this->getFilter('', $syncSince) : '';
+        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, \App\Models\Krs::class) : '';
         $response = $this->neoFeeder->getKrsBySemester($idSemester, $limit, $offset, $dateFilter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -411,7 +411,7 @@ class AcademicSyncService extends BaseSyncService
         */
 
         // 2. Fetch bulk data
-        $dateFilter = $syncSince ? $this->getFilter('', $syncSince) : '';
+        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, \App\Models\Nilai::class) : '';
         $response = $this->neoFeeder->getNilaiBySemester($idSemester, $limit, $offset, $dateFilter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -564,8 +564,8 @@ class AcademicSyncService extends BaseSyncService
     public function syncAktivitas(int $offset = 0, int $limit = 1000, ?string $idSemester = null, ?string $syncSince = null): array
     {
         if (!$idSemester) {
-            // Fallback to student-by-student if no semester (slow, but keeps legacy compat)
-            return $this->syncAktivitasLegacy($offset, $limit);
+            // Auto-iterate all semesters using bulk endpoint (much faster than per-student)
+            return $this->syncAktivitasAllSemesters($offset, $limit, $syncSince);
         }
 
         // Optimization: Skip future semesters
@@ -582,24 +582,21 @@ class AcademicSyncService extends BaseSyncService
         }
 
         $baseFilter = "id_semester = '{$idSemester}'";
-        $filter = $this->getFilter($baseFilter, $syncSince);
+        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\AktivitasKuliah::class);
 
         // 1. Get total count for this semester
-        // 1. Get total count
         $totalAll = 0;
-        /*
         try {
-            $countResponse = $this->neoFeeder->requestQuick('GetCountAktivitasKuliahMahasiswa', ['filter' => $filter]);
+            $countResponse = $this->neoFeeder->requestQuick('GetCountPerkuliahanMahasiswa', ['filter' => $filter]);
             if ($countResponse && isset($countResponse['data'])) {
                 $totalAll = $this->extractCount($countResponse['data']);
             }
         } catch (\Exception $e) {
             Log::warning("SyncAktivitas: GetCount failed. Error: " . $e->getMessage());
         }
-        */
 
         // 2. Fetch bulk data
-        $response = $this->neoFeeder->request('GetAktivitasKuliahMahasiswa', [
+        $response = $this->neoFeeder->request('GetListPerkuliahanMahasiswa', [
             'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset
@@ -610,6 +607,13 @@ class AcademicSyncService extends BaseSyncService
         }
 
         $data = $response['data'] ?? [];
+
+        // Safety: Neo Feeder sometimes returns a string error message in 'data' instead of an array
+        if (!is_array($data)) {
+            Log::warning("SyncAktivitas: API returned non-array data", ['data' => $data, 'semester' => $idSemester]);
+            $data = [];
+        }
+
         $batchCount = count($data);
         $synced = 0;
         $errors = [];
@@ -685,12 +689,102 @@ class AcademicSyncService extends BaseSyncService
     }
 
     /**
-     * Legacy student-by-student sync (Slow)
+     * Sync Aktivitas Kuliah across ALL semesters using bulk endpoint
+     * Much faster than per-student legacy mode (uses GetListPerkuliahanMahasiswa)
+     */
+    private function syncAktivitasAllSemesters(int $offset = 0, int $limit = 1000, ?string $syncSince = null): array
+    {
+        // Get all semesters from local DB, ordered chronologically
+        $semesters = \App\Models\TahunAkademik::orderBy('id_semester', 'asc')
+            ->pluck('id_semester')
+            ->toArray();
+
+        if (empty($semesters)) {
+            return [
+                'synced' => 0,
+                'total' => 0,
+                'total_all' => 0,
+                'progress' => 100,
+                'has_more' => false,
+                'errors' => [],
+                'message' => 'Tidak ada data semester. Sync semester terlebih dahulu.'
+            ];
+        }
+
+        // Use offset to track: which semester index we're on (encoded as semesterIndex * 1000000 + internalOffset)
+        $semesterIndex = intdiv($offset, 1000000);
+        $internalOffset = $offset % 1000000;
+
+        $totalSynced = 0;
+        $totalErrors = [];
+        $totalAll = count($semesters); // Use semester count for overall progress
+
+        // Skip future semesters
+        $maxSemester = (date('Y') + 1) . '3';
+
+        while ($semesterIndex < count($semesters)) {
+            $currentSemester = $semesters[$semesterIndex];
+
+            // Skip future semesters
+            if ($currentSemester > $maxSemester) {
+                $semesterIndex++;
+                $internalOffset = 0;
+                continue;
+            }
+
+            // Call the main syncAktivitas WITH semester (bulk mode)
+            $result = $this->syncAktivitas($internalOffset, $limit, $currentSemester, $syncSince);
+
+            $totalSynced += $result['synced'] ?? 0;
+            if (!empty($result['errors'])) {
+                $totalErrors = array_merge($totalErrors, $result['errors']);
+            }
+
+            // If this semester has more data, return with encoded offset to continue
+            if (!empty($result['has_more']) && $result['next_offset'] !== null) {
+                $encodedOffset = ($semesterIndex * 1000000) + $result['next_offset'];
+                $progress = round(($semesterIndex / $totalAll) * 100);
+
+                return [
+                    'total' => $result['total'] ?? 0,
+                    'synced' => $totalSynced,
+                    'errors' => $totalErrors,
+                    'total_all' => $totalAll,
+                    'offset' => $offset,
+                    'next_offset' => $encodedOffset,
+                    'has_more' => true,
+                    'progress' => min(99, $progress),
+                    'message' => "Semester {$currentSemester}: synced {$totalSynced}",
+                ];
+            }
+
+            // This semester is done, move to next
+            $semesterIndex++;
+            $internalOffset = 0;
+        }
+
+        // All semesters completed
+        return [
+            'total' => $totalSynced,
+            'synced' => $totalSynced,
+            'errors' => $totalErrors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => null,
+            'has_more' => false,
+            'progress' => 100,
+            'message' => "Sinkronisasi Aktivitas Kuliah selesai ({$totalSynced} records)",
+        ];
+    }
+
+    /**
+     * Legacy student-by-student sync (Slow - kept for reference)
      */
     private function syncAktivitasLegacy(int $offset = 0, int $limit = 50): array
     {
-        $totalStudents = Mahasiswa::count();
+        $totalStudents = Mahasiswa::whereNotNull('id_registrasi_mahasiswa')->count();
         $students = Mahasiswa::select('id_registrasi_mahasiswa', 'nim')
+            ->whereNotNull('id_registrasi_mahasiswa')
             ->skip($offset)
             ->take($limit)
             ->get();
@@ -700,6 +794,11 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         foreach ($students as $student) {
+            // Safety: skip if somehow null
+            if (empty($student->id_registrasi_mahasiswa)) {
+                continue;
+            }
+
             try {
                 $akmData = $this->neoFeeder->getAktivitasKuliahMahasiswa($student->id_registrasi_mahasiswa);
                 if ($akmData && isset($akmData['data']) && !empty($akmData['data'])) {
@@ -760,7 +859,7 @@ class AcademicSyncService extends BaseSyncService
             Log::warning("SyncBimbingan: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $filter = $this->getFilter('', $syncSince);
+        $filter = $this->getFilter('', $syncSince, \App\Models\BimbinganMahasiswa::class);
         $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset, $filter);
 
         if (!$response) {
@@ -837,7 +936,7 @@ class AcademicSyncService extends BaseSyncService
             Log::warning("SyncUji: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $filter = $this->getFilter('', $syncSince);
+        $filter = $this->getFilter('', $syncSince, \App\Models\UjiMahasiswa::class);
         $response = $this->neoFeeder->getUjiMahasiswa($limit, $offset, $filter);
 
         if (!$response) {
@@ -898,7 +997,7 @@ class AcademicSyncService extends BaseSyncService
     {
         $totalAll = 0;
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
-        $filter = $this->getFilter($baseFilter, $syncSince);
+        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\AktivitasMahasiswa::class);
 
         try {
             $countResponse = $this->neoFeeder->getCountAktivitasMahasiswa($filter);
@@ -980,7 +1079,7 @@ class AcademicSyncService extends BaseSyncService
     {
         $totalAll = 0;
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
-        $filter = $this->getFilter($baseFilter, $syncSince);
+        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\AnggotaAktivitasMahasiswa::class);
 
         try {
             $countResponse = $this->neoFeeder->getCountAnggotaAktivitasMahasiswa($filter);
@@ -1055,7 +1154,7 @@ class AcademicSyncService extends BaseSyncService
     {
         $totalAll = 0;
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
-        $filter = $this->getFilter($baseFilter, $syncSince);
+        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\KonversiKampusMerdeka::class);
 
         try {
             $countResponse = $this->neoFeeder->getCountKonversiKampusMerdeka($filter);
@@ -1390,7 +1489,7 @@ class AcademicSyncService extends BaseSyncService
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
         $filter = $this->getFilter($baseFilter, $syncSince);
         try {
-            $response = $this->neoFeeder->requestQuick('GetCountAktivitasKuliahMahasiswa', ['filter' => $filter]);
+            $response = $this->neoFeeder->requestQuick('GetCountPerkuliahanMahasiswa', ['filter' => $filter]);
             return $this->extractCount($response['data'] ?? []);
         } catch (\Exception $e) {
             return 0;

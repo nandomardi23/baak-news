@@ -748,13 +748,11 @@ class NeoFeederService
     }
 
     /**
-     * Get Count Anggota Aktivitas Mahasiswa
+     * Get Count Anggota Aktivitas Mahasiswa (Not officially supported, return dummy)
      */
     public function getCountAnggotaAktivitasMahasiswa(string $filter = ''): ?array
     {
-        return $this->requestQuick('GetCountAnggotaAktivitasMahasiswa', [
-            'filter' => $filter
-        ]);
+        return ['data' => 0];
     }
 
     /**
@@ -784,7 +782,7 @@ class NeoFeederService
      */
     public function getAktivitasMengajarDosen(int $limit = 500, int $offset = 0, string $filter = ''): ?array
     {
-        return $this->request('GetListAktivitasMengajarDosen', [
+        return $this->request('GetAktivitasMengajarDosen', [
             'filter' => $filter,
             'limit' => $limit,
             'offset' => $offset,
@@ -834,11 +832,11 @@ class NeoFeederService
     }
 
     /**
-     * Get Count Uji Mahasiswa
+     * Get Count Uji Mahasiswa (Not officially supported, return dummy)
      */
     public function getCountUjiMahasiswa(): ?array
     {
-        return $this->requestQuick('GetCountUjiMahasiswa', []);
+        return ['data' => 0];
     }
 
     /**
