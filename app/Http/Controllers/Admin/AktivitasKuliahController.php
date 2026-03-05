@@ -60,7 +60,10 @@ class AktivitasKuliahController extends Controller
 
         // Filters data
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
-        $semesters = TahunAkademik::orderBy('id_semester', 'desc')->get(['id_semester', 'nama_semester']);
+        $semesters = TahunAkademik::whereIn(
+            'id_semester',
+            AktivitasKuliah::select('id_semester')->distinct()
+        )->orderBy('id_semester', 'desc')->get(['id_semester', 'nama_semester']);
 
         // Summary stats
         $statsQuery = AktivitasKuliah::query();
