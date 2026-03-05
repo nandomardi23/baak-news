@@ -65,8 +65,22 @@ class MahasiswaController extends Controller
 
     public function show(Mahasiswa $mahasiswa, NeoFeederSyncService $syncService): Response
     {
-        // Auto-sync KRS jika belum ada di database
-        if ($mahasiswa->id_registrasi_mahasiswa && $mahasiswa->krs()->count() === 0) {
+        // Auto-sync KRS jika:
+        // 1. Belum ada di database sama sekali
+        // 2. ATAU ada tapi datanya belum lengkap (belum ada nama dosen karena dari bulk sync)
+        $needsSync = false;
+        if ($mahasiswa->id_registrasi_mahasiswa) {
+            $hasNoKrs = $mahasiswa->krs()->count() === 0;
+            $hasIncompleteDetails = $mahasiswa->krs()->whereHas('details', function ($q) {
+                $q->whereNull('nama_dosen');
+            })->exists();
+
+            if ($hasNoKrs || $hasIncompleteDetails) {
+                $needsSync = true;
+            }
+        }
+
+        if ($needsSync) {
             try {
                 $syncService->syncKrsMahasiswa($mahasiswa->id_registrasi_mahasiswa);
             } catch (\Exception $e) {
@@ -397,7 +411,10 @@ class MahasiswaController extends Controller
 
             $result = $syncService->syncKrsMahasiswa($mahasiswa->id_registrasi_mahasiswa);
 
-            $msg = "Berhasil sync KRS: {$result['synced']} semester synced.";
+            $msg = "Berhasil sync KRS: {$result['synced']} semester synced, {$result['total']} total dari API.";
+            if (($result['skipped'] ?? 0) > 0) {
+                $msg .= " {$result['skipped']} semester dilewati (belum ada di data semester lokal).";
+            }
             if (!empty($result['errors'])) {
                 $msg .= " Errors: " . count($result['errors']);
             }
