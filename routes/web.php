@@ -90,6 +90,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::resource('matakuliah', \App\Http\Controllers\Admin\MataKuliahController::class)->except(['create', 'edit', 'show']);
         Route::get('semester', [AkademikController::class, 'semester'])->name('semester');
         Route::resource('prodi', \App\Http\Controllers\Admin\ProdiController::class)->except(['create', 'edit']);
+        Route::get('aktivitas-kuliah', [\App\Http\Controllers\Admin\AktivitasKuliahController::class, 'index'])->name('aktivitas-kuliah');
     });
 
     // Kalender Akademik
@@ -100,7 +101,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::get('neofeeder', [NeoFeederSettingsController::class, 'index'])->name('neofeeder');
         Route::post('neofeeder', [NeoFeederSettingsController::class, 'update'])->name('neofeeder.update');
         Route::post('neofeeder/test', [NeoFeederSettingsController::class, 'testConnection'])->name('neofeeder.test');
-        
+
         // Letter Settings
         Route::get('surat', [\App\Http\Controllers\Admin\LetterSettingsController::class, 'show'])->name('surat');
         Route::post('surat', [\App\Http\Controllers\Admin\LetterSettingsController::class, 'update'])->name('surat.update');
@@ -114,7 +115,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::middleware('role:admin|staff_baak')->prefix('sync')->name('sync.')->group(function () {
         // Referensi (Sub-types via body)
         Route::post('referensi', [\App\Http\Controllers\Admin\SyncController::class, 'syncReferensi'])->name('referensi');
-        
+
         // Explicit Routes mapping to Specific Methods
         Route::post('prodi', [\App\Http\Controllers\Admin\SyncController::class, 'syncProdi'])->name('prodi');
         Route::post('semester', [\App\Http\Controllers\Admin\SyncController::class, 'syncSemester'])->name('semester');
@@ -124,7 +125,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::post('biodata', [\App\Http\Controllers\Admin\SyncController::class, 'syncBiodata'])->name('biodata');
         Route::post('mahasiswa/detail', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswaDetail'])->name('mahasiswa-detail');
         Route::post('mahasiswa-lulus-do', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswaLulusDO'])->name('mahasiswa-lulus-do');
-        
+
         Route::post('dosen', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosen'])->name('dosen');
         Route::post('nilai', [\App\Http\Controllers\Admin\SyncController::class, 'syncNilai'])->name('nilai');
         Route::post('krs', [\App\Http\Controllers\Admin\SyncController::class, 'syncKrs'])->name('krs');
@@ -132,7 +133,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
         Route::post('kelas-kuliah', [\App\Http\Controllers\Admin\SyncController::class, 'syncKelasKuliah'])->name('kelas-kuliah');
         Route::post('dosen-pengajar', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosenPengajar'])->name('dosen-pengajar');
         Route::post('ajar-dosen', [\App\Http\Controllers\Admin\SyncController::class, 'syncAjarDosen'])->name('ajar-dosen');
-        
+
         Route::post('bimbingan-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncBimbinganMahasiswa'])->name('bimbingan-mahasiswa');
         Route::post('uji-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncUjiMahasiswa'])->name('uji-mahasiswa');
         Route::post('aktivitas-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncAktivitasMahasiswa'])->name('aktivitas-mahasiswa');
@@ -141,6 +142,6 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     });
 });
 
-require __DIR__.'/settings.php';
+require __DIR__ . '/settings.php';
 
 

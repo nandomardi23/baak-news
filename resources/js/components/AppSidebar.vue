@@ -50,6 +50,7 @@ const navGroups = [
             { title: 'Mata Kuliah', href: '/admin/akademik/matakuliah', icon: BookOpen },
             { title: 'Semester', href: '/admin/akademik/semester', icon: Calendar },
             { title: 'Program Studi', href: '/admin/akademik/prodi', icon: School },
+            { title: 'Aktivitas Kuliah', href: '/admin/akademik/aktivitas-kuliah', icon: ClipboardList },
         ],
     },
     {
