@@ -4,10 +4,11 @@ $app = require_once __DIR__ . '/bootstrap/app.php';
 $kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
 $kernel->bootstrap();
 
-function calcIpk($nim)
+function calcIpk($nim, $id_semester)
 {
     $mahasiswa = \App\Models\Mahasiswa::where('nim', $nim)->first();
     $aktivitas = $mahasiswa->aktivitasKuliah()
+        ->where('id_semester', '<=', $id_semester)
         ->orderBy('id_semester', 'desc')
         ->where('ipk', '>', 0)
         ->first();
@@ -15,7 +16,9 @@ function calcIpk($nim)
     if ($aktivitas) {
         return $aktivitas->ipk;
     } else {
-        $nilais = $mahasiswa->nilai()->with('mataKuliah')->get();
+        $nilais = $mahasiswa->nilai()
+            ->where('id_periode', '<=', $id_semester)
+            ->with('mataKuliah')->get();
         $mkGrades = [];
         foreach ($nilais as $n) {
             if (!$n->mata_kuliah_id || $n->nilai_indeks === null)
@@ -38,4 +41,7 @@ function calcIpk($nim)
     }
 }
 
-echo "Dynamic IPK: " . number_format((float) calcIpk('182411003'), 2) . "\n";
+echo "Dynamic IPK Sem 20241: " . number_format((float) calcIpk('182411003', '20241'), 2) . "\n";
+echo "Dynamic IPK Sem 20242: " . number_format((float) calcIpk('182411003', '20242'), 2) . "\n";
+echo "Dynamic IPK Sem 20251: " . number_format((float) calcIpk('182411003', '20251'), 2) . "\n";
+

@@ -64,6 +64,7 @@ class KhsService extends BasePdfService
         // Fetch IPK from Aktivitas Kuliah up to this semester
         $ipk = $mahasiswa->ipk;
         $aktivitas = \App\Models\AktivitasKuliah::where('nim', $mahasiswa->nim)
+            ->where('id_semester', '<=', $tahunAkademik->id_semester)
             ->orderBy('id_semester', 'desc')
             ->where('ipk', '>', 0)
             ->first();
@@ -72,7 +73,9 @@ class KhsService extends BasePdfService
             $ipk = $aktivitas->ipk;
         } else {
             // Dynamic fallback IPK calculation
-            $nilais = $mahasiswa->nilai()->with('mataKuliah')->get();
+            $nilais = $mahasiswa->nilai()
+                ->where('id_periode', '<=', $tahunAkademik->id_semester)
+                ->with('mataKuliah')->get();
             $mkGrades = [];
             foreach ($nilais as $n) {
                 if (!$n->mata_kuliah_id || $n->nilai_indeks === null)
