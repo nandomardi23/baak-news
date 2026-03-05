@@ -43,7 +43,7 @@ abstract class BasePdfService extends Fpdi
     {
         $dir = storage_path('app/public/template-surat');
         $files = [];
-        
+
         if (is_dir($dir)) {
             $files = glob($dir . '/' . $prefix . '_*.pdf');
             if (empty($files)) {
@@ -58,7 +58,7 @@ abstract class BasePdfService extends Fpdi
             usort($files, function ($a, $b) {
                 return filemtime($b) - filemtime($a);
             });
-            
+
             $latestFile = $files[0];
             $this->setSourceFile($latestFile);
             $tplIdx = $this->importPage(1);
@@ -74,24 +74,24 @@ abstract class BasePdfService extends Fpdi
     protected function addKopSurat(): void
     {
         // Add absolute Y position to prevent clipping
-        $this->SetY(10); 
-        
+        $this->SetY(10);
+
         $namaYayasan = Setting::getValue('kop_nama_yayasan', 'YAYASAN NALA');
         $namaKampus = Setting::getValue('kop_nama_kampus', 'SEKOLAH TINGGI ILMU KESEHATAN HANG TUAH TANJUNGPINANG KEPULAUAN RIAU');
         $alamat = Setting::getValue('kop_alamat', 'Jl. WR. Supratman, Air Raja, Tanjungpinang Timur, Kota Tanjungpinang, Kepulauan Riau. Tlp (0771) 4440071');
-        
+
         // Yayasan
         $this->SetFont('Arial', 'B', 11);
         $this->Cell(0, 5, $namaYayasan, 0, 1, 'C');
-        
+
         // Kampus
         $this->SetFont('Arial', 'B', 14);
         $this->MultiCell(0, 6, $namaKampus, 0, 'C');
-        
+
         // Alamat
         $this->SetFont('Arial', '', 8);
         $this->MultiCell(0, 4, $alamat, 0, 'C');
-        
+
         // Decorative Lines
         $this->Ln(1);
         $this->SetLineWidth(0.8);
@@ -104,12 +104,12 @@ abstract class BasePdfService extends Fpdi
     protected function addCustomSignature(?Pejabat $pejabat, ?string $fallbackJabatan = null): void
     {
         $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
-        
+
         $this->Ln(15);
         $this->SetFont('Arial', '', 11);
         $this->Cell(100, 6, '', 0, 0);
         $this->Cell(0, 6, $kota . ', ' . date('d F Y') . ' ' . Setting::getValue('kop_nama_kampus', 'Stikes Hang Tuah'), 0, 1, 'C');
-        
+
         $jabatan = $pejabat?->jabatan ?? $fallbackJabatan ?? 'Pimpinan';
         $this->Cell(100, 6, '', 0, 0);
         $this->Cell(0, 6, $jabatan, 0, 1, 'C');
@@ -118,19 +118,19 @@ abstract class BasePdfService extends Fpdi
         $this->SetFont('Arial', 'B', 11);
         $this->Cell(100, 6, '', 0, 0);
         $this->Cell(0, 6, $pejabat?->nama_lengkap ?? '........................', 0, 1, 'C');
-        
+
         $this->SetFont('Arial', '', 11);
         $this->Cell(100, 6, '', 0, 0);
-        
+
         if ($pejabat && $pejabat->pangkat_golongan) {
             $this->Cell(0, 6, $pejabat->pangkat_golongan, 0, 1, 'C');
             $this->Cell(100, 6, '', 0, 0);
         }
-        
+
         $idNumber = $pejabat?->nip ?? $pejabat?->nidn;
         // Always usage 'NIK' label as per user request ("semuanya pakai NIK")
         $idLabel = 'NIK';
-        
+
         $this->Cell(0, 6, $idLabel . ': ' . ($idNumber ?? '........................'), 0, 1, 'C');
     }
 
@@ -138,12 +138,12 @@ abstract class BasePdfService extends Fpdi
     {
         $initialFontSize = $this->FontSizePt;
         $width = $this->GetStringWidth($text);
-        
+
         while ($width > ($w - 1) && $this->FontSizePt > 6) {
             $this->SetFontSize($this->FontSizePt - 0.5);
             $width = $this->GetStringWidth($text);
         }
-        
+
         $this->Cell($w, $h, $text, $border, $ln, $align, $fill);
         $this->SetFontSize($initialFontSize);
     }
@@ -151,14 +151,23 @@ abstract class BasePdfService extends Fpdi
     protected function formatTanggal($dateString): string
     {
         $bulanIndo = [
-            1 => 'Januari', 2 => 'Februari', 3 => 'Maret',
-            4 => 'April', 5 => 'Mei', 6 => 'Juni',
-            7 => 'Juli', 8 => 'Agustus', 9 => 'September',
-            10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
         ];
 
-        if (!$dateString) return '-';
-        
+        if (!$dateString)
+            return '-';
+
         $date = date_parse($dateString);
         if ($date['error_count'] === 0 && checkdate($date['month'], $date['day'], $date['year'])) {
             return $date['day'] . ' ' . $bulanIndo[$date['month']] . ' ' . $date['year'];
@@ -175,16 +184,17 @@ abstract class BasePdfService extends Fpdi
 
     protected function formatText(?string $text): string
     {
-        if (!$text) return '-';
-        
+        if (!$text)
+            return '-';
+
         $formatted = ucwords(strtolower($text));
-        
+
         // Fix specific abbreviations
         $formatted = preg_replace('/\bRt\b/', 'RT', $formatted);
         $formatted = preg_replace('/\bRw\b/', 'RW', $formatted);
         $formatted = preg_replace('/\bSim\b/', 'SIM', $formatted);
         $formatted = preg_replace('/\bKtp\b/', 'KTP', $formatted);
-        
+
         return $formatted;
     }
 
@@ -194,7 +204,7 @@ abstract class BasePdfService extends Fpdi
         // but we can try to guess from current date or just return '.......' if we can't calculate.
         // However, usually we should have enough info.
         // Let's rely on the mahasiswa->semester_ke field if available, or calculate it.
-        
+
         // Check if we have global semester calc
         $ta = TahunAkademik::where('is_active', true)->first();
         if ($ta) {
@@ -202,33 +212,39 @@ abstract class BasePdfService extends Fpdi
             return $this->getRomanMonth($num); // Reuse roman function for 1-12
         }
 
-        return '.......'; 
+        return '.......';
     }
 
     protected function hexToRgb($hex): array
     {
         $hex = ltrim($hex, '#');
         if (strlen($hex) === 3) {
-            $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
+            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
         }
-        if (strlen($hex) !== 6) return ['r' => 0, 'g' => 0, 'b' => 0];
-        
+        if (strlen($hex) !== 6)
+            return ['r' => 0, 'g' => 0, 'b' => 0];
+
         return [
             'r' => hexdec(substr($hex, 0, 2)),
             'g' => hexdec(substr($hex, 2, 2)),
             'b' => hexdec(substr($hex, 4, 2))
         ];
     }
-    
-    protected function base64ToImage($base64_string) {
+
+    protected function base64ToImage($base64_string)
+    {
         $data = explode(',', $base64_string);
         return isset($data[1]) ? base64_decode($data[1]) : '';
     }
 
-    protected function getPredikat($ipk) {
-        if ($ipk >= 3.51) return 'Dengan Pujian';
-        if ($ipk >= 2.76) return 'Sangat Memuaskan';
-        if ($ipk >= 2.00) return 'Memuaskan';
+    protected function getPredikat($ipk)
+    {
+        if ($ipk >= 3.51)
+            return 'Dengan Pujian';
+        if ($ipk >= 2.76)
+            return 'Sangat Memuaskan';
+        if ($ipk >= 2.00)
+            return 'Memuaskan';
         return 'Cukup';
     }
 
@@ -238,12 +254,12 @@ abstract class BasePdfService extends Fpdi
         if ($key === 'tabel_krs' || $key === 'tabel_nilai') {
             return '';
         }
-        return $data[$key] ?? $data[str_replace('_', '', $key)] ?? '{{'.$key.'}}';
+        return $data[$key] ?? $data[str_replace('_', '', $key)] ?? '{{' . $key . '}}';
     }
 
     protected function replacePlaceholdersInText(string $text, array $data): string
     {
-        return preg_replace_callback('/\{\{(\w+)\}\}/', function($matches) use ($data) {
+        return preg_replace_callback('/\{\{(\w+)\}\}/', function ($matches) use ($data) {
             return $this->replacePlaceholder($matches[1], $data);
         }, $text);
     }
@@ -278,30 +294,30 @@ abstract class BasePdfService extends Fpdi
 
         $canvasData = $template->canvas_data;
         if (!$canvasData || !isset($canvasData['objects'])) {
-            return ''; 
+            return '';
         }
 
         foreach ($canvasData['objects'] as $obj) {
             $this->renderCanvasObject($obj, $data);
         }
-        
+
         $nim = $data['nim'] ?? 'unknown';
         $filename = $template->slug . '_' . $nim . '_' . date('YmdHis') . '.pdf';
-        
+
         $path = storage_path('app/public/surat/' . $filename);
         if (!is_dir(dirname($path))) {
             mkdir(dirname($path), 0755, true);
         }
-        
+
         $this->Output('F', $path);
-        
+
         return $filename;
     }
 
     protected function renderCanvasObject(array $obj, array $data): void
     {
         $scale = 0.264583;
-        
+
         $type = $obj['type'];
         $left = ($obj['left'] ?? 0) * $scale;
         $top = ($obj['top'] ?? 0) * $scale;
@@ -310,7 +326,7 @@ abstract class BasePdfService extends Fpdi
 
         if ($type === 'textbox' || $type === 'text' || $type === 'i-text') {
             $text = $obj['text'] ?? '';
-            
+
             if (isset($obj['isPlaceholder']) && $obj['isPlaceholder']) {
                 $key = $obj['placeholderKey'] ?? $text;
                 $text = $this->replacePlaceholder($key, $data);
@@ -318,31 +334,34 @@ abstract class BasePdfService extends Fpdi
                 $text = $this->replacePlaceholdersInText($text, $data);
             }
 
-            $fontFamily = 'Arial'; 
+            $fontFamily = 'Arial';
             $fontStyle = '';
-            if (($obj['fontWeight'] ?? 'normal') === 'bold') $fontStyle .= 'B';
-            if (($obj['fontStyle'] ?? 'normal') === 'italic') $fontStyle .= 'I';
-            if (($obj['underline'] ?? false)) $fontStyle .= 'U';
-            
+            if (($obj['fontWeight'] ?? 'normal') === 'bold')
+                $fontStyle .= 'B';
+            if (($obj['fontStyle'] ?? 'normal') === 'italic')
+                $fontStyle .= 'I';
+            if (($obj['underline'] ?? false))
+                $fontStyle .= 'U';
+
             $color = $this->hexToRgb($obj['fill'] ?? '#000000');
             $this->SetTextColor($color['r'], $color['g'], $color['b']);
-            
-            $fontSize = ($obj['fontSize'] ?? 12) * 0.75; 
+
+            $fontSize = ($obj['fontSize'] ?? 12) * 0.75;
             $this->SetFont($fontFamily, $fontStyle, $fontSize);
-            
+
             $this->SetXY($left, $top);
             $this->MultiCell($width, 6, $text, 0, $obj['textAlign'] ?? 'left');
-        
+
         } elseif ($type === 'image') {
             if (isset($obj['src'])) {
                 $imgData = $obj['src'];
                 if (strpos($imgData, 'data:image') === 0) {
                     $imgData = $this->base64ToImage($imgData);
                 }
-                
+
                 $tempImg = tempnam(sys_get_temp_dir(), 'img');
                 file_put_contents($tempImg, file_get_contents($imgData));
-                
+
                 $this->Image($tempImg, $left, $top, $width, $height);
                 unlink($tempImg);
             }
@@ -350,7 +369,7 @@ abstract class BasePdfService extends Fpdi
             $fill = ($obj['fill'] ?? 'transparent') !== 'transparent' ? $this->hexToRgb($obj['fill']) : null;
             $stroke = ($obj['stroke'] ?? null) ? $this->hexToRgb($obj['stroke']) : null;
             $style = '';
-            
+
             if ($fill) {
                 $this->SetFillColor($fill['r'], $fill['g'], $fill['b']);
                 $style .= 'F';
@@ -360,7 +379,7 @@ abstract class BasePdfService extends Fpdi
                 $this->SetLineWidth(($obj['strokeWidth'] ?? 1) * $scale);
                 $style .= 'D';
             }
-            
+
             if ($style) {
                 $this->Rect($left, $top, $width, $height, $style);
             }
@@ -369,7 +388,7 @@ abstract class BasePdfService extends Fpdi
             $y1 = (($obj['y1'] ?? 0) + ($obj['top'] ?? 0)) * $scale;
             $x2 = (($obj['x2'] ?? 0) + ($obj['left'] ?? 0)) * $scale;
             $y2 = (($obj['y2'] ?? 0) + ($obj['top'] ?? 0)) * $scale;
-            
+
             $stroke = $this->hexToRgb($obj['stroke'] ?? '#000000');
             $this->SetDrawColor($stroke['r'], $stroke['g'], $stroke['b']);
             $this->SetLineWidth(($obj['strokeWidth'] ?? 1) * $scale);
@@ -382,7 +401,7 @@ abstract class BasePdfService extends Fpdi
     protected function getMahasiswaSemester(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): int
     {
         $angkatan = $mahasiswa->angkatan;
-        
+
         if (!$angkatan) {
             $nim = $mahasiswa->nim;
             if (strlen($nim) >= 4) {
@@ -390,7 +409,7 @@ abstract class BasePdfService extends Fpdi
                 $yy23 = substr($nim, 2, 2);
                 $yy01 = substr($nim, 0, 2);
                 $currentYY = (int) date('y');
-                
+
                 // Smart guess: which one looks like a valid year (e.g. 15 to current+1)?
                 if (is_numeric($yy23) && $yy23 >= 15 && $yy23 <= $currentYY + 1) {
                     $angkatan = '20' . $yy23;
@@ -399,16 +418,16 @@ abstract class BasePdfService extends Fpdi
                 }
             }
         }
-        
+
         if (!$angkatan) {
             $angkatan = date('Y'); // Last resort
         }
 
         $yearDiff = (int) $tahunAkademik->tahun - (int) $angkatan;
         $semesterType = strtolower($tahunAkademik->semester);
-        
+
         $semesterNum = ($yearDiff * 2) + ($semesterType === 'ganjil' ? 1 : 2);
-        
+
         return (int) $semesterNum;
     }
 
@@ -421,35 +440,36 @@ abstract class BasePdfService extends Fpdi
         $maxLines = 1;
         foreach ($cols as $col) {
             $lines = $this->NbLines($col['width'], $col['text']);
-            if ($lines > $maxLines) $maxLines = $lines;
+            if ($lines > $maxLines)
+                $maxLines = $lines;
         }
         $h = $lineHeight * $maxLines;
-        
+
         // 2. Check page break (Manual check to trigger signal)
         if ($this->GetY() + $h > $this->PageBreakTrigger) {
             return $h; // Return height to indicate how much was needed
         }
-        
+
         // 3. Draw row
         $startX = $this->GetX();
         $startY = $this->GetY();
-        
+
         foreach ($cols as $col) {
             $x = $this->GetX();
             $y = $this->GetY();
-            
+
             // Draw border for the full height of the row
             if ($border) {
                 $this->Rect($x, $y, $col['width'], $h);
             }
-            
+
             // Draw text
             $this->MultiCell($col['width'], $lineHeight, $col['text'], 0, $col['align'] ?? 'L');
-            
+
             // Restore position for next column
             $this->SetXY($x + $col['width'], $y);
         }
-        
+
         // Move position to the next line after the entire row
         $this->SetXY($startX, $startY + $h);
         return 0; // Success
@@ -457,28 +477,57 @@ abstract class BasePdfService extends Fpdi
 
     public function NbLines($w, $txt)
     {
-        $cw = 500;
-        if($w==0) $w = 210 - 30; // Default A4 minus margins
-        $wmax = ($w - 2 * 2) * 1000 / ($this->FontSize ?: 10);
-        $s = str_replace("\r", '', (string)$txt);
+        if (!isset($this->CurrentFont)) {
+            $this->Error('No font has been set');
+        }
+        $cw = $this->CurrentFont['cw'];
+
+        if ($w == 0)
+            $w = $this->w - $this->rMargin - $this->x;
+
+        $wmax = ($w - 2 * $this->cMargin) * 1000 / $this->FontSize;
+        $s = str_replace("\r", '', (string) $txt);
         $nb = strlen($s);
-        if($nb > 0 && $s[$nb-1] == "\n") $nb--;
+
+        if ($nb > 0 && $s[$nb - 1] == "\n")
+            $nb--;
+
         $sep = -1;
-        $i = 0; $j = 0; $l = 0; $nl = 1;
+        $i = 0;
+        $j = 0;
+        $l = 0;
+        $nl = 1;
+
         while ($i < $nb) {
             $c = $s[$i];
             if ($c == "\n") {
-                $i++; $sep = -1; $j = $i; $l = 0; $nl++;
+                $i++;
+                $sep = -1;
+                $j = $i;
+                $l = 0;
+                $nl++;
                 continue;
             }
-            if ($c == ' ') $sep = $i;
-            $l += $cw;
+
+            if ($c == ' ')
+                $sep = $i;
+
+            $l += $cw[$c] ?? 0;
+
             if ($l > $wmax) {
                 if ($sep == -1) {
-                    if ($i == $j) $i++;
-                } else $i = $sep+1;
-                $sep = -1; $j = $i; $l = 0; $nl++;
-            } else $i++;
+                    if ($i == $j)
+                        $i++;
+                } else {
+                    $i = $sep + 1;
+                }
+                $sep = -1;
+                $j = $i;
+                $l = 0;
+                $nl++;
+            } else {
+                $i++;
+            }
         }
         return $nl;
     }

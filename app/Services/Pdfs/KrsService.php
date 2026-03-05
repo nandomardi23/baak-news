@@ -39,20 +39,20 @@ class KrsService extends BasePdfService
         $this->SetFont('Arial', 'B', 9);
         $w1 = 55;
         $sep = 5;
-        $w2 = 50;
+        $w2 = 60; // Slightly larger to give more room
 
         // Row 1
         $this->Cell($w1, 5, 'NAMA MAHASISWA', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
-        $this->Cell($w2, 5, strtoupper($mahasiswa->nama), 0, 0);
+        $this->writeAdaptiveCell($w2, 5, strtoupper($mahasiswa->nama), 0, 0);
 
         // Jurusan
         $this->SetFont('Arial', 'B', 9);
         $this->Cell(25, 5, 'JURUSAN', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
-        $this->Cell(0, 5, strtoupper($mahasiswa->programStudi?->nama_prodi ?? '-'), 0, 1);
+        $this->writeAdaptiveCell(50, 5, strtoupper($mahasiswa->programStudi?->nama_prodi ?? '-'), 0, 1);
 
         // Row 2
         $this->SetFont('Arial', 'B', 9);
@@ -85,13 +85,36 @@ class KrsService extends BasePdfService
         $this->SetFont('Arial', '', 9);
 
         $ipk = $mahasiswa->ipk;
-        $aktivitas = $mahasiswa->aktivitasKuliah()
-            ->where('id_semester', '<=', $tahunAkademik->id_semester)
+        $aktivitas = \App\Models\AktivitasKuliah::where('nim', $mahasiswa->nim)
             ->orderBy('id_semester', 'desc')
+            ->where('ipk', '>', 0)
             ->first();
 
         if ($aktivitas && $aktivitas->ipk > 0) {
             $ipk = $aktivitas->ipk;
+        } else {
+            // Dynamic fallback IPK calculation
+            $nilais = $mahasiswa->nilai()->with('mataKuliah')->get();
+            $mkGrades = [];
+            foreach ($nilais as $n) {
+                if (!$n->mata_kuliah_id || $n->nilai_indeks === null)
+                    continue;
+                if (!isset($mkGrades[$n->mata_kuliah_id]) || $mkGrades[$n->mata_kuliah_id]['indeks'] < $n->nilai_indeks) {
+                    $mkGrades[$n->mata_kuliah_id] = [
+                        'sks' => $n->mataKuliah->sks_mata_kuliah ?? $n->sks_mata_kuliah ?? 0,
+                        'indeks' => $n->nilai_indeks
+                    ];
+                }
+            }
+            $totalMKSks = 0;
+            $totalBobot = 0;
+            foreach ($mkGrades as $grade) {
+                $totalMKSks += $grade['sks'];
+                $totalBobot += ($grade['sks'] * $grade['indeks']);
+            }
+            if ($totalMKSks > 0) {
+                $ipk = $totalBobot / $totalMKSks;
+            }
         }
 
         $this->Cell(0, 5, number_format((float) ($ipk ?? 0), 2), 0, 1);
@@ -147,7 +170,10 @@ class KrsService extends BasePdfService
                 $dosenList = [];
                 if ($detail->kelasKuliah && $detail->kelasKuliah->dosenPengajar->count() > 0) {
                     foreach ($detail->kelasKuliah->dosenPengajar as $dp) {
-                        $dosenList[] = $dp->nama_dosen;
+                        $dosenName = $dp->nama ?? $dp->nama_lengkap;
+                        if ($dosenName) {
+                            $dosenList[] = $dosenName;
+                        }
                     }
                 }
 
