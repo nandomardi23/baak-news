@@ -276,7 +276,7 @@ class AcademicSyncService extends BaseSyncService
         */
 
         // 2. Fetch bulk data
-        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, \App\Models\Krs::class) : '';
+        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, Krs::class) : '';
         $response = $this->neoFeeder->getKrsBySemester($idSemester, $limit, $offset, $dateFilter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -448,7 +448,7 @@ class AcademicSyncService extends BaseSyncService
         */
 
         // 2. Fetch bulk data
-        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, \App\Models\Nilai::class) : '';
+        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, Nilai::class) : '';
         $response = $this->neoFeeder->getNilaiBySemester($idSemester, $limit, $offset, $dateFilter);
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -619,7 +619,7 @@ class AcademicSyncService extends BaseSyncService
         }
 
         $baseFilter = "id_semester = '{$idSemester}'";
-        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\AktivitasKuliah::class);
+        $filter = $this->getFilter($baseFilter, $syncSince, AktivitasKuliah::class);
 
         // 1. Get total count for this semester
         $totalAll = 0;
@@ -896,8 +896,8 @@ class AcademicSyncService extends BaseSyncService
             Log::warning("SyncBimbingan: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $filter = $this->getFilter('', $syncSince, \App\Models\BimbinganMahasiswa::class);
-        $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset, $filter);
+        $dateFilter = $syncSince ? $this->getFilter('', $syncSince, BimbinganMahasiswa::class) : '';
+        $response = $this->neoFeeder->getBimbingMahasiswa($limit, $offset, $dateFilter);
 
         if (!$response) {
             throw new \Exception('Gagal menghubungi Neo Feeder API');
@@ -973,7 +973,7 @@ class AcademicSyncService extends BaseSyncService
             Log::warning("SyncUji: GetCount failed. Error: " . $e->getMessage());
         }
 
-        $filter = $this->getFilter('', $syncSince, \App\Models\UjiMahasiswa::class);
+        $filter = $this->getFilter('', $syncSince, UjiMahasiswa::class);
         $response = $this->neoFeeder->getUjiMahasiswa($limit, $offset, $filter);
 
         if (!$response) {
@@ -1034,7 +1034,7 @@ class AcademicSyncService extends BaseSyncService
     {
         $totalAll = 0;
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
-        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\AktivitasMahasiswa::class);
+        $filter = $this->getFilter($baseFilter, $syncSince, AktivitasMahasiswa::class);
 
         try {
             $countResponse = $this->neoFeeder->getCountAktivitasMahasiswa($filter);
@@ -1116,7 +1116,7 @@ class AcademicSyncService extends BaseSyncService
     {
         $totalAll = 0;
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
-        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\AnggotaAktivitasMahasiswa::class);
+        $filter = $this->getFilter($baseFilter, $syncSince, AnggotaAktivitasMahasiswa::class);
 
         try {
             $countResponse = $this->neoFeeder->getCountAnggotaAktivitasMahasiswa($filter);
@@ -1191,7 +1191,7 @@ class AcademicSyncService extends BaseSyncService
     {
         $totalAll = 0;
         $baseFilter = $idSemester ? "id_semester = '{$idSemester}'" : "";
-        $filter = $this->getFilter($baseFilter, $syncSince, \App\Models\KonversiKampusMerdeka::class);
+        $filter = $this->getFilter($baseFilter, $syncSince, KonversiKampusMerdeka::class);
 
         try {
             $countResponse = $this->neoFeeder->getCountKonversiKampusMerdeka($filter);

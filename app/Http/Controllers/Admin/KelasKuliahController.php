@@ -45,7 +45,7 @@ class KelasKuliahController extends Controller
         }
 
         $kelasKuliah = $query->orderBy($sortField, $sortDirection)
-            ->paginate(20)
+            ->paginate($request->input('per_page', 20))
             ->withQueryString()
             ->through(fn($item) => [
                 'id' => $item->id,
@@ -80,21 +80,54 @@ class KelasKuliahController extends Controller
     public function show(KelasKuliah $kelasKuliah): Response
     {
         $kelasKuliah->load([
-            'programStudi', 
-            'mataKuliah', 
-            'tahunAkademik', 
+            'programStudi',
+            'mataKuliah',
+            'tahunAkademik',
             'dosenPengajar',
-            'krsDetails.krs.mahasiswa.programStudi'
         ]);
 
-        // Get Peserta List from local KRS data
-        $peserta = $kelasKuliah->krsDetails->map(fn($krsDetail) => [
-            'id' => $krsDetail->id,
-            'nim' => $krsDetail->krs?->mahasiswa?->nim,
-            'nama' => $krsDetail->krs?->mahasiswa?->nama,
-            'angkatan' => $krsDetail->krs?->mahasiswa?->angkatan,
-            'prodi' => $krsDetail->krs?->mahasiswa?->programStudi?->nama_prodi,
-        ])->filter(fn($m) => $m['nim'] !== null)->values();
+        // Get paginated Peserta List
+        $pesertaQuery = \App\Models\KrsDetail::with(['krs.mahasiswa.programStudi'])
+            ->where('id_kelas_kuliah', $kelasKuliah->id_kelas_kuliah);
+
+        if ($search = request('search')) {
+            $pesertaQuery->whereHas('krs.mahasiswa', function ($q) use ($search) {
+                $q->where('nama', 'like', "%{$search}%")
+                    ->orWhere('nim', 'like', "%{$search}%");
+            });
+        }
+
+        $sortField = request('sort_field', 'nim');
+        $sortDirection = request('sort_direction', 'asc');
+
+        // Custom sorting since fields are in relations
+        if (in_array($sortField, ['nim', 'nama', 'angkatan'])) {
+            $pesertaQuery->join('krs', 'krs.id', '=', 'krs_detail.krs_id')
+                ->join('mahasiswa', 'mahasiswa.id', '=', 'krs.mahasiswa_id')
+                ->orderBy("mahasiswa.{$sortField}", $sortDirection)
+                ->select('krs_detail.*'); // ensure we don't mix up ids
+        } else if ($sortField === 'prodi') {
+            $pesertaQuery->join('krs', 'krs.id', '=', 'krs_detail.krs_id')
+                ->join('mahasiswa', 'mahasiswa.id', '=', 'krs.mahasiswa_id')
+                ->join('program_studi', 'program_studi.id', '=', 'mahasiswa.program_studi_id')
+                ->orderBy('program_studi.nama_prodi', $sortDirection)
+                ->select('krs_detail.*');
+        } else {
+            $pesertaQuery->orderBy('krs_detail.id', $sortDirection);
+        }
+
+        $peserta = $pesertaQuery->paginate(request('per_page', 10))
+            ->withQueryString()
+            ->through(fn($krsDetail) => [
+                'id' => $krsDetail->id,
+                'nim' => $krsDetail->krs?->mahasiswa?->nim,
+                'nama' => $krsDetail->krs?->mahasiswa?->nama,
+                'angkatan' => $krsDetail->krs?->mahasiswa?->angkatan,
+                'prodi' => $krsDetail->krs?->mahasiswa?->programStudi?->nama_prodi,
+            ]);
+
+        // Just get count for the top card
+        $totalPeserta = \App\Models\KrsDetail::where('id_kelas_kuliah', $kelasKuliah->id_kelas_kuliah)->count();
 
         return Inertia::render('Admin/KelasKuliah/Show', [
             'kelasKuliah' => [
@@ -116,9 +149,10 @@ class KelasKuliahController extends Controller
                     'realisasi_tm' => $d->pivot->realisasi_tatap_muka,
                     'evaluasi' => $d->pivot->nama_jenis_evaluasi,
                 ]),
-                'peserta' => $peserta,
-                'total_peserta' => $peserta->count(),
+                'total_peserta' => $totalPeserta,
             ],
+            'peserta' => $peserta,
+            'filters' => request()->only(['search', 'per_page', 'sort_field', 'sort_direction']),
         ]);
     }
 

@@ -37,7 +37,7 @@ class KurikulumController extends Controller
         }
 
         $kurikulum = $query->orderBy($sortField, $sortDirection)
-            ->paginate(20)
+            ->paginate($request->input('per_page', 20))
             ->withQueryString()
             ->through(fn($item) => [
                 'id' => $item->id,
@@ -65,18 +65,41 @@ class KurikulumController extends Controller
         $kurikulum = Kurikulum::with(['programStudi', 'tahunAkademik', 'matkulKurikulum.mataKuliah'])
             ->findOrFail($id);
 
-        $matkulKurikulum = $kurikulum->matkulKurikulum->map(fn($mk) => [
-            'id' => $mk->id,
-            'kode_matkul' => $mk->mataKuliah?->kode_matkul,
-            'nama_matkul' => $mk->mataKuliah?->nama_matkul,
-            'semester' => $mk->semester,
-            'sks_mata_kuliah' => $mk->sks_mata_kuliah,
-            'sks_tatap_muka' => $mk->sks_tatap_muka,
-            'sks_praktek' => $mk->sks_praktek,
-            'sks_praktek_lapangan' => $mk->sks_praktek_lapangan,
-            'sks_simulasi' => $mk->sks_simulasi,
-            'apakah_wajib' => $mk->apakah_wajib ? 'Wajib' : 'Pilihan',
-        ])->sortBy('semester')->values();
+        $matkulQuery = \App\Models\MatkulKurikulum::with('mataKuliah')
+            ->where('id_kurikulum', $kurikulum->id_kurikulum);
+
+        if ($search = request('search')) {
+            $matkulQuery->whereHas('mataKuliah', function ($q) use ($search) {
+                $q->where('nama_matkul', 'like', "%{$search}%")
+                    ->orWhere('kode_matkul', 'like', "%{$search}%");
+            });
+        }
+
+        $sortField = request('sort_field', 'semester');
+        $sortDirection = request('sort_direction', 'asc');
+
+        if (in_array($sortField, ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah'])) {
+            $matkulQuery->join('mata_kuliah', 'mata_kuliah.id', '=', 'matkul_kurikulum.mata_kuliah_id')
+                ->orderBy("mata_kuliah.{$sortField}", $sortDirection)
+                ->select('matkul_kurikulum.*');
+        } else {
+            $matkulQuery->orderBy($sortField, $sortDirection);
+        }
+
+        $matkulKurikulum = $matkulQuery->paginate(request('per_page', 10))
+            ->withQueryString()
+            ->through(fn($mk) => [
+                'id' => $mk->id,
+                'kode_matkul' => $mk->mataKuliah?->kode_matkul,
+                'nama_matkul' => $mk->mataKuliah?->nama_matkul,
+                'semester' => $mk->semester,
+                'sks_mata_kuliah' => $mk->sks_mata_kuliah,
+                'sks_tatap_muka' => $mk->sks_tatap_muka,
+                'sks_praktek' => $mk->sks_praktek,
+                'sks_praktek_lapangan' => $mk->sks_praktek_lapangan,
+                'sks_simulasi' => $mk->sks_simulasi,
+                'apakah_wajib' => $mk->apakah_wajib ? 'Wajib' : 'Pilihan',
+            ]);
 
         return Inertia::render('Admin/Akademik/Kurikulum/Show', [
             'kurikulum' => [
@@ -89,6 +112,7 @@ class KurikulumController extends Controller
                 'jumlah_sks_pilihan' => $kurikulum->jumlah_sks_pilihan,
             ],
             'matkulKurikulum' => $matkulKurikulum,
+            'filters' => request()->only(['search', 'per_page', 'sort_field', 'sort_direction']),
         ]);
     }
 }

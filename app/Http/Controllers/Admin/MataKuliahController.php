@@ -25,20 +25,21 @@ class MataKuliahController extends Controller
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
                 $q->where('nama_matkul', 'like', "%{$request->search}%")
-                  ->orWhere('kode_matkul', 'like', "%{$request->search}%");
+                    ->orWhere('kode_matkul', 'like', "%{$request->search}%");
             });
         }
 
         $sortField = $request->input('sort_field', 'kode_matkul');
         $sortDirection = $request->input('sort_direction', 'asc');
         $allowedSorts = ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'sks_teori', 'sks_praktek'];
-        
+
         if (!in_array($sortField, $allowedSorts)) {
             $sortField = 'kode_matkul';
         }
 
         $mataKuliah = $query->orderBy($sortField, $sortDirection)
-            ->paginate(20)
+            ->paginate($request->input('per_page', 20))
+            ->withQueryString()
             ->through(fn($mk) => [
                 'id' => $mk->id,
                 'kode_matkul' => $mk->kode_matkul,
@@ -85,7 +86,7 @@ class MataKuliahController extends Controller
     {
         // Parameter name 'matakuliah' must match route param if using resource. 
         // Route::resource('matakuliah') -> param is {matakuliah}
-        
+
         $validated = $request->validate([
             'kode_matkul' => 'required|string|max:50|unique:mata_kuliah,kode_matkul,' . $matakuliah->id,
             'nama_matkul' => 'required|string|max:255',

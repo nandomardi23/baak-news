@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { watchDebounced } from '@vueuse/core';
 import { ref, watch } from 'vue';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface Column {
     key: string;
@@ -31,6 +32,7 @@ interface PaginationData {
     from: number;
     to: number;
     total: number;
+    per_page?: number;
 }
 
 const props = defineProps<{
@@ -41,6 +43,7 @@ const props = defineProps<{
     sortField?: string;
     sortDirection?: 'asc' | 'desc';
     title?: string;
+    perPage?: number | string;
 }>();
 
 const emit = defineEmits(['update:search', 'update:filters', 'sort']);
@@ -62,6 +65,20 @@ watchDebounced(
     { debounce: 500, maxWait: 1000 }
 );
 
+// Local state for per page
+const localPerPage = ref(String(props.perPage || props.data?.per_page || 10));
+
+watch(() => props.data?.per_page, (newVal) => {
+    if (newVal) localPerPage.value = String(newVal);
+});
+
+const onPerPageChange = (val: string | null | any) => {
+    if (val) {
+        localPerPage.value = String(val);
+        updateParams({ per_page: val, page: null }); // reset page
+    }
+};
+
 const updateParams = (newParams: Record<string, any>) => {
     const currentParams = new URLSearchParams(window.location.search);
     
@@ -74,8 +91,8 @@ const updateParams = (newParams: Record<string, any>) => {
         }
     });
 
-    // Reset to page 1 on filter/search change
-    if ('search' in newParams || Object.keys(props.filters || {}).some(k => k in newParams)) {
+    // Reset to page 1 on filter/search/per_page change
+    if ('search' in newParams || Object.keys(props.filters || {}).some(k => k in newParams) || 'per_page' in newParams) {
         currentParams.delete('page');
     }
 
@@ -164,6 +181,22 @@ const getAlignClass = (align?: string) => {
 
                     <!-- Custom Filters Slot -->
                     <slot name="filters" />
+
+                    <!-- Per Page Select -->
+                    <div class="w-[110px] shrink-0">
+                        <Select :model-value="localPerPage" @update:model-value="onPerPageChange">
+                            <SelectTrigger class="h-9">
+                                <SelectValue placeholder="Baris" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="5">5 Baris</SelectItem>
+                                <SelectItem value="10">10 Baris</SelectItem>
+                                <SelectItem value="25">25 Baris</SelectItem>
+                                <SelectItem value="50">50 Baris</SelectItem>
+                                <SelectItem value="100">100 Baris</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
 
                     <!-- Search Input -->
                     <div class="relative w-full sm:w-64">
