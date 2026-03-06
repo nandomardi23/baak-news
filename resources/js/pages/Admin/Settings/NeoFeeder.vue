@@ -18,7 +18,7 @@ const props = defineProps<{
     semesters: Array<{ id_semester: string; nama_semester: string }>;
 }>();
 
-const { syncStates, accumulatedStats, syncData, cancelAllSyncs } = useNeoFeederSync();
+const { syncStates, accumulatedStats, syncData, cancelAllSyncs, cancelSync } = useNeoFeederSync();
 const selectedSemester = ref<string>('');
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -693,6 +693,7 @@ const connectionStatus = computed(() => {
                                         :accumulated-stat="accumulatedStats[st.type]"
                                         :disabled="!settings.has_password || isSyncingAll"
                                         @sync="syncData(st.type, 0, selectedSemester, syncSince)"
+                                        @cancel="cancelSync(st.type)"
                                         @show-errors="openErrorModal"
                                     />
                                 </div>

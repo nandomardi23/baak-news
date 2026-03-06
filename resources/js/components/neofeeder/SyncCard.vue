@@ -29,6 +29,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
     (e: 'sync'): void;
+    (e: 'cancel'): void;
     (e: 'showErrors', title: string, errors: string[]): void;
 }>();
 </script>
@@ -60,20 +61,29 @@ const emit = defineEmits<{
                     </svg>
                 </button>
 
-                <!-- Sync Button -->
+                <!-- Sync / Cancel Button -->
                 <button
+                    v-if="syncState?.loading"
+                    @click="emit('cancel')"
+                    title="Batalkan Sinkronisasi"
+                    class="flex h-8 w-8 items-center justify-center rounded-lg bg-red-100 text-red-600 hover:bg-red-500 hover:text-white transition-all ring-1 ring-red-500/50"
+                >
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+                <button
+                    v-else
                     @click="emit('sync')"
-                    :disabled="syncState?.loading || disabled"
+                    :disabled="disabled"
+                    title="Mulai Sinkronisasi"
                     class="flex h-8 w-8 items-center justify-center rounded-lg bg-secondary/80 hover:bg-indigo-500 hover:text-white transition-all disabled:opacity-30"
                 >
-                <svg v-if="syncState?.loading" class="h-4 w-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-                <svg v-else class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-            </button>
-        </div>
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+            </div>
         </div>
 
         <!-- Content -->

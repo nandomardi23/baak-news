@@ -37,6 +37,7 @@ export function useNeoFeederSync() {
         total_api: number | null;
         progress: number;
         errors: string[];
+        is_cancelled?: boolean;
     }>>({});
 
     // Sync States
@@ -86,6 +87,9 @@ export function useNeoFeederSync() {
         'konversi': { url: 'konversi-kampus-merdeka', limit: 100, label: 'Konversi MBKM' },
     };
 
+    // Maintain abort controllers for each type to allow individual cancellation
+    const abortControllers: Record<string, AbortController | null> = {};
+
     /**
      * Initialize Accumulator for a type
      */
@@ -96,9 +100,31 @@ export function useNeoFeederSync() {
                 total_failed: 0,
                 total_api: null,
                 progress: 0,
-                errors: []
+                errors: [],
+                is_cancelled: false
             };
         }
+    };
+
+    /**
+     * Cancel individual sync
+     */
+    const cancelSync = (type: string) => {
+        if (abortControllers[type]) {
+            abortControllers[type]?.abort();
+            abortControllers[type] = null;
+        }
+
+        if (syncStates[type]) {
+            syncStates[type].loading = false;
+        }
+
+        if (accumulatedStats[type]) {
+            accumulatedStats[type].is_cancelled = true;
+            accumulatedStats[type].errors.push('Sinkronisasi dibatalkan.');
+        }
+
+        isStopping.value = true;
     };
 
     /**
@@ -107,11 +133,25 @@ export function useNeoFeederSync() {
     const syncData = async (type: string, offset = 0, idSemester?: string, syncSince?: string) => {
         if (!syncStates[type] || isStopping.value) return;
 
+        // Check if individually cancelled
+        if (accumulatedStats[type]?.is_cancelled && offset > 0) {
+            syncStates[type].loading = false;
+            return;
+        }
+
+        if (offset === 0 || !abortControllers[type]) {
+            abortControllers[type] = new AbortController();
+        }
+
         // --- Step 1: Initialization & Get Count (Only on first call) ---
         if (offset === 0) {
             isStopping.value = false;
             syncStates[type].loading = true;
             syncStates[type].result = null;
+
+            // Reset accumulator
+            accumulatedStats[type] = null as any;
+            initAccumulator(type);
 
             // Reset accumulator
             initAccumulator(type);
@@ -171,7 +211,9 @@ export function useNeoFeederSync() {
                 if (idSemester) params.id_semester = idSemester;
                 if (syncSince) params.sync_since = syncSince;
 
-                const countRes = await axios.post(route('admin.sync.' + endpointUrl), params);
+                const countRes = await axios.post(route('admin.sync.' + endpointUrl), params, {
+                    signal: abortControllers[type]?.signal
+                });
 
                 if (countRes.data.success) {
                     const totalCount = countRes.data.data.total || 0;
@@ -214,7 +256,9 @@ export function useNeoFeederSync() {
             // Force full sync for Wilayah to ensure data retrieval
             if (syncSince && type !== 'wilayah') params.sync_since = syncSince;
 
-            const response = await axios.post(route('admin.sync.' + endpointUrl), params);
+            const response = await axios.post(route('admin.sync.' + endpointUrl), params, {
+                signal: abortControllers[type]?.signal
+            });
 
             if (response.data.success) {
                 const result = response.data.data;
@@ -308,6 +352,7 @@ export function useNeoFeederSync() {
         syncData,
         routeMapping,
         cancelAllSyncs,
+        cancelSync,
         isStopping
     };
 }
