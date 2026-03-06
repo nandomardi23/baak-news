@@ -47,6 +47,7 @@ const navGroups = [
             { title: 'Mahasiswa', href: '/admin/mahasiswa', icon: Users },
             { title: 'Dosen', href: '/admin/dosen', icon: GraduationCap },
             { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah', icon: Building2 },
+            { title: 'Kurikulum', href: '/admin/akademik/kurikulum', icon: BookOpen },
             { title: 'Mata Kuliah', href: '/admin/akademik/matakuliah', icon: BookOpen },
             { title: 'Semester', href: '/admin/akademik/semester', icon: Calendar },
             { title: 'Program Studi', href: '/admin/akademik/prodi', icon: School },

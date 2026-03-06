@@ -252,8 +252,8 @@ const syncTypes = [
     },
      {
         type: 'krs',
-        label: 'KRS',
-        description: 'Riwayat KRS mahasiswa',
+        label: 'KRS / Peserta',
+        description: 'Riwayat KRS / Peserta Kelas',
         icon: '📝',
         color: 'from-cyan-500 to-blue-500',
     },

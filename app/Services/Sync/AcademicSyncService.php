@@ -43,13 +43,35 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
+            // === Pre-fetch lookup mappings ===
+            $idMatkuls = collect($data)->pluck('id_matkul')->unique()->filter()->toArray();
+            $idProdis = collect($data)->pluck('id_prodi')->unique()->filter()->toArray();
+            $idSemesters = collect($data)->pluck('id_semester')->unique()->filter()->toArray();
+
+            $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
+                ->get(['id', 'id_matkul', 'kode_matkul', 'nama_matkul'])
+                ->keyBy('id_matkul');
+
+            $prodiMap = \App\Models\ProgramStudi::whereIn('id_prodi', $idProdis)
+                ->pluck('id', 'id_prodi');
+
+            $semesterMap = \App\Models\TahunAkademik::whereIn('id_semester', $idSemesters)
+                ->pluck('id', 'id_semester');
+
             $records = [];
             foreach ($data as $item) {
+                $matkul = $matkulMap[$item['id_matkul']] ?? null;
+
                 $records[] = [
                     'id_kelas_kuliah' => $item['id_kelas_kuliah'],
                     'id_prodi' => $item['id_prodi'],
+                    'program_studi_id' => $prodiMap[$item['id_prodi']] ?? null,
                     'id_semester' => $item['id_semester'],
+                    'tahun_akademik_id' => $semesterMap[$item['id_semester']] ?? null,
                     'id_matkul' => $item['id_matkul'],
+                    'mata_kuliah_id' => $matkul ? $matkul->id : null,
+                    'kode_mata_kuliah' => $item['kode_mata_kuliah'] ?? ($matkul ? $matkul->kode_matkul : null),
+                    'nama_mata_kuliah' => $item['nama_mata_kuliah'] ?? ($matkul ? $matkul->nama_matkul : null),
                     'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
                     'sks' => $item['sks'],
                     'bahasan' => $item['bahasan'] ?? null,
@@ -65,7 +87,22 @@ class AcademicSyncService extends BaseSyncService
                     KelasKuliah::upsert(
                         $chunk,
                         ['id_kelas_kuliah'],
-                        ['id_prodi', 'id_semester', 'id_matkul', 'nama_kelas_kuliah', 'sks', 'bahasan', 'tanggal_mulai_efektif', 'tanggal_akhir_efektif', 'updated_at']
+                        [
+                            'id_prodi',
+                            'program_studi_id',
+                            'id_semester',
+                            'tahun_akademik_id',
+                            'id_matkul',
+                            'mata_kuliah_id',
+                            'kode_mata_kuliah',
+                            'nama_mata_kuliah',
+                            'nama_kelas_kuliah',
+                            'sks',
+                            'bahasan',
+                            'tanggal_mulai_efektif',
+                            'tanggal_akhir_efektif',
+                            'updated_at'
+                        ]
                     );
                 }
                 $synced = count($records);
@@ -344,7 +381,7 @@ class AcademicSyncService extends BaseSyncService
                 $detailRecords[] = [
                     'krs_id' => $krsId,
                     'id_matkul' => $item['id_matkul'],
-                    'id_kelas_kuliah' => $item['id_kelas_kuliah'] ?? null,
+                    'id_kelas_kuliah' => $item['id_kelas'] ?? $item['id_kelas_kuliah'] ?? null,
                     'mata_kuliah_id' => $matkulLocalId,
                     'kode_mata_kuliah' => $item['kode_mata_kuliah'],
                     'nama_mata_kuliah' => $item['nama_mata_kuliah'],
@@ -1093,7 +1130,7 @@ class AcademicSyncService extends BaseSyncService
         $response = $this->neoFeeder->getAnggotaAktivitasMahasiswa($limit, $offset, $filter);
 
         if (!$response) {
-            throw new \Exception('Gagal menghubungi Neo Feeder API');
+            throw new \Exception('Gagal Terhubung Dengan Neo Feeder API');
         }
 
         $data = $response['data'] ?? [];

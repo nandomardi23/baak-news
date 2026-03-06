@@ -72,7 +72,7 @@ export function useNeoFeederSync() {
         'mahasiswa': { url: 'mahasiswa', limit: 100, label: 'Mahasiswa' },
         'biodata': { url: 'biodata', limit: 100, label: 'Biodata Mahasiswa' },
         'aktivitas': { url: 'aktivitas', limit: 100, label: 'Aktivitas Kuliah' },
-        'krs': { url: 'krs', limit: 1000, label: 'KRS Mahasiswa' },
+        'krs': { url: 'krs', limit: 1000, label: 'KRS / Peserta Kelas' },
         'nilai': { url: 'nilai', limit: 100, label: 'Nilai Perkuliahan' },
         'kelaskuliah': { url: 'kelas-kuliah', limit: 100, label: 'Kelas Kuliah' },
         'dosenpengajar': { url: 'dosen-pengajar', limit: 100, label: 'Dosen Pengajar' },
@@ -119,50 +119,50 @@ export function useNeoFeederSync() {
             try {
                 const routeConfig = routeMapping[type];
                 if (!routeConfig) throw new Error(`Unknown sync type: ${type}`);
-                
+
                 const endpointUrl = routeConfig.url;
 
                 // Special handling for legacy 'referensi' sub-types sync
                 if (type === 'referensi') {
                     // ... (keep existing referensi logic)
-                     const subTypes = ['agama', 'jenis_tinggal', 'alat_transportasi', 'pekerjaan', 'penghasilan', 'kebutuhan_khusus', 'pembiayaan'];
-                     let totalSynced = 0;
-                     
-                     for (let i = 0; i < subTypes.length; i++) {
-                         if (isStopping.value) break;
-                         const sub = subTypes[i];
-                         const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
-                         
-                         const res = await axios.post(route('admin.sync.referensi'), { 
-                             sub_type: sub,
-                             sync_since: null, // Force full sync for references
-                             only_count: false 
-                         });
-                         
-                         // Fix: Extract .data from response.data
-                         const data = res.data.data || {};
-                         totalSynced += data.synced || 0;
-                             
-                         syncStates[type].result = {
-                             success: true,
-                             message: `Syncing ${sub.replace('_', ' ')}...`,
-                             synced: totalSynced,
-                             progress: subProgress
-                         };
-                         
-                         accumulatedStats[type].total_synced = totalSynced;
-                         accumulatedStats[type].total_api = totalSynced; 
-                         accumulatedStats[type].progress = subProgress;
-                     }
-                     
-                     syncStates[type].loading = false;
-                     syncStates[type].result = {
-                         success: true,
-                         message: 'Sync Referensi Umum selesai',
-                         synced: totalSynced,
-                         progress: 100
-                     };
-                     return;
+                    const subTypes = ['agama', 'jenis_tinggal', 'alat_transportasi', 'pekerjaan', 'penghasilan', 'kebutuhan_khusus', 'pembiayaan'];
+                    let totalSynced = 0;
+
+                    for (let i = 0; i < subTypes.length; i++) {
+                        if (isStopping.value) break;
+                        const sub = subTypes[i];
+                        const subProgress = Math.round(((i + 1) / subTypes.length) * 100);
+
+                        const res = await axios.post(route('admin.sync.referensi'), {
+                            sub_type: sub,
+                            sync_since: null, // Force full sync for references
+                            only_count: false
+                        });
+
+                        // Fix: Extract .data from response.data
+                        const data = res.data.data || {};
+                        totalSynced += data.synced || 0;
+
+                        syncStates[type].result = {
+                            success: true,
+                            message: `Syncing ${sub.replace('_', ' ')}...`,
+                            synced: totalSynced,
+                            progress: subProgress
+                        };
+
+                        accumulatedStats[type].total_synced = totalSynced;
+                        accumulatedStats[type].total_api = totalSynced;
+                        accumulatedStats[type].progress = subProgress;
+                    }
+
+                    syncStates[type].loading = false;
+                    syncStates[type].result = {
+                        success: true,
+                        message: 'Sync Referensi Umum selesai',
+                        synced: totalSynced,
+                        progress: 100
+                    };
+                    return;
                 }
 
                 // --- Fetch Total Count First ---
@@ -172,11 +172,11 @@ export function useNeoFeederSync() {
                 if (syncSince) params.sync_since = syncSince;
 
                 const countRes = await axios.post(route('admin.sync.' + endpointUrl), params);
-                
+
                 if (countRes.data.success) {
                     const totalCount = countRes.data.data.total || 0;
                     accumulatedStats[type].total_api = totalCount;
-                    
+
                     syncStates[type].result = {
                         success: true,
                         message: 'Memulai sinkronisasi...',
@@ -184,7 +184,7 @@ export function useNeoFeederSync() {
                         total_all: totalCount,
                         progress: 0
                     };
-                    
+
                     if (totalCount === 0) {
                         console.debug(`[${type}] Count returned 0, proceeding with sync.`);
                     }
@@ -202,14 +202,14 @@ export function useNeoFeederSync() {
             const limit = routeConfig.limit || 100;
 
             // Prepare params
-            const params: any = { offset, limit: limit }; 
-            
+            const params: any = { offset, limit: limit };
+
             // Adjust limits for heavy/light endpoints
             if (['wilayah'].includes(type)) {
                 params.type = 'wilayah';
                 params.limit = 500; // Speed up Wilayah (lightweight data)
             }
-            
+
             if (idSemester) params.id_semester = idSemester;
             // Force full sync for Wilayah to ensure data retrieval
             if (syncSince && type !== 'wilayah') params.sync_since = syncSince;
@@ -223,15 +223,15 @@ export function useNeoFeederSync() {
                     message: response.data.message || 'Sync successful',
                     ...result
                 };
-                
+
                 syncStates[type].result = fullResult;
 
                 // Update Accumulator
                 const acc = accumulatedStats[type];
-                
+
                 acc.total_synced += (result.synced || 0) + (result.updated || 0) + (result.inserted || 0);
                 acc.total_failed += (result.failed || 0);
-                
+
                 // If we got a total from API in this batch response, check if it's different/better than our initial count
                 // But usually we prefer our initial "GetCount" if available.
                 // However, sometimes GetCount fails and we rely on partials.
@@ -239,22 +239,22 @@ export function useNeoFeederSync() {
                 if (result.total_all > (acc.total_api ?? 0)) {
                     acc.total_api = result.total_all;
                 }
-                
+
                 // Recalculate progress based on accumulated synced / total_api
                 if (acc.total_api && acc.total_api > 0) {
-                     acc.progress = Math.min(100, Math.round(((acc.total_synced + offset) / acc.total_api) * 100));
-                     // Note: offset logic above is imperfect if standard batch size varies, 
-                     // but commonly next_offset is used.
-                     // Better: use result.progress if available, OR calc locally
-                     // The backend returns progress based on offset / total. 
-                     // Let's rely on backend progress if plausible, else valid local calc.
-                     if (result.progress !== undefined) {
-                         acc.progress = result.progress;
-                     }
+                    acc.progress = Math.min(100, Math.round(((acc.total_synced + offset) / acc.total_api) * 100));
+                    // Note: offset logic above is imperfect if standard batch size varies, 
+                    // but commonly next_offset is used.
+                    // Better: use result.progress if available, OR calc locally
+                    // The backend returns progress based on offset / total. 
+                    // Let's rely on backend progress if plausible, else valid local calc.
+                    if (result.progress !== undefined) {
+                        acc.progress = result.progress;
+                    }
                 }
 
                 if (result.errors && result.errors.length > 0) {
-                     acc.errors.push(...result.errors);
+                    acc.errors.push(...result.errors);
                 }
 
                 // Recursive call if has_more
@@ -271,7 +271,7 @@ export function useNeoFeederSync() {
                         };
                         accumulatedStats[type].progress = 100;
                     } else {
-                         syncStates[type].result = {
+                        syncStates[type].result = {
                             success: false,
                             message: 'Sinkronisasi diberhentikan oleh pengguna',
                             ...result

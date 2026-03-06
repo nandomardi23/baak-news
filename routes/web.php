@@ -88,6 +88,7 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     // Academic Data (Mata Kuliah, Semester, Prodi)
     Route::prefix('akademik')->name('akademik.')->group(function () {
         Route::resource('matakuliah', \App\Http\Controllers\Admin\MataKuliahController::class)->except(['create', 'edit', 'show']);
+        Route::resource('kurikulum', \App\Http\Controllers\Admin\KurikulumController::class)->only(['index', 'show']);
         Route::get('semester', [AkademikController::class, 'semester'])->name('semester');
         Route::resource('prodi', \App\Http\Controllers\Admin\ProdiController::class)->except(['create', 'edit']);
         Route::get('aktivitas-kuliah', [\App\Http\Controllers\Admin\AktivitasKuliahController::class, 'index'])->name('aktivitas-kuliah');

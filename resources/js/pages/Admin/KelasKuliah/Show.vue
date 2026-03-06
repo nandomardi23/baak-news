@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ArrowLeft, Users, BookOpen, Clock, GraduationCap } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
+import { ref } from 'vue';
+import axios from 'axios';
+import { toast } from 'vue-sonner';
 
 interface DosenPengajar {
     id: number;
@@ -49,6 +52,35 @@ const breadcrumbs = [
     { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah' },
     { title: 'Detail Kelas', href: '#' },
 ];
+
+const isSyncing = ref(false);
+
+const syncPeserta = async () => {
+    if (isSyncing.value) return;
+    
+    isSyncing.value = true;
+    try {
+        // Sync generally needs to go through the generic backend or just trigger KRS sync for the specific semester
+        const semesterId = (props.kelasKuliah as any).id_semester || props.kelasKuliah.semester;
+        
+        const response = await axios.post('/admin/sync/krs', { 
+            id_semester: semesterId,
+            // we could potentially add id_kelas to the backend filter but full sync for semester works too
+        });
+        
+        if (response.data.success) {
+            toast.success('Berhasil', { description: 'Sinkronisasi Peserta Kelas (KRS) berhasil dimulai/dijadwalkan.' });
+            // Reload page to get new data
+            router.reload();
+        } else {
+            toast.error('Gagal', { description: response.data.message || 'Gagal menyinkronkan data.' });
+        }
+    } catch (error: any) {
+        toast.error('Error', { description: error.response?.data?.message || 'Terjadi kesalahan sistem.' });
+    } finally {
+        isSyncing.value = false;
+    }
+};
 </script>
 
 <template>
@@ -159,12 +191,32 @@ const breadcrumbs = [
 
                     <!-- Peserta Section -->
                     <Card>
-                        <CardHeader>
-                            <CardTitle class="text-lg flex items-center gap-2">
-                                <Users class="w-5 h-5 text-slate-500" />
-                                Peserta Kelas
-                            </CardTitle>
-                            <CardDescription>Mahasiswa yang mengambil mata kuliah ini (KRS).</CardDescription>
+                        <CardHeader class="flex flex-row items-center justify-between">
+                            <div>
+                                <CardTitle class="text-lg flex items-center gap-2">
+                                    <Users class="w-5 h-5 text-slate-500" />
+                                    Peserta Kelas
+                                </CardTitle>
+                                <CardDescription>Mahasiswa yang mengambil mata kuliah ini (KRS).</CardDescription>
+                            </div>
+                            
+                            <!-- Sync Peserta Button -->
+                            <Button 
+                                variant="outline" 
+                                size="sm" 
+                                @click="syncPeserta" 
+                                :disabled="isSyncing"
+                                class="flex items-center gap-2"
+                            >
+                                <svg v-if="isSyncing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                                {{ isSyncing ? 'Menyinkronkan...' : 'Sync Peserta (KRS)' }}
+                            </Button>
                         </CardHeader>
                         <CardContent>
                             <Table>
