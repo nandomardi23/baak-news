@@ -1,0 +1,41 @@
+{
+    "detail_keys": [
+        "id_kelas_kuliah",
+        "id_prodi",
+        "nama_program_studi",
+        "id_semester",
+        "nama_semester",
+        "id_matkul",
+        "kode_mata_kuliah",
+        "nama_mata_kuliah",
+        "sks_mk",
+        "sks_tm",
+        "sks_prak",
+        "sks_prak_lap",
+        "sks_sim",
+        "nama_kelas_kuliah",
+        "bahasan",
+        "tanggal_mulai_efektif",
+        "tanggal_akhir_efektif",
+        "kapasitas",
+        "tanggal_tutup_daftar",
+        "prodi_penyelenggara",
+        "perguruan_tinggi_penyelenggara"
+    ],
+    "list_keys": [
+        "id_kelas_kuliah",
+        "id_prodi",
+        "nama_program_studi",
+        "id_semester",
+        "nama_semester",
+        "id_matkul",
+        "kode_mata_kuliah",
+        "nama_mata_kuliah",
+        "nama_kelas_kuliah",
+        "sks",
+        "id_dosen",
+        "nama_dosen",
+        "jumlah_mahasiswa",
+        "apa_untuk_pditt"
+    ]
+}

@@ -63,7 +63,7 @@ class AktivitasKuliahController extends Controller
         $semesters = TahunAkademik::whereIn(
             'id_semester',
             AktivitasKuliah::select('id_semester')->distinct()
-        )->orderBy('id_semester', 'desc')->get(['id_semester', 'nama_semester']);
+        )->orderBy('id_semester', 'desc')->get(['id_semester', 'nama_semester'])->values();
 
         // Summary stats
         $statsQuery = AktivitasKuliah::query();

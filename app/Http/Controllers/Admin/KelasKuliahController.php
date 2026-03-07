@@ -15,7 +15,8 @@ class KelasKuliahController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = KelasKuliah::with(['programStudi', 'mataKuliah', 'tahunAkademik', 'dosenPengajar']);
+        $query = KelasKuliah::with(['programStudi', 'mataKuliah', 'tahunAkademik', 'dosenPengajar'])
+            ->withCount('krsDetails as peserta_count');
 
         // Search
         if ($search = $request->input('search')) {
@@ -55,6 +56,7 @@ class KelasKuliahController extends Controller
                 'nama_mata_kuliah' => $item->nama_mata_kuliah,
                 'sks' => $item->sks,
                 'kapasitas' => $item->kapasitas,
+                'peserta' => $item->peserta_count,
                 'prodi' => $item->programStudi?->nama_prodi,
                 'semester' => $item->tahunAkademik?->nama_semester,
                 'program_studi_id' => $item->program_studi_id,
@@ -68,7 +70,7 @@ class KelasKuliahController extends Controller
         return Inertia::render('Admin/KelasKuliah/Index', [
             'kelasKuliah' => $kelasKuliah,
             'prodiList' => ProgramStudi::orderBy('nama_prodi')->pluck('nama_prodi', 'id'),
-            'semesterList' => TahunAkademik::orderBy('id_semester', 'desc')->pluck('nama_semester', 'id'),
+            'semesterList' => TahunAkademik::orderBy('id_semester', 'desc')->get(['id', 'nama_semester']),
             'filters' => [
                 'search' => $request->input('search'),
                 'prodi' => $request->input('prodi'),

@@ -37,6 +37,7 @@ interface KelasKuliah {
     nama_mata_kuliah: string | null;
     sks: number | null;
     kapasitas: number | null;
+    peserta: number;
     prodi: string | null;
     semester: string | null;
     program_studi_id?: number;
@@ -46,7 +47,7 @@ interface KelasKuliah {
 const props = defineProps<{
     kelasKuliah: any;
     prodiList: Record<string, string>;
-    semesterList: Record<string, string>;
+    semesterList: { id: string | number; nama_semester: string }[];
     filters: {
         search?: string;
         prodi?: string;
@@ -65,7 +66,7 @@ const columns = [
     { key: 'nama_mata_kuliah', label: 'Mata Kuliah', sortable: true },
     { key: 'dosen_pengajar', label: 'Dosen Pengajar', sortable: false },
     { key: 'sks', label: 'SKS', sortable: true, align: 'center' as const },
-    { key: 'kapasitas', label: 'Kapasitas', sortable: false, align: 'center' as const },
+    { key: 'peserta_kapasitas', label: 'Peserta / Kapasitas', sortable: false, align: 'center' as const },
     { key: 'prodi', label: 'Program Studi', sortable: false },
     { key: 'semester', label: 'Semester', sortable: false },
     { key: 'actions', label: 'Aksi', align: 'center' as const },
@@ -147,8 +148,8 @@ const submitDelete = () => {
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">Semua Semester</SelectItem>
-                                <SelectItem v-for="(nama, id) in semesterList" :key="id" :value="String(id)">
-                                    {{ nama }}
+                                <SelectItem v-for="sem in semesterList" :key="sem.id" :value="String(sem.id)">
+                                    {{ sem.nama_semester }}
                                 </SelectItem>
                             </SelectContent>
                         </Select>
@@ -168,8 +169,12 @@ const submitDelete = () => {
                     <span class="font-medium">{{ value || '-' }}</span>
                 </template>
 
-                <template #cell-kapasitas="{ value }">
-                    <span class="text-slate-600">{{ value || '-' }}</span>
+                <template #cell-peserta_kapasitas="{ row }">
+                    <span class="text-slate-600">
+                        <span class="font-medium text-slate-800">{{ row.peserta || 0 }}</span>
+                        <span class="mx-1 text-slate-400">/</span>
+                        <span>{{ row.kapasitas || '-' }}</span>
+                    </span>
                 </template>
 
                 <template #cell-actions="{ row }">
