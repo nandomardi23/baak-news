@@ -99,6 +99,15 @@ class Mahasiswa extends Model
         'sks_tempuh',
         'sks_total',
         'dosen_wali_id',
+        'alamat_ortu',
+        'rt_ortu',
+        'rw_ortu',
+        'kelurahan_ortu',
+        'kecamatan_ortu',
+        'kota_kabupaten_ortu',
+        'provinsi_ortu',
+        'pekerjaan_ayah',
+        'pekerjaan_ibu',
     ];
 
     protected $casts = [
@@ -143,13 +152,20 @@ class Mahasiswa extends Model
     public function getAlamatLengkapAttribute(): string
     {
         $parts = [];
-        if ($this->alamat) $parts[] = $this->alamat;
-        if ($this->rt && $this->rw) $parts[] = "RT {$this->rt} RW {$this->rw}";
-        if ($this->kelurahan) $parts[] = $this->kelurahan;
-        if ($this->kecamatan) $parts[] = $this->kecamatan;
-        if ($this->kota_kabupaten) $parts[] = $this->kota_kabupaten;
-        if ($this->provinsi) $parts[] = $this->provinsi;
-        if ($this->kode_pos) $parts[] = $this->kode_pos;
+        if ($this->alamat)
+            $parts[] = $this->alamat;
+        if ($this->rt && $this->rw)
+            $parts[] = "RT {$this->rt} RW {$this->rw}";
+        if ($this->kelurahan)
+            $parts[] = $this->kelurahan;
+        if ($this->kecamatan)
+            $parts[] = $this->kecamatan;
+        if ($this->kota_kabupaten)
+            $parts[] = $this->kota_kabupaten;
+        if ($this->provinsi)
+            $parts[] = $this->provinsi;
+        if ($this->kode_pos)
+            $parts[] = $this->kode_pos;
         return implode(', ', $parts);
     }
 
@@ -159,12 +175,18 @@ class Mahasiswa extends Model
     public function getAlamatOrtuLengkapAttribute(): string
     {
         $parts = [];
-        if ($this->alamat_ortu) $parts[] = $this->alamat_ortu;
-        if ($this->rt_ortu && $this->rw_ortu) $parts[] = "RT {$this->rt_ortu} RW {$this->rw_ortu}";
-        if ($this->kelurahan_ortu) $parts[] = $this->kelurahan_ortu;
-        if ($this->kecamatan_ortu) $parts[] = $this->kecamatan_ortu;
-        if ($this->kota_kabupaten_ortu) $parts[] = $this->kota_kabupaten_ortu;
-        if ($this->provinsi_ortu) $parts[] = $this->provinsi_ortu;
+        if ($this->alamat_ortu)
+            $parts[] = $this->alamat_ortu;
+        if ($this->rt_ortu && $this->rw_ortu)
+            $parts[] = "RT {$this->rt_ortu} RW {$this->rw_ortu}";
+        if ($this->kelurahan_ortu)
+            $parts[] = $this->kelurahan_ortu;
+        if ($this->kecamatan_ortu)
+            $parts[] = $this->kecamatan_ortu;
+        if ($this->kota_kabupaten_ortu)
+            $parts[] = $this->kota_kabupaten_ortu;
+        if ($this->provinsi_ortu)
+            $parts[] = $this->provinsi_ortu;
         return implode(', ', $parts);
     }
 
@@ -175,9 +197,18 @@ class Mahasiswa extends Model
     {
         if ($this->tempat_lahir && $this->tanggal_lahir) {
             $months = [
-                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+                1 => 'Januari',
+                2 => 'Februari',
+                3 => 'Maret',
+                4 => 'April',
+                5 => 'Mei',
+                6 => 'Juni',
+                7 => 'Juli',
+                8 => 'Agustus',
+                9 => 'September',
+                10 => 'Oktober',
+                11 => 'November',
+                12 => 'Desember'
             ];
             $monthName = $months[$this->tanggal_lahir->format('n')] ?? $this->tanggal_lahir->format('F');
             return $this->tempat_lahir . ', ' . $this->tanggal_lahir->format('d') . ' ' . $monthName . ' ' . $this->tanggal_lahir->format('Y');
@@ -190,19 +221,29 @@ class Mahasiswa extends Model
         // Include all statuses that are allowed to request letters/documents
         // A=Aktif, L/1/3=Lulus, C/2=Cuti, N/6=Non-Aktif, U=Menunggu Ujian
         return $query->whereIn('status_mahasiswa', [
-            'Aktif', 'A', 'aktif', 
-            'L', '1', '3', 'lulus', 
-            'C', '2', 'cuti', 
-            'N', '6', 'non-aktif',
-            'U', 'menunggu ujian'
+            'Aktif',
+            'A',
+            'aktif',
+            'L',
+            '1',
+            '3',
+            'lulus',
+            'C',
+            '2',
+            'cuti',
+            'N',
+            '6',
+            'non-aktif',
+            'U',
+            'menunggu ujian'
         ]);
     }
 
     public function scopeSearch($query, string $search)
     {
-        return $query->where(function($q) use ($search) {
+        return $query->where(function ($q) use ($search) {
             $q->where('nama', 'like', "%{$search}%")
-              ->orWhere('nim', 'like', "%{$search}%");
+                ->orWhere('nim', 'like', "%{$search}%");
         });
     }
 
@@ -212,7 +253,7 @@ class Mahasiswa extends Model
     public function getStatusTextAttribute(): string
     {
         $status = strtoupper((string) $this->status_mahasiswa);
-        
+
         // Map of standard PDDIKTI codes (both letters and numbers)
         $map = [
             'A' => 'Aktif',

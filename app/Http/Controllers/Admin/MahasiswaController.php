@@ -35,9 +35,18 @@ class MahasiswaController extends Controller
             $query->where('mahasiswa.status_mahasiswa', $request->status);
         }
 
+        if ($request->filled('angkatan')) {
+            $query->where('mahasiswa.angkatan', $request->angkatan);
+        }
+
         // Fix sorting for relationship
         if ($request->sort_field === 'program_studi') {
             $request->merge(['sort_field' => 'program_studi.nama_prodi']);
+        }
+
+        // Apply default sort if no sorting is specified
+        if (!$request->filled('sort_field')) {
+            $query->orderBy('mahasiswa.nim', 'asc');
         }
 
         // Apply standardized Search and Sort
@@ -55,11 +64,19 @@ class MahasiswaController extends Controller
         ]);
 
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
+        $angkatanList = Mahasiswa::whereNotNull('angkatan')
+            ->where('angkatan', '!=', '')
+            ->distinct()
+            ->orderBy('angkatan', 'desc')
+            ->pluck('angkatan')
+            ->values()
+            ->toArray();
 
         return Inertia::render('Admin/Mahasiswa/Index', [
             'mahasiswa' => $mahasiswa,
             'prodi' => $prodi,
-            'filters' => $request->only(['search', 'prodi', 'status', 'sort_field', 'sort_direction']),
+            'angkatanList' => $angkatanList,
+            'filters' => $request->only(['search', 'prodi', 'status', 'angkatan', 'sort_field', 'sort_direction']),
         ]);
     }
 

@@ -32,6 +32,7 @@ interface Mahasiswa {
 const props = defineProps<{
     mahasiswa: any;
     prodi: { id: number; nama_prodi: string }[];
+    angkatanList: string[];
     filters: Record<string, any>;
 }>();
 
@@ -50,13 +51,15 @@ const columns: any[] = [
     { key: 'aksi', label: 'Aksi', align: 'right' },
 ];
 
-const selectedProdi = ref(props.filters.prodi ? Number(props.filters.prodi) : 'all');
+const selectedProdi = ref(props.filters.prodi ? String(props.filters.prodi) : 'all');
 const selectedStatus = ref(props.filters.status || 'all');
+const selectedAngkatan = ref(props.filters.angkatan ? String(props.filters.angkatan) : 'all');
 
 const updateFilter = () => {
     router.get('/admin/mahasiswa', {
         prodi: selectedProdi.value === 'all' ? undefined : selectedProdi.value,
         status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
+        angkatan: selectedAngkatan.value === 'all' ? undefined : selectedAngkatan.value,
         search: props.filters.search,
         page: 1, // Reset to page 1 on filter change
     }, { preserveState: true, preserveScroll: true });
@@ -85,7 +88,7 @@ const handleExport = () => {
                 :data="mahasiswa"
                 :columns="columns"
                 :search="filters.search"
-                :filters="{ prodi: filters.prodi, status: filters.status }"
+                :filters="{ prodi: filters.prodi, status: filters.status, angkatan: filters.angkatan }"
                 :sort-field="filters.sort_field"
                 :sort-direction="filters.sort_direction"
                 title="Data Mahasiswa"
@@ -107,8 +110,23 @@ const handleExport = () => {
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectItem value="all">Semua Prodi</SelectItem>
-                                    <SelectItem v-for="p in prodi" :key="p.id" :value="p.id">
+                                    <SelectItem v-for="p in prodi" :key="p.id" :value="String(p.id)">
                                         {{ p.nama_prodi }}
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        
+                        <!-- Angkatan Filter -->
+                        <div class="w-full sm:w-32">
+                             <Select v-model="selectedAngkatan" @update:modelValue="updateFilter">
+                                <SelectTrigger class="h-9 w-full">
+                                    <SelectValue placeholder="Angkatan" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="all">Semua Angkatan</SelectItem>
+                                    <SelectItem v-for="ang in angkatanList" :key="ang" :value="String(ang)">
+                                        {{ ang }}
                                     </SelectItem>
                                 </SelectContent>
                             </Select>
