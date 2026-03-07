@@ -1,9 +1,13 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Eye, FileDown } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
@@ -31,10 +35,10 @@ const props = defineProps<{
     filters: Record<string, any>;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Mahasiswa', href: '/admin/mahasiswa' },
-];
+]);
 
 const columns: any[] = [
     { key: 'nim', label: 'NIM', sortable: true },
@@ -69,8 +73,7 @@ const handleExport = () => {
 <template>
     <Head title="Data Mahasiswa" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 p-6">
+    <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <div>
                     <h1 class="text-2xl font-bold">Data Mahasiswa</h1>
@@ -154,6 +157,5 @@ const handleExport = () => {
                      </div>
                 </template>
             </SmartTable>
-        </div>
-    </AppLayout>
+    </div>
 </template>

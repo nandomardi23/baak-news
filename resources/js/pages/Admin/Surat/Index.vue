@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
@@ -32,10 +36,10 @@ const props = defineProps<{
     filters: Record<string, any>;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Layanan Surat', href: '/admin/surat' },
-];
+]);
 
 const columns = [
     { key: 'created_at', label: 'Tanggal', sortable: true },
@@ -69,7 +73,7 @@ const { getBadgeClass } = useStatusBadge();
 <template>
     <Head title="Layanan Surat" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -205,5 +209,5 @@ const { getBadgeClass } = useStatusBadge();
                 </template>
             </SmartTable>
         </div>
-    </AppLayout>
+    
 </template>

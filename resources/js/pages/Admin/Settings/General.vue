@@ -7,6 +7,8 @@ import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
 
+defineOptions({ layout: AppLayout });
+
 const props = defineProps<{
     settings: {
         app_name: string;
@@ -39,10 +41,7 @@ const submit = () => {
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="[
-        { title: 'Pengaturan Sistem', href: '#' },
-        { title: 'Pengaturan Umum', href: '/admin/settings/general' },
-    ]">
+    
         <Head title="General Settings" />
 
         <div class="p-6 lg:p-10 max-w-5xl mx-auto">
@@ -230,5 +229,5 @@ const submit = () => {
                 </form>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

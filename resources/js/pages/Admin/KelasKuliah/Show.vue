@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
@@ -55,17 +59,17 @@ const pesertaColumns = [
     { key: 'prodi', label: 'Program Studi', sortable: true },
 ];
 
-const breadcrumbs = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah' },
     { title: 'Detail Kelas', href: '#' },
-];
+]);
 </script>
 
 <template>
     <Head :title="`Detail Kelas - ${kelasKuliah.nama_kelas_kuliah}`" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col pb-10 w-full max-w-7xl mx-auto">
             
             <!-- Modern Header Section -->
@@ -229,5 +233,5 @@ const breadcrumbs = [
                 </div>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

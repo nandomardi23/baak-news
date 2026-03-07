@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
+
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 
@@ -39,10 +43,10 @@ const props = defineProps<{
     jenisOptions: JenisOption[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Kalender Akademik', href: '/admin/kalender' },
-];
+]);
 
 // Modal state
 const showModal = ref(false);
@@ -140,7 +144,7 @@ const selectedJenisColor = computed(() => {
 <template>
     <Head title="Kalender Akademik" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <!-- Header -->
             <div class="flex items-center justify-between flex-wrap gap-4">
@@ -384,5 +388,5 @@ const selectedJenisColor = computed(() => {
                 </div>
             </div>
         </Teleport>
-    </AppLayout>
+    
 </template>

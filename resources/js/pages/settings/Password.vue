@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import PasswordController from '@/actions/App/Http/Controllers/Settings/PasswordController';
 import InputError from '@/components/InputError.vue';
 import AppLayout from '@/layouts/AppLayout.vue';
@@ -10,7 +14,7 @@ import HeadingSmall from '@/components/HeadingSmall.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { type BreadcrumbItem } from '@/types';
+
 
 const breadcrumbItems: BreadcrumbItem[] = [
     {
@@ -21,7 +25,7 @@ const breadcrumbItems: BreadcrumbItem[] = [
 </script>
 
 <template>
-    <AppLayout :breadcrumbs="breadcrumbItems">
+    
         <Head title="Password settings" />
 
         <h1 class="sr-only">Password Settings</h1>
@@ -112,5 +116,5 @@ const breadcrumbItems: BreadcrumbItem[] = [
                 </Form>
             </div>
         </SettingsLayout>
-    </AppLayout>
+    
 </template>

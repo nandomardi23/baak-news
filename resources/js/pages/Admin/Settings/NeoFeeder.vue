@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, useForm } from '@inertiajs/vue3';
 import { ref, reactive, computed } from 'vue';
 import { useNeoFeederSync } from '@/composables/useNeoFeederSync';
@@ -21,10 +25,10 @@ const props = defineProps<{
 const { syncStates, accumulatedStats, syncData, cancelAllSyncs, cancelSync } = useNeoFeederSync();
 const selectedSemester = ref<string>('');
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Sinkronisasi Neo Feeder', href: '#' },
-];
+]);
 
 const form = useForm({
     url: props.settings.url,
@@ -347,7 +351,7 @@ const connectionStatus = computed(() => {
 <template>
     <Head title="Sinkronisasi Neo Feeder" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <!-- Modern Header -->
             <div class="relative overflow-hidden rounded-2xl bg-linear-to-r from-indigo-600 via-purple-600 to-pink-600 p-8 text-white shadow-xl">
@@ -729,5 +733,5 @@ const connectionStatus = computed(() => {
             </div>
         </div>
 
-    </AppLayout>
+    
 </template>

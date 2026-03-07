@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue'; // Updated import
@@ -19,11 +23,11 @@ const props = defineProps<{
     filters: Record<string, any>;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Master Data', href: '#' },
     { title: 'Jabatan', href: '/admin/jabatan' },
-];
+]);
 
 // Table Columns Configuration
 const columns = [
@@ -85,7 +89,7 @@ const deleteJabatan = (id: number) => {
 <template>
     <Head title="Master Jabatan" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -212,5 +216,5 @@ const deleteJabatan = (id: number) => {
                 </form>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

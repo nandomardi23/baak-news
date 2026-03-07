@@ -1,7 +1,7 @@
 <template>
     <Head title="Pengaturan Surat" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="w-full mx-auto">
                 <div class="bg-card rounded-xl border shadow-sm">
@@ -179,10 +179,14 @@
                 </div>
             </div>
         </div>
-    </AppLayout>
+    
 </template>
 
 <script setup>
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
 import { Head, useForm } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
@@ -197,10 +201,10 @@ const props = defineProps({
 // ... (rest is same)
 
 
-const breadcrumbs = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Pengaturan Surat', href: '/admin/settings/surat' },
-];
+]);
 
 const form = useForm({
     kop_nama_yayasan: props.settings.kop_nama_yayasan || '',

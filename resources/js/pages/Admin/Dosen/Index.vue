@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { route } from 'ziggy-js';
 import { ref, computed } from 'vue';
@@ -61,10 +65,10 @@ const props = defineProps<{
     };
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Dosen', href: '/admin/dosen' },
-];
+]);
 
 const columns = [
     { key: 'nama_lengkap', label: 'Nama Dosen', sortable: true },
@@ -155,7 +159,7 @@ const { getStatusBadge } = useStatusBadge();
 <template>
     <Head title="Data Dosen" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -354,5 +358,5 @@ const { getStatusBadge } = useStatusBadge();
             </AlertDialogContent>
         </AlertDialog>
 
-    </AppLayout>
+    
 </template>

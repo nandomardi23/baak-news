@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -74,10 +78,10 @@ const props = defineProps<{
     dosenOptions: Dosen[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Data Pejabat', href: '/admin/pejabat' },
-];
+]);
 
 const searchQuery = ref('');
 const showDialog = ref(false);
@@ -199,7 +203,7 @@ const handleFileChange = (event: Event) => {
 <template>
     <Head title="Data Pejabat" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6 lg:p-10 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="space-y-1">
@@ -479,5 +483,5 @@ const handleFileChange = (event: Event) => {
                 </DialogFooter>
             </DialogContent>
         </Dialog>
-    </AppLayout>
+    
 </template>

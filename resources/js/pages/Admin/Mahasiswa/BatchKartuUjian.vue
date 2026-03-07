@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router } from '@inertiajs/vue3';
 import { ref, watch, computed } from 'vue';
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 
 interface TahunAkademik {
     id: number;
@@ -35,11 +39,11 @@ const props = defineProps<{
     selectedSemester?: string;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Mahasiswa', href: '/admin/mahasiswa' },
     { title: 'Batch Kartu Ujian', href: '#' },
-];
+]);
 
 const form = ref({
     tahun_akademik_id: props.filters.tahun_akademik_id || '',
@@ -79,8 +83,7 @@ const totalMahasiswa = computed(() => props.mahasiswa.length);
 <template>
     <Head title="Batch Kartu Ujian" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-6 p-6">
+    <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <!-- Header -->
             <div class="flex items-center justify-between">
                 <div>
@@ -225,5 +228,4 @@ const totalMahasiswa = computed(() => props.mahasiswa.length);
                 <p class="text-sm text-muted-foreground mt-1">Pilih semester terlebih dahulu untuk melihat daftar mahasiswa</p>
             </div>
         </div>
-    </AppLayout>
 </template>

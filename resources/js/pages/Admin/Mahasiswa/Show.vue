@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import MahasiswaDetailTab from '@/components/mahasiswa/MahasiswaDetailTab.vue';
@@ -84,11 +88,11 @@ const props = defineProps<{
     dosen: { id: number; nama: string }[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Mahasiswa', href: '/admin/mahasiswa' },
     { title: 'Detail', href: '#' },
-];
+]);
 
 const activeTab = ref('detail');
 const isSyncing = ref(false);
@@ -111,7 +115,7 @@ const syncDetail = () => {
 <template>
     <Head :title="`Detail - ${mahasiswa.nama}`" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <!-- Header -->
             <div class="flex items-start justify-between">
@@ -189,5 +193,5 @@ const syncDetail = () => {
                 :mahasiswa-id="mahasiswa.id"
             />
         </div>
-    </AppLayout>
+    
 </template>

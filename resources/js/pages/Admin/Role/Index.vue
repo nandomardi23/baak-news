@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, router } from '@inertiajs/vue3';
 
 interface Role {
@@ -13,11 +17,11 @@ const props = defineProps<{
     roles: Role[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'User Management', href: '/admin/user' },
     { title: 'Roles', href: '/admin/role' },
-];
+]);
 
 const deleteRole = (id: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus role ini?')) {
@@ -29,7 +33,7 @@ const deleteRole = (id: number) => {
 <template>
     <Head title="Manajemen Role" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -90,5 +94,5 @@ const deleteRole = (id: number) => {
                 </div>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

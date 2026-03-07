@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -61,10 +65,10 @@ const props = defineProps<{
     };
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Mata Kuliah', href: '/admin/akademik/matakuliah' },
-];
+]);
 
 const columns = [
     { key: 'kode_matkul', label: 'Kode', sortable: true, class: 'font-mono' },
@@ -146,7 +150,7 @@ const submitDelete = () => {
 <template>
     <Head title="Mata Kuliah" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -286,5 +290,5 @@ const submitDelete = () => {
             </AlertDialogContent>
         </AlertDialog>
 
-    </AppLayout>
+    
 </template>

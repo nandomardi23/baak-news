@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import {
@@ -33,11 +37,11 @@ const props = defineProps<{
     };
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Aspek Akademik', href: '#' },
     { title: 'Kurikulum', href: '/admin/akademik/kurikulum' },
-];
+]);
 
 const columns = [
     { key: 'nama_kurikulum', label: 'Nama Kurikulum', sortable: true },
@@ -52,7 +56,7 @@ const columns = [
 <template>
     <Head title="Kurikulum" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-8 p-6 w-full max-w-7xl mx-auto lg:p-10">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -114,5 +118,5 @@ const columns = [
                 </template>
             </SmartTable>
         </div>
-    </AppLayout>
+    
 </template>

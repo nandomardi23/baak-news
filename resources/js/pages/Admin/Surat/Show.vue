@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
@@ -44,11 +48,11 @@ const props = defineProps<{
 
 const selectedSignerId = ref<number | null>(null);
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Pengajuan Surat', href: '/admin/surat' },
     { title: 'Detail', href: '#' },
-];
+]);
 
 const rejectForm = useForm({
     catatan: '',
@@ -82,7 +86,7 @@ const deleteSurat = () => {
 <template>
     <Head title="Detail Pengajuan" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <!-- Hero Header -->
             <div class="relative overflow-hidden rounded-2xl bg-linear-to-br from-blue-600 via-indigo-600 to-purple-700 p-8 text-white shadow-xl">
@@ -331,5 +335,5 @@ const deleteSurat = () => {
                 </div>
             </Transition>
         </Teleport>
-    </AppLayout>
+    
 </template>

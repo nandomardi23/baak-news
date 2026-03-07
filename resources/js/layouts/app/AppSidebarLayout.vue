@@ -3,16 +3,10 @@ import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
-import type { BreadcrumbItemType } from '@/types';
 import { Toaster } from 'vue-sonner';
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
 
-interface Props {
-    breadcrumbs?: BreadcrumbItemType[];
-}
-
-withDefaults(defineProps<Props>(), {
-    breadcrumbs: () => [],
-});
+const { breadcrumbs } = useBreadcrumbs();
 </script>
 
 <template>

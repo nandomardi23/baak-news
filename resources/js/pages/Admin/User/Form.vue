@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
@@ -18,11 +22,11 @@ const props = defineProps<{
 
 const isEditing = computed(() => !!props.user);
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'User Management', href: '/admin/user' },
     { title: isEditing.value ? 'Edit User' : 'Tambah User', href: '#' },
-];
+]);
 
 const form = useForm({
     name: props.user?.name || '',
@@ -44,7 +48,7 @@ const submit = () => {
 <template>
     <Head :title="isEditing ? 'Edit User' : 'Tambah User'" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div>
                 <h1 class="text-2xl font-bold">{{ isEditing ? 'Edit User' : 'Tambah User' }}</h1>
@@ -145,5 +149,5 @@ const submit = () => {
                 </form>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

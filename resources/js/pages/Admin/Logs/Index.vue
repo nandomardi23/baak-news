@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, router } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 import {
@@ -61,10 +65,10 @@ const props = defineProps<{
     filters: Filters;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Log Aktivitas', href: '/admin/logs' },
-];
+]);
 
 const search = ref(props.filters.search || '');
 const selectedAction = ref(props.filters.action || '');
@@ -148,7 +152,7 @@ const getInitials = (name: string) => {
 <template>
     <Head title="Log Aktivitas" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6 lg:p-10 w-full">
             <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div class="space-y-1">
@@ -277,5 +281,5 @@ const getInitials = (name: string) => {
                 </DataTable>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

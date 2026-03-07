@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
 
@@ -69,11 +73,11 @@ watch(() => form.dosen_id, (newVal) => {
     }
 });
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Pejabat', href: '/admin/pejabat' },
     { title: isEditing.value ? 'Edit' : 'Tambah', href: '#' },
-];
+]);
 
 const submit = () => {
     if (isEditing.value) {
@@ -99,7 +103,7 @@ const handleFileChange = (event: Event) => {
 <template>
     <Head :title="isEditing ? 'Edit Pejabat' : 'Tambah Pejabat'" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div>
                 <h1 class="text-2xl font-bold">{{ isEditing ? 'Edit Pejabat' : 'Tambah Pejabat' }}</h1>
@@ -268,5 +272,5 @@ const handleFileChange = (event: Event) => {
                 </form>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

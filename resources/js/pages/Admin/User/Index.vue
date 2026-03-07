@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
@@ -28,10 +32,10 @@ const props = defineProps<{
     filters: Record<string, any>;
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'User Management', href: '/admin/user' },
-];
+]);
 
 const columns = [
     { key: 'name', label: 'Nama User', sortable: true },
@@ -71,7 +75,7 @@ const getRoleBadgeClass = (role: string) => {
 <template>
     <Head title="User Management" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="flex items-center justify-between">
                 <div>
@@ -156,5 +160,5 @@ const getRoleBadgeClass = (role: string) => {
                 </template>
             </SmartTable>
         </div>
-    </AppLayout>
+    
 </template>

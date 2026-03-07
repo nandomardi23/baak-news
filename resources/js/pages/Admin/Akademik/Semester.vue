@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import axios from 'axios';
@@ -36,10 +40,10 @@ defineProps<{
     semesters: Semester[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Tahun Akademik', href: '/admin/akademik/semester' },
-];
+]);
 
 // Sync state per semester
 const syncingStates = ref<Record<string, boolean>>({});
@@ -198,7 +202,7 @@ async function syncAllSemesters() {
 <template>
     <Head title="Tahun Akademik" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-8 p-6 lg:p-10 w-full">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -363,5 +367,5 @@ async function syncAllSemesters() {
                 </tbody>
             </DataTable>
         </div>
-    </AppLayout>
+    
 </template>

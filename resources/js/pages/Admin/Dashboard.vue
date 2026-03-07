@@ -1,10 +1,14 @@
 <script setup lang="ts">
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
 
+defineOptions({ layout: AppLayout });
+
+const { setBreadcrumbs } = useBreadcrumbs();
 const { getBadgeClass } = useStatusBadge();
 
 interface Stats {
@@ -62,9 +66,9 @@ const props = defineProps<{
     monthlyPengajuan: MonthlyPengajuan[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
-];
+]);
 
 
 
@@ -108,8 +112,7 @@ const ipkColors: Record<string, string> = {
 <template>
     <Head title="Dashboard Overview" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="relative min-h-screen">
+    <div class="relative min-h-screen">
             <!-- Decorative Background -->
             <div class="absolute top-0 left-0 w-full h-96 bg-linear-to-b from-blue-50/50 to-transparent -z-10"></div>
             <div class="absolute -top-10 left-10 w-64 h-64 bg-blue-400/10 rounded-full blur-3xl -z-10"></div>
@@ -400,5 +403,4 @@ const ipkColors: Record<string, string> = {
 
             </div>
         </div>
-    </AppLayout>
 </template>

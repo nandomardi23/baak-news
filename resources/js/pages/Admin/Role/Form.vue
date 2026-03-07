@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, useForm, Link } from '@inertiajs/vue3';
 
 interface Permission {
@@ -20,12 +24,12 @@ const props = defineProps<{
     currentPermissions?: string[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'User Management', href: '/admin/user' },
     { title: 'Roles', href: '/admin/role' },
     { title: props.role ? 'Edit Role' : 'Buat Role', href: '#' },
-];
+]);
 
 const form = useForm({
     name: props.role?.name || '',
@@ -61,7 +65,7 @@ const isGroupChecked = (groupName: string) => {
 <template>
     <Head :title="role ? 'Edit Role' : 'Buat Role'" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6">
             <div class="max-w-4xl mx-auto w-full">
                 <div class="bg-card border rounded-xl shadow-sm overflow-hidden">
@@ -132,5 +136,5 @@ const isGroupChecked = (groupName: string) => {
                 </div>
             </div>
         </div>
-    </AppLayout>
+    
 </template>

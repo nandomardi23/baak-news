@@ -1,6 +1,10 @@
 <script setup lang="ts">
+import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
+
+defineOptions({ layout: AppLayout });
+const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
-import { type BreadcrumbItem } from '@/types';
+
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { Button } from '@/components/ui/button';
@@ -22,10 +26,10 @@ const props = defineProps<{
     templates: Template[];
 }>();
 
-const breadcrumbs: BreadcrumbItem[] = [
+setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
     { title: 'Template Designer', href: '/admin/templates' },
-];
+]);
 
 const categories = [
     { id: 'surat', name: 'Surat Keterangan Aktif', description: 'Template untuk surat keterangan mahasiswa aktif', icon: FileText },
@@ -105,7 +109,7 @@ const triggerFileInput = () => {
 <template>
     <Head title="Template Designer" />
 
-    <AppLayout :breadcrumbs="breadcrumbs">
+    
         <div class="flex h-full flex-1 flex-col gap-6 p-6 lg:p-10 max-w-7xl mx-auto w-full">
             <div class="flex flex-col gap-2">
                 <h1 class="text-2xl font-bold tracking-tight text-slate-900">Template Dokumen</h1>
@@ -268,5 +272,5 @@ const triggerFileInput = () => {
                 </div>
             </Transition>
         </Teleport>
-    </AppLayout>
+    
 </template>
