@@ -54,6 +54,7 @@ class ProdiController extends Controller
             'jenis_program' => 'required|string|max:50',
             'akreditasi' => 'nullable|string|max:5',
             'is_active' => 'required|boolean',
+            'nama_alias' => 'nullable|string|max:255',
         ]);
 
         $prodi->update($validated);

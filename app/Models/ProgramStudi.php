@@ -20,6 +20,7 @@ class ProgramStudi extends Model
         'sk_akreditasi',
         'jenis_program',
         'is_active',
+        'nama_alias',
     ];
 
     protected $casts = [
@@ -27,6 +28,13 @@ class ProgramStudi extends Model
         'tanggal_berakhir_akreditasi' => 'date',
         'is_active' => 'boolean',
     ];
+
+    protected $appends = ['nama_cetak'];
+
+    public function getNamaCetakAttribute()
+    {
+        return $this->nama_alias ?: $this->nama_prodi;
+    }
 
     public function mahasiswa(): HasMany
     {

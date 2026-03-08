@@ -275,7 +275,7 @@ abstract class BasePdfService extends Fpdi
         $this->Cell(0, 6, $mahasiswa->nama, 0, 1);
         $this->Cell(30, 6, 'Program Studi', 0, 0);
         $this->Cell(5, 6, ':', 0, 0);
-        $this->Cell(0, 6, $mahasiswa->programStudi?->nama_prodi ?? '-', 0, 1);
+        $this->Cell(0, 6, $mahasiswa->programStudi?->nama_cetak ?? '-', 0, 1);
         $this->Cell(30, 6, 'Angkatan', 0, 0);
         $this->Cell(5, 6, ':', 0, 0);
         $angkatan = $mahasiswa->angkatan ?? (strlen($mahasiswa->nim) >= 2 ? '20' . substr($mahasiswa->nim, 0, 2) : '-');

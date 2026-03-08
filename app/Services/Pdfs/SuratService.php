@@ -13,13 +13,13 @@ class SuratService extends BasePdfService
     {
         $mahasiswa->load(['programStudi']);
         $nomorSurat = $dataTambahan['nomor_surat'] ?? null;
-        
+
         // Check for PDF template from database or file system
         // The TemplateDesignerController saves as: template-surat/type_timestamp.pdf
         // We want the latest 'surat' type template.
-        
+
         $templatePath = null;
-        
+
         // Try DB first
         $dbTemplate = \App\Models\LetterTemplate::where('type', 'surat')
             ->where('is_active', true)
@@ -29,7 +29,7 @@ class SuratService extends BasePdfService
         if ($dbTemplate && file_exists(storage_path('app/public/' . $dbTemplate->file_path))) {
             $templatePath = storage_path('app/public/' . $dbTemplate->file_path);
         } else {
-             // Fallback to glob
+            // Fallback to glob
             $files = glob(storage_path('app/public/template-surat/surat_*.pdf'));
             if (!empty($files)) {
                 usort($files, function ($a, $b) {
@@ -38,7 +38,7 @@ class SuratService extends BasePdfService
                 $templatePath = $files[0];
             }
         }
-        
+
         if ($templatePath && file_exists($templatePath)) {
             $this->AddPage();
             $this->setSourceFile($templatePath);
@@ -53,10 +53,10 @@ class SuratService extends BasePdfService
         $this->SetFont('Arial', '', 11);
         $this->SetY(38); // Adjusted Y again from 42 to 38
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
-        
+
         $romanMonth = $this->getRomanMonth((int) date('n'));
         $defaultNomor = 'Sket /       /' . $romanMonth . '/' . date('Y');
-        
+
         $displayNomor = $nomorSurat;
         if (empty($displayNomor)) {
             $displayNomor = $defaultNomor;
@@ -66,13 +66,13 @@ class SuratService extends BasePdfService
         }
 
         $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
-        
+
         $this->Ln(15); // Increased from 8 to 15 (approx 2 enters)
 
         // Student Data
         $startX = 30; // Left margin for labels
         $labelWidth = 40;
-        
+
         $fields = [
             'Nama' => $mahasiswa->nama,
             'Nim' => $mahasiswa->nim,
@@ -82,17 +82,17 @@ class SuratService extends BasePdfService
         ];
 
         foreach ($fields as $label => $value) {
-             $this->SetX($startX);
-             $this->Cell($labelWidth, 6, $label, 0, 0);
-             $this->Cell(5, 6, ':', 0, 0);
-             
-             // Handle multi-line value alignment (hanging indent)
-             $currentX = $this->GetX();
-             $originalMargin = $this->lMargin;
-             
-             $this->SetLeftMargin($currentX);
-             $this->MultiCell(100, 6, $value, 0, 'L'); // Limit width to 100mm
-             $this->SetLeftMargin($originalMargin);
+            $this->SetX($startX);
+            $this->Cell($labelWidth, 6, $label, 0, 0);
+            $this->Cell(5, 6, ':', 0, 0);
+
+            // Handle multi-line value alignment (hanging indent)
+            $currentX = $this->GetX();
+            $originalMargin = $this->lMargin;
+
+            $this->SetLeftMargin($currentX);
+            $this->MultiCell(100, 6, $value, 0, 'L'); // Limit width to 100mm
+            $this->SetLeftMargin($originalMargin);
         }
 
         $this->Ln(8);
@@ -112,11 +112,11 @@ class SuratService extends BasePdfService
             $this->SetX($startX);
             $this->Cell($labelWidth, 6, $field['label'], 0, 0);
             $this->Cell(5, 6, ':', 0, 0);
-            
+
             // Handle multi-line value alignment (hanging indent)
             $currentX = $this->GetX();
             $originalMargin = $this->lMargin;
-            
+
             $this->SetLeftMargin($currentX);
             $this->MultiCell(100, 6, $field['value'] ?: '-', 0, 'L'); // Limit width to 100mm
             $this->SetLeftMargin($originalMargin);
@@ -125,29 +125,39 @@ class SuratService extends BasePdfService
         $this->Ln(8);
         $this->SetX($startX); // Align with data ($startX = 30)
         // Match right edge of data: Start 30 + Width 145 = 175 (Data value ends at 75 + 100 = 175)
-        $this->MultiCell(145, 6, "        Adalah benar yang bersangkutan mahasiswa semester " . $this->getSemesterRoman($mahasiswa) . " Program Studi " . ($mahasiswa->programStudi?->nama_prodi ?? '-') . " Stikes Hang Tuah Tanjungpinang.", 0, 'J');
+        $this->MultiCell(145, 6, "        Adalah benar yang bersangkutan mahasiswa semester " . $this->getSemesterRoman($mahasiswa) . " Program Studi " . ($mahasiswa->programStudi?->nama_cetak ?? '-') . " Stikes Hang Tuah Tanjungpinang.", 0, 'J');
 
         // Signature
         $this->Ln(15);
-        
+
         $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
         $bs = [
-             1 => 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-             'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            1 => 'Januari',
+            'Februari',
+            'Maret',
+            'April',
+            'Mei',
+            'Juni',
+            'Juli',
+            'Agustus',
+            'September',
+            'Oktober',
+            'November',
+            'Desember'
         ];
-        $tanggalStr = date('j') . ' ' . $bs[(int)date('n')] . ' ' . date('Y');
+        $tanggalStr = date('j') . ' ' . $bs[(int) date('n')] . ' ' . date('Y');
 
         $this->SetX(120);
         $this->Cell(60, 5, $kota . ', ' . $tanggalStr, 0, 1, 'C');
-        
+
         $this->SetX(120);
         $this->Cell(60, 5, Setting::getValue('kop_nama_kampus', 'Stikes Hang Tuah Tanjungpinang'), 0, 1, 'C');
 
         $this->SetX(120);
         $this->Cell(60, 5, 'Ketua', 0, 1, 'C');
-        
+
         $this->Ln(25);
-        
+
         // Signer Name
         $this->SetX(120);
         $signerName = $customSigner?->nama_lengkap ?? 'apt. Dra. Mila Abdullah, M.M';
@@ -162,7 +172,7 @@ class SuratService extends BasePdfService
         // Signer ID (Always 'NIK' label)
         // Prioritize NIP (NIK Kepegawaian), then NIDN, then KTP
         $idNumber = $customSigner?->nip ?? $customSigner?->nidn ?? $customSigner?->nik ?? '12060';
-        
+
         $this->SetX(120);
         $this->Cell(60, 5, 'NIK: ' . $idNumber, 0, 1, 'C');
 
@@ -172,7 +182,7 @@ class SuratService extends BasePdfService
             mkdir(dirname($path), 0755, true);
         }
         $this->Output('F', $path);
-        
+
         return $filename;
     }
 
@@ -187,15 +197,15 @@ class SuratService extends BasePdfService
         $this->SetFont('Arial', 'B', 12);
         $this->Cell(25); // Offset for logo
         $this->Cell(0, 6, Setting::getValue('kop_nama_yayasan', 'YAYASAN NALA'), 0, 1, 'C');
-        
+
         $this->SetFont('Arial', 'B', 14);
         $this->Cell(25);
         $this->MultiCell(0, 7, Setting::getValue('kop_nama_kampus', 'STIKES HANG TUAH TANJUNGPINANG'), 0, 'C');
-        
+
         $this->SetFont('Arial', '', 9);
         $this->Cell(25);
         $this->MultiCell(0, 5, Setting::getValue('kop_alamat', 'Jl. WR. Supratman No. 11 Tanjungpinang'), 0, 'C');
-        
+
         $this->Ln(2);
         $this->SetLineWidth(0.8);
         $this->Line(15, $this->GetY(), 195, $this->GetY());

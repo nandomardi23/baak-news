@@ -52,7 +52,7 @@ class KrsService extends BasePdfService
         $this->Cell(25, 5, 'JURUSAN', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
-        $this->writeAdaptiveCell(50, 5, strtoupper($mahasiswa->programStudi?->nama_prodi ?? '-'), 0, 1);
+        $this->writeAdaptiveCell(50, 5, strtoupper($mahasiswa->programStudi?->nama_cetak ?? '-'), 0, 1);
 
         // Row 2
         $this->SetFont('Arial', 'B', 9);
