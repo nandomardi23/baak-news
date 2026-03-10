@@ -14,6 +14,15 @@ import { Input } from '@/components/ui/input';
 import { watchDebounced } from '@vueuse/core';
 import { ref, watch } from 'vue';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+    Sheet,
+    SheetContent,
+    SheetDescription,
+    SheetHeader,
+    SheetTitle,
+    SheetTrigger,
+    SheetClose,
+} from '@/components/ui/sheet';
 
 interface Column {
     key: string;
@@ -22,6 +31,12 @@ interface Column {
     class?: string;
     align?: 'left' | 'center' | 'right';
     render?: (row: any) => any;
+}
+
+export interface ActiveFilter {
+    key: string;
+    label: string;
+    valueLabel: string;
 }
 
 interface PaginationData {
@@ -44,6 +59,7 @@ const props = defineProps<{
     sortDirection?: 'asc' | 'desc';
     title?: string;
     perPage?: number | string;
+    activeFilters?: ActiveFilter[];
 }>();
 
 const emit = defineEmits(['update:search', 'update:filters', 'sort']);
@@ -102,6 +118,10 @@ const updateParams = (newParams: Record<string, any>) => {
     });
 };
 
+const removeSpecificFilter = (key: string) => {
+    updateParams({ [key]: undefined, page: 1 });
+};
+
 const handleSort = (field: string) => {
     if (!props.columns.find(c => c.key === field)?.sortable) return;
 
@@ -140,6 +160,12 @@ const hasActiveFilters = computed(() => {
            (props.filters && Object.values(props.filters).some(v => v !== null && v !== '' && v !== 'all'));
 });
 
+// Calculate how many specific filters (excluding search) are active
+const activeFilterCount = computed(() => {
+    if (!props.filters) return 0;
+    return Object.values(props.filters).filter(v => v !== null && v !== '' && v !== 'all').length;
+});
+
 // Helper for alignment classes
 const getAlignClass = (align?: string) => {
     switch (align) {
@@ -153,61 +179,140 @@ const getAlignClass = (align?: string) => {
 <template>
     <DataTable class="w-full">
         <template #toolbar>
-            <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between w-full">
-                <!-- Left Side: Title or Filter Badge -->
-                <div class="flex items-center gap-2">
-                    <div class="h-8 w-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-                        <Filter class="w-4 h-4" />
+            <div class="flex flex-col gap-4 w-full">
+                <!-- Top Row: Title & Main Actions/Search -->
+                <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between w-full">
+                    <!-- Left Side: Title or Filter Badge -->
+                    <div class="flex items-center gap-2">
+                        <div class="h-10 w-10 rounded-2xl bg-linear-to-br from-blue-500 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-200/50">
+                            <Filter class="w-5 h-5 transition-transform group-hover:scale-110" />
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-black text-slate-800 leading-tight uppercase tracking-tight">{{ title || 'Data Table' }}</h3>
+                            <p v-if="hasActiveFilters" class="text-[10px] font-bold text-blue-500 uppercase tracking-wider">Filter Aktif</p>
+                            <p v-else class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Semua Data</p>
+                        </div>
                     </div>
-                    <h3 class="text-base font-bold text-slate-700">{{ title || 'Data Table' }}</h3>
-                    
-                    <!-- Clear Filters Button -->
+
+                    <!-- Right Side: Actions, Custom Filters, Search -->
+                    <div class="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
+                        <!-- Actions Slot (Export, Create, etc) -->
+                        <slot name="actions" />
+
+                        <!-- Custom Filters Drawer Slot -->
+                        <Sheet v-if="$slots.filters">
+                            <SheetTrigger as-child>
+                                <Button 
+                                    variant="outline" 
+                                    class="gap-2 relative rounded-xl border-slate-200 shadow-sm hover:shadow-md transition-all duration-300 group overflow-hidden h-10 px-4"
+                                >
+                                    <div class="absolute inset-0 bg-linear-to-br from-blue-600/5 to-indigo-600/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                    <Filter class="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                                    <span class="hidden sm:inline font-bold text-slate-700">Filter</span>
+                                    <!-- Badge for active filters count -->
+                                    <span v-if="activeFilterCount > 0" class="flex h-5 w-5 items-center justify-center rounded-full bg-blue-600 text-[10px] font-bold text-white shadow-lg ring-2 ring-white animate-in zoom-in duration-300">
+                                        {{ activeFilterCount }}
+                                    </span>
+                                </Button>
+                            </SheetTrigger>
+                            <SheetContent class="w-full sm:max-w-md overflow-y-auto p-0 flex flex-col border-none shadow-2xl">
+                                <div class="p-6 pb-0">
+                                    <SheetHeader class="mb-8 p-6 rounded-3xl bg-linear-to-br from-blue-600 to-indigo-700 text-white relative overflow-hidden shadow-xl shadow-blue-100">
+                                        <div class="absolute -right-4 -top-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                                        <SheetTitle class="text-2xl font-black text-white flex items-center gap-3">
+                                            <div class="p-2 rounded-xl bg-white/20 backdrop-blur-md border border-white/20">
+                                                <Filter class="w-5 h-5 text-white" />
+                                            </div>
+                                            Filter Data
+                                        </SheetTitle>
+                                        <SheetDescription class="text-blue-100 mt-2 font-medium">
+                                            Sesuaikan tampilan data dengan filter di bawah ini.
+                                        </SheetDescription>
+                                    </SheetHeader>
+                                </div>
+                                
+                                <div class="flex-1 px-8 py-2 overflow-y-auto">
+                                    <div class="flex flex-col gap-8 py-4">
+                                        <!-- Render the scoped filters passed by parents -->
+                                        <slot name="filters" />
+                                    </div>
+                                </div>
+
+                                <div class="p-8 mt-auto flex items-center justify-between gap-4 bg-slate-50 border-t border-slate-100">
+                                    <Button 
+                                        v-if="hasActiveFilters" 
+                                        type="button" 
+                                        variant="ghost" 
+                                        class="text-slate-500 hover:text-red-600 hover:bg-white rounded-xl px-4 transition-colors font-semibold"
+                                        @click="clearFilters"
+                                    >
+                                        Reset Semua
+                                    </Button>
+                                    <div v-else></div>
+
+                                    <SheetClose as-child>
+                                        <Button type="button" class="bg-blue-600 hover:bg-blue-700 text-white gap-2 rounded-xl px-8 h-12 shadow-lg shadow-blue-200 font-bold transition-all hover:scale-[1.02] active:scale-95">
+                                            Terapkan
+                                        </Button>
+                                    </SheetClose>
+                                </div>
+                            </SheetContent>
+                        </Sheet>
+
+                        <!-- Per Page Select -->
+                        <div class="w-[110px] shrink-0">
+                            <Select :model-value="localPerPage" @update:model-value="onPerPageChange">
+                                <SelectTrigger class="h-10 rounded-xl border-slate-200 shadow-sm transition-all hover:border-blue-200">
+                                    <SelectValue placeholder="Baris" />
+                                </SelectTrigger>
+                                <SelectContent class="rounded-xl shadow-xl border-slate-200">
+                                    <SelectItem value="5">5 Baris</SelectItem>
+                                    <SelectItem value="10">10 Baris</SelectItem>
+                                    <SelectItem value="25">25 Baris</SelectItem>
+                                    <SelectItem value="50">50 Baris</SelectItem>
+                                    <SelectItem value="100">100 Baris</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <!-- Search Input -->
+                        <div class="relative w-full sm:w-64 group">
+                            <Search class="absolute left-3.5 top-3 h-4 w-4 text-slate-400 group-focus-within:text-blue-500 transition-colors" />
+                            <Input
+                                v-model="localSearch"
+                                type="text"
+                                placeholder="Cari data..."
+                                class="pl-11 h-10 w-full rounded-xl border-slate-200 shadow-sm focus-visible:ring-blue-500 transition-all hover:border-blue-200 bg-white"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bottom Row: Filter Chips -->
+                <div v-if="activeFilters && activeFilters.length > 0" class="flex flex-wrap gap-2 items-center py-2 px-1 border-t border-slate-50/50">
+                    <div 
+                        v-for="filter in activeFilters" 
+                        :key="filter.key"
+                        class="flex items-center gap-1.5 bg-blue-50/50 border border-blue-100/50 px-3 py-1.5 rounded-full text-xs font-bold text-blue-700 shadow-sm hover:bg-blue-50 transition-colors group animate-in fade-in slide-in-from-left-2 duration-300"
+                    >
+                        <span class="opacity-60 font-medium">{{ filter.label }}:</span>
+                        <span>{{ filter.valueLabel }}</span>
+                        <button 
+                            @click="removeSpecificFilter(filter.key)" 
+                            class="ml-1 p-0.5 hover:bg-blue-100 rounded-full transition-colors"
+                        >
+                            <X class="w-3 h-3 text-blue-400 group-hover:text-blue-600" />
+                        </button>
+                    </div>
+
                     <Button 
-                        v-if="hasActiveFilters"
                         variant="ghost" 
                         size="sm" 
                         @click="clearFilters"
-                        class="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 text-xs gap-1 ml-2"
+                        class="h-7 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full px-3 transition-all"
                     >
-                        <X class="w-3.5 h-3.5" />
                         Reset
                     </Button>
-                </div>
-
-                <!-- Right Side: Actions, Custom Filters, Search -->
-                <div class="flex flex-col sm:flex-row gap-3 items-center w-full sm:w-auto">
-                    <!-- Actions Slot (Export, Create, etc) -->
-                    <slot name="actions" />
-
-                    <!-- Custom Filters Slot -->
-                    <slot name="filters" />
-
-                    <!-- Per Page Select -->
-                    <div class="w-[110px] shrink-0">
-                        <Select :model-value="localPerPage" @update:model-value="onPerPageChange">
-                            <SelectTrigger class="h-9">
-                                <SelectValue placeholder="Baris" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="5">5 Baris</SelectItem>
-                                <SelectItem value="10">10 Baris</SelectItem>
-                                <SelectItem value="25">25 Baris</SelectItem>
-                                <SelectItem value="50">50 Baris</SelectItem>
-                                <SelectItem value="100">100 Baris</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <!-- Search Input -->
-                    <div class="relative w-full sm:w-64">
-                        <Search class="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
-                        <Input
-                            v-model="localSearch"
-                            type="text"
-                            placeholder="Cari data..."
-                            class="pl-9 h-9 w-full focus-visible:ring-1"
-                        />
-                    </div>
                 </div>
             </div>
         </template>

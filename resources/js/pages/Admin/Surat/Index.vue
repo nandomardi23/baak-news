@@ -6,18 +6,13 @@ const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
 
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Eye, Printer, Trash2 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
 
 interface Surat {
     id: number;
@@ -61,6 +56,23 @@ const updateFilter = () => {
     }, { preserveState: true, preserveScroll: true });
 };
 
+const statusOptions = [
+    { label: 'Semua Status', value: 'all' },
+    { label: 'Pending', value: 'pending' },
+    { label: 'Disetujui', value: 'approved' },
+    { label: 'Dicetak', value: 'printed' },
+    { label: 'Ditolak', value: 'rejected' }
+];
+
+const jenisOptions = [
+    { label: 'Semua Jenis', value: 'all' },
+    { label: 'Aktif Kuliah', value: 'aktif_kuliah' },
+    { label: 'Kartu Rencana Studi', value: 'krs' },
+    { label: 'Kartu Hasil Studi', value: 'khs' },
+    { label: 'Transkrip Nilai', value: 'transkrip' },
+    { label: 'Kartu Ujian', value: 'kartu_ujian' }
+];
+
 const deleteSurat = (id: number) => {
     if (confirm('Hapus pengajuan surat ini?')) {
         router.delete(`/admin/surat/${id}`);
@@ -68,6 +80,19 @@ const deleteSurat = (id: number) => {
 };
 
 const { getBadgeClass } = useStatusBadge();
+
+const activeFilterChips = computed(() => {
+    const chips = [];
+    if (props.filters.status && props.filters.status !== 'all') {
+        const label = statusOptions.find(s => s.value === props.filters.status)?.label;
+        if (label) chips.push({ key: 'status', label: 'Status', valueLabel: String(label) });
+    }
+    if (props.filters.jenis && props.filters.jenis !== 'all') {
+        const label = jenisOptions.find(j => j.value === props.filters.jenis)?.label;
+        if (label) chips.push({ key: 'jenis', label: 'Jenis', valueLabel: String(label) });
+    }
+    return chips;
+});
 </script>
 
 <template>
@@ -87,42 +112,37 @@ const { getBadgeClass } = useStatusBadge();
                 :columns="columns"
                 :search="filters.search"
                 :filters="{ status: filters.status, jenis: filters.jenis }"
+                :active-filters="activeFilterChips"
                 :sort-field="filters.sort_field"
                 :sort-direction="filters.sort_direction"
                 title="Layanan Surat"
             >
                 <template #filters>
-                    <div class="flex gap-2 w-full sm:w-auto">
+                    <div class="flex flex-col gap-4 w-full">
                          <!-- Status Filter -->
-                         <div class="w-full sm:w-32">
-                             <Select v-model="selectedStatus" @update:modelValue="updateFilter">
-                                <SelectTrigger class="h-9 w-full">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Status</SelectItem>
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="approved">Disetujui</SelectItem>
-                                    <SelectItem value="printed">Dicetak</SelectItem>
-                                    <SelectItem value="rejected">Ditolak</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div class="space-y-2">
+                            <Label>Pilih Status</Label>
+                            <ComboboxFilter
+                                v-model="selectedStatus"
+                                :options="statusOptions"
+                                placeholder="Semua Status"
+                                searchPlaceholder="Cari Status..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
                         </div>
+
                         <!-- Jenis Filter -->
-                        <div class="w-full sm:w-40">
-                             <Select v-model="selectedJenis" @update:modelValue="updateFilter">
-                                <SelectTrigger class="h-9 w-full">
-                                    <SelectValue placeholder="Jenis Surat" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Jenis</SelectItem>
-                                    <SelectItem value="aktif_kuliah">Aktif Kuliah</SelectItem>
-                                    <SelectItem value="krs">Kartu Rencana Studi</SelectItem>
-                                    <SelectItem value="khs">Kartu Hasil Studi</SelectItem>
-                                    <SelectItem value="transkrip">Transkrip Nilai</SelectItem>
-                                    <SelectItem value="kartu_ujian">Kartu Ujian</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div class="space-y-2">
+                            <Label>Pilih Jenis Surat</Label>
+                            <ComboboxFilter
+                                v-model="selectedJenis"
+                                :options="jenisOptions"
+                                placeholder="Semua Jenis"
+                                searchPlaceholder="Cari Jenis Surat..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
                         </div>
                     </div>
                 </template>

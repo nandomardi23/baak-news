@@ -8,13 +8,9 @@ const { setBreadcrumbs } = useBreadcrumbs();
 import { Head, router, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
+import { computed } from 'vue';
 import {
     AlertDialog,
     AlertDialogAction,
@@ -60,6 +56,20 @@ setBreadcrumbs([
     { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah' },
 ]);
 
+const prodiOptions = computed(() => {
+    return [
+        { label: 'Semua Prodi', value: 'all' },
+        ...Object.entries(props.prodiList).map(([id, nama]) => ({ label: String(nama), value: String(id) }))
+    ];
+});
+
+const semesterOptions = computed(() => {
+    return [
+        { label: 'Semua Semester', value: 'all' },
+        ...props.semesterList.map(sem => ({ label: sem.nama_semester, value: String(sem.id) }))
+    ];
+});
+
 const columns = [
     { key: 'nama_kelas_kuliah', label: 'Nama Kelas', sortable: true },
     { key: 'kode_mata_kuliah', label: 'Kode MK', sortable: true },
@@ -90,6 +100,19 @@ const submitDelete = () => {
         },
     });
 };
+
+const activeFilterChips = computed(() => {
+    const chips = [];
+    if (props.filters.prodi && props.filters.prodi !== 'all') {
+        const label = props.prodiList[props.filters.prodi];
+        if (label) chips.push({ key: 'prodi', label: 'Prodi', valueLabel: String(label) });
+    }
+    if (props.filters.semester && props.filters.semester !== 'all') {
+        const label = props.semesterList.find(s => String(s.id) === String(props.filters.semester))?.nama_semester;
+        if (label) chips.push({ key: 'semester', label: 'Semester', valueLabel: label });
+    }
+    return chips;
+});
 </script>
 
 <template>
@@ -116,43 +139,36 @@ const submitDelete = () => {
                 :columns="columns"
                 :search="filters.search"
                 :filters="{ prodi: filters.prodi, semester: filters.semester }"
+                :active-filters="activeFilterChips"
                 title="Filter Data Kelas Kuliah"
             >
                 <template #filters>
-                    <!-- Prodi Filter -->
-                    <div class="w-full sm:w-48">
-                        <Select 
-                            :model-value="filters.prodi || 'all'" 
-                            @update:model-value="(val) => router.get('/admin/kelas-kuliah', { ...filters, prodi: val === 'all' ? null : String(val) }, { preserveState: true })"
-                        >
-                            <SelectTrigger class="h-9 w-full">
-                                <SelectValue placeholder="Pilih Prodi" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Prodi</SelectItem>
-                                <SelectItem v-for="(nama, id) in prodiList" :key="id" :value="String(id)">
-                                    {{ nama }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    <div class="flex flex-col gap-4 w-full">
+                        <!-- Prodi Filter -->
+                        <div class="space-y-2">
+                            <Label>Pilih Program Studi</Label>
+                            <ComboboxFilter
+                                :model-value="filters.prodi || 'all'"
+                                :options="prodiOptions"
+                                placeholder="Semua Prodi"
+                                searchPlaceholder="Cari Prodi..."
+                                widthClass="w-full h-10"
+                                @update:model-value="(val) => router.get('/admin/kelas-kuliah', { ...filters, prodi: val === 'all' ? null : String(val) }, { preserveState: true })"
+                            />
+                        </div>
 
-                    <!-- Semester Filter -->
-                    <div class="w-full sm:w-48">
-                        <Select
-                            :model-value="filters.semester || 'all'"
-                            @update:model-value="(val) => router.get('/admin/kelas-kuliah', { ...filters, semester: val === 'all' ? null : String(val) }, { preserveState: true })"
-                        >
-                            <SelectTrigger class="h-9 w-full">
-                                <SelectValue placeholder="Pilih Semester" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Semester</SelectItem>
-                                <SelectItem v-for="sem in semesterList" :key="sem.id" :value="String(sem.id)">
-                                    {{ sem.nama_semester }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <!-- Semester Filter -->
+                        <div class="space-y-2">
+                            <Label>Pilih Semester</Label>
+                            <ComboboxFilter
+                                :model-value="filters.semester || 'all'"
+                                :options="semesterOptions"
+                                placeholder="Semua Semester"
+                                searchPlaceholder="Cari Semester..."
+                                widthClass="w-full h-10"
+                                @update:model-value="(val) => router.get('/admin/kelas-kuliah', { ...filters, semester: val === 'all' ? null : String(val) }, { preserveState: true })"
+                            />
+                        </div>
                     </div>
                 </template>
                 

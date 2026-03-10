@@ -11,13 +11,8 @@ const { setBreadcrumbs } = useBreadcrumbs();
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Eye, FileDown } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
+import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
 
 interface Mahasiswa {
     id: number;
@@ -56,14 +51,45 @@ const selectedStatus = ref(props.filters.status || 'all');
 const selectedAngkatan = ref(props.filters.angkatan ? String(props.filters.angkatan) : 'all');
 
 const updateFilter = () => {
+    // Treat null as clearing the filter, which will default to 'all' in our logic below.
+    const prodiVal = selectedProdi.value || 'all';
+    const statusVal = selectedStatus.value || 'all';
+    const angkatanVal = selectedAngkatan.value || 'all';
+
     router.get('/admin/mahasiswa', {
-        prodi: selectedProdi.value === 'all' ? undefined : selectedProdi.value,
-        status: selectedStatus.value === 'all' ? undefined : selectedStatus.value,
-        angkatan: selectedAngkatan.value === 'all' ? undefined : selectedAngkatan.value,
+        prodi: prodiVal === 'all' ? undefined : prodiVal,
+        status: statusVal === 'all' ? undefined : statusVal,
+        angkatan: angkatanVal === 'all' ? undefined : angkatanVal,
         search: props.filters.search,
         page: 1, // Reset to page 1 on filter change
     }, { preserveState: true, preserveScroll: true });
 };
+
+// --- Options for Combobox ---
+import { computed } from 'vue';
+
+const prodiOptions = computed(() => {
+    return [
+        { label: 'Semua Prodi', value: 'all' },
+        ...props.prodi.map(p => ({ label: p.nama_prodi, value: String(p.id) }))
+    ];
+});
+
+const angkatanOptions = computed(() => {
+    return [
+        { label: 'Semua Angkatan', value: 'all' },
+        ...props.angkatanList.map(ang => ({ label: String(ang), value: String(ang) }))
+    ];
+});
+
+const statusOptions = [
+    { label: 'Semua Status', value: 'all' },
+    { label: 'Aktif', value: 'Aktif' },
+    { label: 'Lulus', value: 'Lulus' },
+    { label: 'Cuti', value: 'Cuti' },
+    { label: 'Non-Aktif', value: 'Non-Aktif' },
+    { label: 'Keluar', value: 'Keluar' }
+];
 
 const { getStatusBadge } = useStatusBadge();
 
@@ -71,6 +97,21 @@ const handleExport = () => {
     const params = new URLSearchParams(window.location.search);
     window.location.href = `/admin/mahasiswa/export?${params.toString()}`;
 };
+
+const activeFilterChips = computed(() => {
+    const chips = [];
+    if (props.filters.prodi && props.filters.prodi !== 'all') {
+        const prod = props.prodi.find(p => String(p.id) === String(props.filters.prodi));
+        if (prod) chips.push({ key: 'prodi', label: 'Prodi', valueLabel: prod.nama_prodi });
+    }
+    if (props.filters.angkatan && props.filters.angkatan !== 'all') {
+        chips.push({ key: 'angkatan', label: 'Angkatan', valueLabel: String(props.filters.angkatan) });
+    }
+    if (props.filters.status && props.filters.status !== 'all') {
+        chips.push({ key: 'status', label: 'Status', valueLabel: props.filters.status });
+    }
+    return chips;
+});
 </script>
 
 <template>
@@ -89,6 +130,7 @@ const handleExport = () => {
                 :columns="columns"
                 :search="filters.search"
                 :filters="{ prodi: filters.prodi, status: filters.status, angkatan: filters.angkatan }"
+                :active-filters="activeFilterChips"
                 :sort-field="filters.sort_field"
                 :sort-direction="filters.sort_direction"
                 title="Data Mahasiswa"
@@ -101,52 +143,44 @@ const handleExport = () => {
                 </template>
 
                 <template #filters>
-                    <div class="flex gap-2 w-full sm:w-auto">
+                    <div class="flex flex-col gap-4 w-full">
                         <!-- Prodi Filter -->
-                        <div class="w-full sm:w-48">
-                            <Select v-model="selectedProdi" @update:modelValue="updateFilter">
-                                <SelectTrigger class="h-9 w-full">
-                                    <SelectValue placeholder="Pilih Prodi" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Prodi</SelectItem>
-                                    <SelectItem v-for="p in prodi" :key="p.id" :value="String(p.id)">
-                                        {{ p.nama_prodi }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div class="space-y-2">
+                            <Label>Pilih Program Studi</Label>
+                            <ComboboxFilter
+                                v-model="selectedProdi"
+                                :options="prodiOptions"
+                                placeholder="Semua Prodi"
+                                searchPlaceholder="Cari Prodi..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
                         </div>
                         
                         <!-- Angkatan Filter -->
-                        <div class="w-full sm:w-32">
-                             <Select v-model="selectedAngkatan" @update:modelValue="updateFilter">
-                                <SelectTrigger class="h-9 w-full">
-                                    <SelectValue placeholder="Angkatan" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Angkatan</SelectItem>
-                                    <SelectItem v-for="ang in angkatanList" :key="ang" :value="String(ang)">
-                                        {{ ang }}
-                                    </SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div class="space-y-2">
+                            <Label>Pilih Angkatan</Label>
+                            <ComboboxFilter
+                                v-model="selectedAngkatan"
+                                :options="angkatanOptions"
+                                placeholder="Semua Angkatan"
+                                searchPlaceholder="Cari Angkatan..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
                         </div>
                         
                          <!-- Status Filter -->
-                        <div class="w-full sm:w-32">
-                             <Select v-model="selectedStatus" @update:modelValue="updateFilter">
-                                <SelectTrigger class="h-9 w-full">
-                                    <SelectValue placeholder="Status" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">Semua Status</SelectItem>
-                                    <SelectItem value="Aktif">Aktif</SelectItem>
-                                    <SelectItem value="Lulus">Lulus</SelectItem>
-                                    <SelectItem value="Cuti">Cuti</SelectItem>
-                                    <SelectItem value="Non-Aktif">Non-Aktif</SelectItem>
-                                    <SelectItem value="Keluar">Keluar</SelectItem>
-                                </SelectContent>
-                            </Select>
+                        <div class="space-y-2">
+                            <Label>Pilih Status Mahasiswa</Label>
+                            <ComboboxFilter
+                                v-model="selectedStatus"
+                                :options="statusOptions"
+                                placeholder="Semua Status"
+                                searchPlaceholder="Cari Status..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
                         </div>
                     </div>
                 </template>
