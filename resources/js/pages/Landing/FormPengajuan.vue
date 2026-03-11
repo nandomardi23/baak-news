@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, onMounted, watch } from 'vue';
+import axios from 'axios';
 import LandingLayout from '@/layouts/LandingLayout.vue';
 
 interface Mahasiswa {
@@ -55,10 +56,10 @@ const form = useForm({
     alamat: props.mahasiswa.alamat || '',
     rt: props.mahasiswa.rt || '',
     rw: props.mahasiswa.rw || '',
-    kelurahan: props.mahasiswa.kelurahan || '',
-    kecamatan: props.mahasiswa.kecamatan || '',
-    kota_kabupaten: props.mahasiswa.kota_kabupaten || '',
-    provinsi: props.mahasiswa.provinsi || '',
+    kelurahan: props.mahasiswa.kelurahan?.toUpperCase() || '',
+    kecamatan: props.mahasiswa.kecamatan?.toUpperCase() || '',
+    kota_kabupaten: props.mahasiswa.kota_kabupaten?.toUpperCase() || '',
+    provinsi: props.mahasiswa.provinsi?.toUpperCase() || '',
     no_hp: props.mahasiswa.no_hp || '',
     nama_ayah: props.mahasiswa.nama_ayah || '',
     pekerjaan_ayah: props.mahasiswa.pekerjaan_ayah || '',
@@ -67,11 +68,238 @@ const form = useForm({
     alamat_ortu: props.mahasiswa.alamat_ortu || '',
     rt_ortu: props.mahasiswa.rt_ortu || '',
     rw_ortu: props.mahasiswa.rw_ortu || '',
-    kelurahan_ortu: props.mahasiswa.kelurahan_ortu || '',
-    kecamatan_ortu: props.mahasiswa.kecamatan_ortu || '',
-    kota_kabupaten_ortu: props.mahasiswa.kota_kabupaten_ortu || '',
-    provinsi_ortu: props.mahasiswa.provinsi_ortu || '',
+    kelurahan_ortu: props.mahasiswa.kelurahan_ortu?.toUpperCase() || '',
+    kecamatan_ortu: props.mahasiswa.kecamatan_ortu?.toUpperCase() || '',
+    kota_kabupaten_ortu: props.mahasiswa.kota_kabupaten_ortu?.toUpperCase() || '',
+    provinsi_ortu: props.mahasiswa.provinsi_ortu?.toUpperCase() || '',
 });
+
+// Alamat Sama Toggle
+const isAlamatSama = ref(false);
+
+watch(isAlamatSama, (newVal) => {
+    if (newVal) {
+        form.alamat_ortu = form.alamat;
+        form.rt_ortu = form.rt;
+        form.rw_ortu = form.rw;
+        form.provinsi_ortu = form.provinsi;
+        form.kota_kabupaten_ortu = form.kota_kabupaten;
+        form.kecamatan_ortu = form.kecamatan;
+        form.kelurahan_ortu = form.kelurahan;
+        
+        // Load region lists for parent to match student
+        parentRegencies.value = [...regencies.value];
+        parentDistricts.value = [...districts.value];
+        parentVillages.value = [...villages.value];
+    }
+});
+
+// Update parent if it's synced and student changes
+watch(
+    () => [form.alamat, form.rt, form.rw, form.provinsi, form.kota_kabupaten, form.kecamatan, form.kelurahan],
+    () => {
+        if (isAlamatSama.value) {
+            form.alamat_ortu = form.alamat;
+            form.rt_ortu = form.rt;
+            form.rw_ortu = form.rw;
+            form.provinsi_ortu = form.provinsi;
+            form.kota_kabupaten_ortu = form.kota_kabupaten;
+            form.kecamatan_ortu = form.kecamatan;
+            form.kelurahan_ortu = form.kelurahan;
+            
+            parentRegencies.value = [...regencies.value];
+            parentDistricts.value = [...districts.value];
+            parentVillages.value = [...villages.value];
+        }
+    },
+    { deep: true }
+);
+
+// Emsifa API Integration
+interface Region {
+    id: string;
+    name: string;
+}
+
+const provinces = ref<Region[]>([]);
+const regencies = ref<Region[]>([]);
+const districts = ref<Region[]>([]);
+const villages = ref<Region[]>([]);
+
+const parentRegencies = ref<Region[]>([]);
+const parentDistricts = ref<Region[]>([]);
+const parentVillages = ref<Region[]>([]);
+
+// Fetch Provinces on Load
+onMounted(async () => {
+    try {
+        const response = await axios.get('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json');
+        provinces.value = response.data;
+        
+        // Initialize Regencies if province was preset
+        if (form.provinsi) {
+            const selectedProv = provinces.value.find(p => p.name === form.provinsi);
+            if (selectedProv) {
+                const regRes = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProv.id}.json`);
+                regencies.value = regRes.data;
+                
+                // Initialize Districts if regency was preset
+                if (form.kota_kabupaten) {
+                    const selectedReg = regencies.value.find(r => r.name === form.kota_kabupaten);
+                    if (selectedReg) {
+                        const distRes = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedReg.id}.json`);
+                        districts.value = distRes.data;
+                        
+                        // Initialize Villages if district was preset
+                        if (form.kecamatan) {
+                            const selectedDist = districts.value.find(d => d.name === form.kecamatan);
+                            if (selectedDist) {
+                                const vilRes = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${selectedDist.id}.json`);
+                                villages.value = vilRes.data;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Similarly for Parent Address
+        if (form.provinsi_ortu && !isAlamatSama.value) {
+            const selectedPProv = provinces.value.find(p => p.name === form.provinsi_ortu);
+            if (selectedPProv) {
+                const pRegRes = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedPProv.id}.json`);
+                parentRegencies.value = pRegRes.data;
+                
+                if (form.kota_kabupaten_ortu) {
+                    const selectedPReg = parentRegencies.value.find(r => r.name === form.kota_kabupaten_ortu);
+                    if (selectedPReg) {
+                        const pDistRes = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedPReg.id}.json`);
+                        parentDistricts.value = pDistRes.data;
+                        
+                        if (form.kecamatan_ortu) {
+                            const selectedPDist = parentDistricts.value.find(d => d.name === form.kecamatan_ortu);
+                            if (selectedPDist) {
+                                const pVilRes = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${selectedPDist.id}.json`);
+                                parentVillages.value = pVilRes.data;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+    } catch (error) {
+        console.error('Error fetching region lists on mount:', error);
+    }
+});
+
+// Student Selectors
+const onProvinsiChange = async () => {
+    form.kota_kabupaten = '';
+    form.kecamatan = '';
+    form.kelurahan = '';
+    regencies.value = [];
+    districts.value = [];
+    villages.value = [];
+    
+    if (!form.provinsi) return;
+    
+    // Find ID from name
+    const selectedProv = provinces.value.find(p => p.name === form.provinsi);
+    if (selectedProv) {
+        try {
+            const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProv.id}.json`);
+            regencies.value = response.data;
+        } catch (error) { console.error(error); }
+    }
+};
+
+const onKotaChange = async () => {
+    form.kecamatan = '';
+    form.kelurahan = '';
+    districts.value = [];
+    villages.value = [];
+    
+    if (!form.kota_kabupaten) return;
+    
+    const selectedReg = regencies.value.find(r => r.name === form.kota_kabupaten);
+    if (selectedReg) {
+        try {
+            const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedReg.id}.json`);
+            districts.value = response.data;
+        } catch (error) { console.error(error); }
+    }
+};
+
+const onKecamatanChange = async () => {
+    form.kelurahan = '';
+    villages.value = [];
+    
+    if (!form.kecamatan) return;
+    
+    const selectedDist = districts.value.find(d => d.name === form.kecamatan);
+    if (selectedDist) {
+        try {
+            const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${selectedDist.id}.json`);
+            villages.value = response.data;
+        } catch (error) { console.error(error); }
+    }
+};
+
+// Parent Selectors
+const onParentProvinsiChange = async () => {
+    if (isAlamatSama.value) return; // Ignore if synced
+    
+    form.kota_kabupaten_ortu = '';
+    form.kecamatan_ortu = '';
+    form.kelurahan_ortu = '';
+    parentRegencies.value = [];
+    parentDistricts.value = [];
+    parentVillages.value = [];
+    
+    if (!form.provinsi_ortu) return;
+    const selectedProv = provinces.value.find(p => p.name === form.provinsi_ortu);
+    if (selectedProv) {
+        try {
+            const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${selectedProv.id}.json`);
+            parentRegencies.value = response.data;
+        } catch (error) { console.error(error); }
+    }
+};
+
+const onParentKotaChange = async () => {
+    if (isAlamatSama.value) return;
+    
+    form.kecamatan_ortu = '';
+    form.kelurahan_ortu = '';
+    parentDistricts.value = [];
+    parentVillages.value = [];
+    
+    if (!form.kota_kabupaten_ortu) return;
+    const selectedReg = parentRegencies.value.find(r => r.name === form.kota_kabupaten_ortu);
+    if (selectedReg) {
+        try {
+            const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${selectedReg.id}.json`);
+            parentDistricts.value = response.data;
+        } catch (error) { console.error(error); }
+    }
+};
+
+const onParentKecamatanChange = async () => {
+    if (isAlamatSama.value) return;
+    
+    form.kelurahan_ortu = '';
+    parentVillages.value = [];
+    
+    if (!form.kecamatan_ortu) return;
+    const selectedDist = parentDistricts.value.find(d => d.name === form.kecamatan_ortu);
+    if (selectedDist) {
+        try {
+            const response = await axios.get(`https://www.emsifa.com/api-wilayah-indonesia/api/villages/${selectedDist.id}.json`);
+            parentVillages.value = response.data;
+        } catch (error) { console.error(error); }
+    }
+};
 
 const jenisSuratOptions = [
     { value: 'aktif_kuliah', label: 'Surat Keterangan Aktif Kuliah', icon: '📄' },
@@ -295,12 +523,27 @@ const submit = () => {
                         <div class="grid grid-cols-4 gap-3 mt-3">
                             <input v-model="form.rt" type="text" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
                             <input v-model="form.rw" type="text" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
-                            <input v-model="form.kelurahan" @blur="form.kelurahan = toTitleCase(form.kelurahan)" type="text" placeholder="Kelurahan" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            
+                            <select v-model="form.provinsi" @change="onProvinsiChange" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                                <option value="" disabled>Pilih Provinsi</option>
+                                <option v-for="prov in provinces" :key="prov.id" :value="prov.name">{{ prov.name }}</option>
+                            </select>
                         </div>
                         <div class="grid sm:grid-cols-3 gap-3 mt-3">
-                            <input v-model="form.kecamatan" @blur="form.kecamatan = toTitleCase(form.kecamatan)" type="text" placeholder="Kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.kota_kabupaten" @blur="form.kota_kabupaten = toTitleCase(form.kota_kabupaten)" type="text" placeholder="Kota/Kab" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.provinsi" @blur="form.provinsi = toTitleCase(form.provinsi)" type="text" placeholder="Provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <select v-model="form.kota_kabupaten" @change="onKotaChange" :disabled="!form.provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Kota/Kab</option>
+                                <option v-for="reg in regencies" :key="reg.id" :value="reg.name">{{ reg.name }}</option>
+                            </select>
+                            
+                            <select v-model="form.kecamatan" @change="onKecamatanChange" :disabled="!form.kota_kabupaten" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Kecamatan</option>
+                                <option v-for="dist in districts" :key="dist.id" :value="dist.name">{{ dist.name }}</option>
+                            </select>
+                            
+                            <select v-model="form.kelurahan" :disabled="!form.kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Kelurahan/Desa</option>
+                                <option v-for="vil in villages" :key="vil.id" :value="vil.name">{{ vil.name }}</option>
+                            </select>
                         </div>
                         <div class="mt-3">
                             <input v-model="form.no_hp" type="tel" placeholder="No. HP / WhatsApp"
@@ -342,20 +585,48 @@ const submit = () => {
                             <input v-model="form.nama_ibu" @blur="form.nama_ibu = toTitleCase(form.nama_ibu)" type="text" placeholder="Nama Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                             <input v-model="form.pekerjaan_ibu" @blur="form.pekerjaan_ibu = toTitleCase(form.pekerjaan_ibu)" type="text" placeholder="Pekerjaan Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
                         </div>
+                        
+                        <!-- Toggle Samakan Alamat -->
+                        <div class="mt-6 mb-3">
+                            <label class="flex items-center gap-3 cursor-pointer group">
+                                <div class="relative flex items-center justify-center w-6 h-6 rounded-md border-2 transition-colors" 
+                                     :class="isAlamatSama ? 'bg-blue-600 border-blue-600' : 'bg-white border-slate-300 group-hover:border-blue-400'">
+                                    <input type="checkbox" v-model="isAlamatSama" class="sr-only"/>
+                                    <svg v-if="isAlamatSama" class="w-4 h-4 text-white pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                </div>
+                                <span class="font-medium text-slate-700 select-none">Alamat Orang Tua sama dengan alamat Mahasiswa</span>
+                            </label>
+                        </div>
+
                         <div class="mt-3">
                             <label class="block text-slate-600 text-sm font-medium mb-2">Alamat Orang Tua</label>
-                            <textarea v-model="form.alamat_ortu" @blur="form.alamat_ortu = toTitleCase(form.alamat_ortu)" rows="2" placeholder="Alamat Orang Tua (jika berbeda)"
-                                class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                            <textarea v-model="form.alamat_ortu" :disabled="isAlamatSama" @blur="form.alamat_ortu = toTitleCase(form.alamat_ortu)" rows="2" placeholder="Alamat Lengkap Orang Tua (jika berbeda)"
+                                class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none disabled:opacity-50 disabled:bg-slate-50"></textarea>
                         </div>
                         <div class="grid grid-cols-4 gap-3 mt-3">
-                            <input v-model="form.rt_ortu" type="text" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
-                            <input v-model="form.rw_ortu" type="text" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
-                            <input v-model="form.kelurahan_ortu" @blur="form.kelurahan_ortu = toTitleCase(form.kelurahan_ortu)" type="text" placeholder="Kelurahan" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <input v-model="form.rt_ortu" type="text" :disabled="isAlamatSama" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center disabled:opacity-50 disabled:bg-slate-50"/>
+                            <input v-model="form.rw_ortu" type="text" :disabled="isAlamatSama" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center disabled:opacity-50 disabled:bg-slate-50"/>
+                            
+                            <select v-model="form.provinsi_ortu" @change="onParentProvinsiChange" :disabled="isAlamatSama" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Provinsi</option>
+                                <option v-for="prov in provinces" :key="prov.id" :value="prov.name">{{ prov.name }}</option>
+                            </select>
                         </div>
                         <div class="grid sm:grid-cols-3 gap-3 mt-3">
-                            <input v-model="form.kecamatan_ortu" @blur="form.kecamatan_ortu = toTitleCase(form.kecamatan_ortu)" type="text" placeholder="Kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.kota_kabupaten_ortu" @blur="form.kota_kabupaten_ortu = toTitleCase(form.kota_kabupaten_ortu)" type="text" placeholder="Kota/Kab" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.provinsi_ortu" @blur="form.provinsi_ortu = toTitleCase(form.provinsi_ortu)" type="text" placeholder="Provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <select v-model="form.kota_kabupaten_ortu" @change="onParentKotaChange" :disabled="!form.provinsi_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Kota/Kab</option>
+                                <option v-for="reg in parentRegencies" :key="reg.id" :value="reg.name">{{ reg.name }}</option>
+                            </select>
+                            
+                            <select v-model="form.kecamatan_ortu" @change="onParentKecamatanChange" :disabled="!form.kota_kabupaten_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Kecamatan</option>
+                                <option v-for="dist in parentDistricts" :key="dist.id" :value="dist.name">{{ dist.name }}</option>
+                            </select>
+                            
+                            <select v-model="form.kelurahan_ortu" :disabled="!form.kecamatan_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                <option value="" disabled>Pilih Kelurahan/Desa</option>
+                                <option v-for="vil in parentVillages" :key="vil.id" :value="vil.name">{{ vil.name }}</option>
+                            </select>
                         </div>
                     </div>
 
