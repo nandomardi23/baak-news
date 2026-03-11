@@ -40,6 +40,7 @@ import {
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Pencil, Trash2, Plus, Eye } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
 
 interface Dosen {
     id: number;
@@ -154,6 +155,46 @@ const submitDelete = () => {
 };
 
 const { getStatusBadge } = useStatusBadge();
+
+// --- Filters for Combobox ---
+const prodiOptions = computed(() => {
+    return [
+        { label: 'Semua Prodi', value: 'all' },
+        ...Object.entries(props.prodiList).map(([id, nama]) => ({ label: nama, value: String(id) }))
+    ];
+});
+
+const statusOptions = [
+    { label: 'Semua Status', value: 'all' },
+    { label: 'Aktif', value: 'aktif' }
+];
+
+const selectedProdi = ref(props.filters.prodi ? String(props.filters.prodi) : 'all');
+const selectedStatus = ref(props.filters.status ? String(props.filters.status) : 'all');
+
+const updateFilter = () => {
+    const prodiVal = selectedProdi.value || 'all';
+    const statusVal = selectedStatus.value || 'all';
+
+    router.get('/admin/dosen', {
+        prodi: prodiVal === 'all' ? undefined : prodiVal,
+        status: statusVal === 'all' ? undefined : statusVal,
+        search: props.filters.search,
+        page: 1, // Reset to page 1 on filter change
+    }, { preserveState: true, preserveScroll: true });
+};
+
+const activeFilterChips = computed(() => {
+    const chips: any[] = [];
+    if (props.filters.prodi && props.filters.prodi !== 'all') {
+        const prodName = props.prodiList[props.filters.prodi];
+        if (prodName) chips.push({ key: 'prodi', label: 'Prodi', valueLabel: prodName });
+    }
+    if (props.filters.status && props.filters.status !== 'all') {
+        chips.push({ key: 'status', label: 'Status', valueLabel: props.filters.status });
+    }
+    return chips;
+});
 </script>
 
 <template>
@@ -180,48 +221,37 @@ const { getStatusBadge } = useStatusBadge();
                 :columns="columns"
                 :search="filters.search"
                 :filters="{ prodi: filters.prodi, status: filters.status }"
+                :active-filters="activeFilterChips"
                 :sort-field="filters.prodi" 
-                title="Filter Data Dosen"
+                title="Data Dosen"
             >
                 <template #filters>
-                     <!-- Prodi Filter -->
-                    <div class="w-full sm:w-48">
-                         <!-- SmartTable handles generic filters via slots if manual implementation needed, 
-                              but actually SmartTable implementation expects us to handle filters OUTSIDE via its slots. 
-                              Wait, looking at SmartTable.vue, it renders slots named 'filters'. 
-                              And emits update:filters. But here we usually bind v-model to props or router. 
-                              The 'SmartTable' doesn't auto-generate Selects. We must provide them. 
-                              The previous implementation had them manual. I will re-implement them here. -->
-                        <Select 
-                            :model-value="filters.prodi || 'all'" 
-                            @update:model-value="(val) => router.get('/admin/dosen', { ...filters, prodi: val === 'all' ? null : String(val) }, { preserveState: true })"
-                        >
-                            <SelectTrigger class="h-9 w-full">
-                                <SelectValue placeholder="Pilih Prodi" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Prodi</SelectItem>
-                                <SelectItem v-for="(nama, id) in prodiList" :key="id" :value="String(id)">
-                                    {{ nama }}
-                                </SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    <div class="flex flex-col gap-4 w-full">
+                        <!-- Prodi Filter -->
+                        <div class="space-y-2">
+                            <Label>Pilih Program Studi</Label>
+                            <ComboboxFilter
+                                v-model="selectedProdi"
+                                :options="prodiOptions"
+                                placeholder="Semua Prodi"
+                                searchPlaceholder="Cari Prodi..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
+                        </div>
 
-                    <!-- Status Filter -->
-                    <div class="w-full sm:w-36">
-                        <Select
-                            :model-value="filters.status || 'all'"
-                            @update:model-value="(val) => router.get('/admin/dosen', { ...filters, status: val === 'all' ? null : String(val) }, { preserveState: true })"
-                        >
-                            <SelectTrigger class="h-9 w-full">
-                                <SelectValue placeholder="Pilih Status" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="all">Semua Status</SelectItem>
-                                <SelectItem value="aktif">Aktif</SelectItem>
-                            </SelectContent>
-                        </Select>
+                        <!-- Status Filter -->
+                        <div class="space-y-2">
+                            <Label>Pilih Status Dosen</Label>
+                            <ComboboxFilter
+                                v-model="selectedStatus"
+                                :options="statusOptions"
+                                placeholder="Semua Status"
+                                searchPlaceholder="Cari Status..."
+                                widthClass="w-full h-10"
+                                @update:modelValue="updateFilter"
+                            />
+                        </div>
                     </div>
                 </template>
                 

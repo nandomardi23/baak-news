@@ -548,6 +548,39 @@ class NeoFeederSyncService
 
         $data = $response['data'] ?? [];
         $batchCount = count($data);
+
+        // Fetch penugasan dosen to get id_prodi
+        $dosenIds = array_column($data, 'id_dosen');
+        $prodiByDosen = [];
+
+        if (!empty($dosenIds)) {
+            $penugasanResponse = $this->neoFeeder->request('GetListPenugasanDosen', [
+                'limit' => $limit,
+                'offset' => 0, // usually we might need to filter by id_dosen, but let's try a filter
+            ]);
+            
+            // To be precise, we should filter by id_dosen, but since NeoFeeder API filter syntax is tricky and batching is hard, 
+            // a better way is to request all penugasan and index them if possible, or build an IN clause.
+            // For now, let's fetch penugasan specifically for these dosens. 
+            // The syntax is usually: id_dosen IN ('id1', 'id2') but NeoFeeder might not support it well.
+            // Actually, we can fetch GetListPenugasanDosen with larger limit once or chunk it. 
+            // Let's get them by fetching the penugasan data that matches these dosens. 
+            // A simpler approach: iterate and fetch, or fetch all active penugasan.
+            // Let's try fetching assignments for the current batch.
+            $filter = "id_dosen IN ('" . implode("','", $dosenIds) . "')";
+            
+            $penugasanBatch = $this->neoFeeder->request('GetListPenugasanDosen', [
+                'filter' => $filter,
+                'limit' => $limit
+            ]);
+
+            if (isset($penugasanBatch['data'])) {
+                foreach ($penugasanBatch['data'] as $penugasan) {
+                    $prodiByDosen[$penugasan['id_dosen']] = $penugasan['id_prodi'];
+                }
+            }
+        }
+
         $synced = 0;
         $inserted = 0;
         $updated = 0;
@@ -556,7 +589,8 @@ class NeoFeederSyncService
 
         foreach ($data as $item) {
             try {
-                $prodiId = $prodiMap[$item['id_prodi'] ?? ''] ?? null;
+                $idProdiFromPenugasan = $prodiByDosen[$item['id_dosen']] ?? null;
+                $prodiId = $prodiMap[$idProdiFromPenugasan] ?? null;
 
                 $dosen = Dosen::updateOrCreate(
                     ['id_dosen' => $item['id_dosen']],
@@ -573,7 +607,7 @@ class NeoFeederSyncService
                         'id_status_aktif' => $item['id_status_aktif'] ?? null,
                         'status_aktif' => $item['nama_status_aktif'] ?? null,
                         'program_studi_id' => $prodiId,
-                        'id_prodi' => $item['id_prodi'] ?? null,
+                        'id_prodi' => $idProdiFromPenugasan,
                     ]
                 );
 

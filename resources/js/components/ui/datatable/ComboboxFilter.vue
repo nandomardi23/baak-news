@@ -55,6 +55,12 @@ const onSelect = (val: string | number) => {
 const selectedLabel = computed(() => {
     return props.options.find((opt) => String(opt.value) === String(props.modelValue))?.label;
 });
+
+const popoverWidthClass = computed(() => {
+    if (!props.widthClass) return 'w-[200px]';
+    // Remove any height classes (like h-10, h-full, etc.) from being applied to PopoverContent
+    return props.widthClass.split(' ').filter((c: string) => !c.startsWith('h-')).join(' ');
+});
 </script>
 
 <template>
@@ -81,7 +87,7 @@ const selectedLabel = computed(() => {
             </Button>
         </PopoverTrigger>
         <PopoverContent 
-            :class="cn('p-0 rounded-xl overflow-hidden shadow-xl border-slate-200 bg-white', widthClass || 'w-[200px]')" 
+            :class="cn('p-0 rounded-xl overflow-hidden shadow-xl border-slate-200 bg-white', popoverWidthClass)" 
             align="start"
             :side-offset="4"
         >
