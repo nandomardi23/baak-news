@@ -315,9 +315,9 @@ class LandingController extends Controller
     /**
      * Print Kartu Ujian directly (public access - students only print their own)
      */
-    public function printKartuUjian(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
+    public function printKartuUjian(Request $request, Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
     {
-        return $this->generatePdfResponse('kartu_ujian', $mahasiswa, $tahunAkademik);
+        return $this->generatePdfResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
     }
 
     /**
@@ -380,7 +380,7 @@ class LandingController extends Controller
         $filename = match($type) {
             'krs' => $pdfService->generateKrs($mahasiswa, $tahunAkademik),
             'khs' => $pdfService->generateKhs($mahasiswa, $tahunAkademik),
-            'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik),
+            'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik, $jenis),
             'transkrip' => $pdfService->generateTranskrip($mahasiswa, $jenis),
         };
         

@@ -154,7 +154,8 @@ class SuratService extends BasePdfService
         $this->Cell(60, 5, Setting::getValue('kop_nama_kampus', 'Stikes Hang Tuah Tanjungpinang'), 0, 1, 'C');
 
         $this->SetX(120);
-        $this->Cell(60, 5, 'Ketua', 0, 1, 'C');
+        $jabatan = $customSigner?->jabatan ?? 'Ketua';
+        $this->Cell(60, 5, $jabatan, 0, 1, 'C');
 
         $this->Ln(25);
 
@@ -162,12 +163,6 @@ class SuratService extends BasePdfService
         $this->SetX(120);
         $signerName = $customSigner?->nama_lengkap ?? 'apt. Dra. Mila Abdullah, M.M';
         $this->Cell(60, 5, $signerName, 0, 1, 'C');
-
-        // Pangkat / Golongan (e.g. Kolonel Laut (K/W) Purn)
-        if ($customSigner?->pangkat_golongan) {
-            $this->SetX(120);
-            $this->Cell(60, 5, $customSigner->pangkat_golongan, 0, 1, 'C');
-        }
 
         // Signer ID (Always 'NIK' label)
         // Prioritize NIP (NIK Kepegawaian), then NIDN, then KTP

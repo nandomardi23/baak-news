@@ -58,8 +58,9 @@ Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(
     Route::get('mahasiswa/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [MahasiswaController::class, 'printKartuUjian'])->name('mahasiswa.kartu_ujian.print');
     Route::get('mahasiswa/{mahasiswa}/transkrip/print', [MahasiswaController::class, 'printTranskrip'])->name('mahasiswa.transkrip.print');
 
-    // Dosen
+    // Dosen & Kelas Kuliah
     Route::resource('dosen', \App\Http\Controllers\Admin\DosenController::class)->except(['create', 'show', 'edit']);
+    Route::post('kelas-kuliah/{kelasKuliah}/jadwal', [\App\Http\Controllers\Admin\KelasKuliahController::class, 'updateJadwal'])->name('kelas-kuliah.jadwal.update');
     Route::resource('kelas-kuliah', \App\Http\Controllers\Admin\KelasKuliahController::class)->only(['index', 'show', 'destroy']);
 
     // Surat Pengajuan

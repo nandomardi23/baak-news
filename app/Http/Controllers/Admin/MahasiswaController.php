@@ -204,9 +204,9 @@ class MahasiswaController extends Controller
         return $this->generateAndDownloadPdf('khs', $mahasiswa, $tahunAkademik);
     }
 
-    public function printKartuUjian(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
+    public function printKartuUjian(Request $request, Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->generateAndDownloadPdf('kartu_ujian', $mahasiswa, $tahunAkademik);
+        return $this->generateAndDownloadPdf('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
     }
 
     public function printTranskrip(Mahasiswa $mahasiswa, Request $request): BinaryFileResponse|\Illuminate\Http\Response
@@ -313,7 +313,7 @@ class MahasiswaController extends Controller
 
         try {
             $pdfService = new \App\Services\Pdfs\KartuUjianService();
-            $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik);
+            $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik, $request->get('jenis', 'uts'));
 
             $path = storage_path('app/public/surat/' . $filename);
 
@@ -343,7 +343,7 @@ class MahasiswaController extends Controller
             $filename = match ($type) {
                 'krs' => $pdfService->generateKrs($mahasiswa, $tahunAkademik),
                 'khs' => $pdfService->generateKhs($mahasiswa, $tahunAkademik),
-                'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik),
+                'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik, $jenis),
                 'transkrip' => $pdfService->generateTranskrip($mahasiswa, $jenis),
             };
 

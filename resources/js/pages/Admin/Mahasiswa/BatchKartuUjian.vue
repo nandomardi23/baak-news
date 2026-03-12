@@ -69,11 +69,21 @@ const applyFilter = () => {
     });
 };
 
-const printUrl = computed(() => {
+const printUrlUts = computed(() => {
     const params = new URLSearchParams();
     if (form.value.tahun_akademik_id) params.append('tahun_akademik_id', String(form.value.tahun_akademik_id));
     if (form.value.angkatan) params.append('angkatan', form.value.angkatan);
     if (form.value.prodi_id) params.append('prodi_id', String(form.value.prodi_id));
+    params.append('jenis', 'uts');
+    return `/admin/mahasiswa/kartu-ujian/batch/print?${params.toString()}`;
+});
+
+const printUrlUas = computed(() => {
+    const params = new URLSearchParams();
+    if (form.value.tahun_akademik_id) params.append('tahun_akademik_id', String(form.value.tahun_akademik_id));
+    if (form.value.angkatan) params.append('angkatan', form.value.angkatan);
+    if (form.value.prodi_id) params.append('prodi_id', String(form.value.prodi_id));
+    params.append('jenis', 'uas');
     return `/admin/mahasiswa/kartu-ujian/batch/print?${params.toString()}`;
 });
 
@@ -175,14 +185,25 @@ const totalMahasiswa = computed(() => props.mahasiswa.length);
                         </span>
                         <a
                             v-if="totalMahasiswa > 0"
-                            :href="printUrl"
+                            :href="printUrlUts"
                             target="_blank"
                             class="px-4 py-2 bg-amber-600 text-white font-medium rounded-lg hover:bg-amber-700 transition flex items-center gap-2"
                         >
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                             </svg>
-                            Cetak Semua ({{ totalMahasiswa }})
+                            Cetak UTS Terpilih 
+                        </a>
+                        <a
+                            v-if="totalMahasiswa > 0"
+                            :href="printUrlUas"
+                            target="_blank"
+                            class="px-4 py-2 bg-orange-600 text-white font-medium rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+                        >
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>
+                            Cetak UAS Terpilih
                         </a>
                     </div>
                 </div>

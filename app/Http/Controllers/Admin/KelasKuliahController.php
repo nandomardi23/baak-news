@@ -142,6 +142,8 @@ class KelasKuliahController extends Controller
                 'kapasitas' => $kelasKuliah->kapasitas,
                 'prodi' => $kelasKuliah->programStudi?->nama_prodi,
                 'semester' => $kelasKuliah->tahunAkademik?->nama_semester ?? $kelasKuliah->id_semester,
+                'tanggal_uts' => $kelasKuliah->tanggal_uts,
+                'tanggal_uas' => $kelasKuliah->tanggal_uas,
                 'dosen_pengajar' => $kelasKuliah->dosenPengajar->map(fn($d) => [
                     'id' => $d->id,
                     'nama' => $d->nama_lengkap,
@@ -163,5 +165,20 @@ class KelasKuliahController extends Controller
     {
         $kelasKuliah->delete();
         return redirect()->back()->with('success', 'Data kelas kuliah berhasil dihapus');
+    }
+
+    public function updateJadwal(Request $request, KelasKuliah $kelasKuliah)
+    {
+        $validated = $request->validate([
+            'tanggal_uts' => 'nullable|date',
+            'tanggal_uas' => 'nullable|date',
+        ]);
+
+        $kelasKuliah->update([
+            'tanggal_uts' => $validated['tanggal_uts'],
+            'tanggal_uas' => $validated['tanggal_uas'],
+        ]);
+
+        return redirect()->back()->with('success', 'Jadwal Ujian berhasil diperbarui');
     }
 }

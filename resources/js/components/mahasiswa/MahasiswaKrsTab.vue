@@ -72,14 +72,24 @@ const syncKrs = () => {
                         Cetak KRS
                     </a>
                     <a
-                        :href="`/admin/mahasiswa/${mahasiswaId}/kartu-ujian/${krsItem.tahun_akademik_id}/print`"
+                        :href="`/admin/mahasiswa/${mahasiswaId}/kartu-ujian/${krsItem.tahun_akademik_id}/print?jenis=uts`"
                         target="_blank"
                         class="inline-flex items-center px-3 py-1.5 bg-amber-600 text-white text-xs font-medium rounded hover:bg-amber-700 transition"
                     >
                         <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>
-                        Kartu Ujian
+                        Kartu UTS
+                    </a>
+                    <a
+                        :href="`/admin/mahasiswa/${mahasiswaId}/kartu-ujian/${krsItem.tahun_akademik_id}/print?jenis=uas`"
+                        target="_blank"
+                        class="inline-flex items-center px-3 py-1.5 bg-orange-600 text-white text-xs font-medium rounded hover:bg-orange-700 transition"
+                    >
+                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        Kartu UAS
                     </a>
                 </div>
             </div>

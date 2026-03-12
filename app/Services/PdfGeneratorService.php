@@ -52,9 +52,9 @@ class PdfGeneratorService
     /**
      * Generate Kartu Ujian PDF
      */
-    public function generateKartuUjian(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): string
+    public function generateKartuUjian(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, string $jenis = 'uts'): string
     {
-        return $this->kartuUjianService->generate($mahasiswa, $tahunAkademik);
+        return $this->kartuUjianService->generate($mahasiswa, $tahunAkademik, $jenis);
     }
 
     /**

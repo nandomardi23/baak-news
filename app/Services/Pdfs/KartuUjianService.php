@@ -13,7 +13,7 @@ class KartuUjianService extends BasePdfService
     /**
      * Generate single kartu ujian for one student (full page)
      */
-    public function generate(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): string
+    public function generate(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, string $jenis = 'uts'): string
     {
         $this->AddPage('P', 'A4');
         $this->SetMargins(0, 0, 0); // Zero margins
@@ -31,7 +31,7 @@ class KartuUjianService extends BasePdfService
         }
 
         // Render single card at top position
-        $this->addDesignCard($mahasiswa, $tahunAkademik, 0, $useTemplate);
+        $this->addDesignCard($mahasiswa, $tahunAkademik, 0, $useTemplate, $jenis);
 
         $filename = 'kartu_ujian_' . $mahasiswa->nim . '_' . $tahunAkademik->id_semester . '.pdf';
         $path = storage_path('app/public/surat/' . $filename);
@@ -46,7 +46,7 @@ class KartuUjianService extends BasePdfService
      * Generate batch kartu ujian for multiple students
      * Layout: 2 Cards per A4 Page (Portrait) - Full Bleed
      */
-    public function generateBatch(Collection $mahasiswaList, TahunAkademik $tahunAkademik): string
+    public function generateBatch(Collection $mahasiswaList, TahunAkademik $tahunAkademik, string $jenis = 'uts'): string
     {
         $cardsPerPage = 1;
         $cardCount = 0;
@@ -89,7 +89,7 @@ class KartuUjianService extends BasePdfService
 
             // Draw Card Content
             $this->SetY($startY);
-            $this->addDesignCard($mahasiswa, $tahunAkademik, $startY, !!$tplIdx);
+            $this->addDesignCard($mahasiswa, $tahunAkademik, $startY, !!$tplIdx, $jenis);
 
             $cardCount++;
         }
@@ -182,7 +182,7 @@ class KartuUjianService extends BasePdfService
     /**
      * Draw individual card with custom design
      */
-    private function addDesignCard(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, float $startY, bool $useTemplate = false): void
+    private function addDesignCard(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, float $startY, bool $useTemplate = false, string $jenis = 'uts'): void
     {
         $startX = 10;
 
@@ -234,11 +234,14 @@ class KartuUjianService extends BasePdfService
         $this->SetY($infoY);
         $this->SetFont('Arial', '', 11); // Increased from 9 to 11
 
+        $semesterNum = $this->getMahasiswaSemester($mahasiswa, $tahunAkademik);
+        $semesterStr = $this->getRomanMonth($semesterNum) ?: $semesterNum;
+
         $fields = [
             'NAMA' => strtoupper($mahasiswa->nama),
             'NIM' => $mahasiswa->nim,
             'PRODI' => $mahasiswa->programStudi?->nama_cetak ?? '-',
-            'SEMESTER' => $tahunAkademik->nama_semester,
+            'SEMESTER' => $semesterStr,
         ];
 
         foreach ($fields as $label => $value) {
@@ -266,7 +269,8 @@ class KartuUjianService extends BasePdfService
         $this->RoundedRect($boxX, $boxY, 40, 12, 2, 'DF'); // Radius 2mm
         $this->SetXY($boxX, $boxY);
         $this->SetFont('Arial', 'B', 12); // Font 10->12
-        $this->Cell(40, 12, 'Kartu Ujian', 0, 0, 'C');
+        $jenisLabel = strtoupper($jenis) === 'UAS' ? 'Kartu UAS' : 'Kartu UTS';
+        $this->Cell(40, 12, $jenisLabel, 0, 0, 'C');
 
         // ---------------------------------------------------------
         // 3. Exam Table (ALWAYS PRINT with Headers & Borders)
@@ -301,35 +305,39 @@ class KartuUjianService extends BasePdfService
             ->with('details.mataKuliah')
             ->first();
 
-        $maxRows = 8;
         $rowCount = 0;
         $border = 1; // Always use border
 
         if ($krs && $krs->details->count() > 0) {
             foreach ($krs->details as $index => $detail) {
-                if ($rowCount >= $maxRows)
-                    break;
-
                 $mk = $detail->mataKuliah;
                 $this->SetX($startX);
 
+                // Look up the exam date from the related KelasKuliah
+                $tanggalStr = '';
+                if ($detail->id_kelas_kuliah) {
+                    $kelasKuliah = \App\Models\KelasKuliah::where('id_kelas_kuliah', $detail->id_kelas_kuliah)->first();
+                    if ($kelasKuliah) {
+                        $dateField = strtolower($jenis) === 'uas' ? 'tanggal_uas' : 'tanggal_uts';
+                        if ($kelasKuliah->$dateField) {
+                            try {
+                                $tanggalStr = \Carbon\Carbon::parse($kelasKuliah->$dateField)->format('d/m/Y');
+                            } catch (\Exception $e) {
+                                $tanggalStr = '';
+                            }
+                        }
+                    }
+                }
+
                 $this->Cell($cols[0]['w'], 7, $index + 1, $border, 0, 'C'); // Height 6->7
-                $this->Cell($cols[1]['w'], 7, '', $border, 0, 'C');
+                $this->Cell($cols[1]['w'], 7, $tanggalStr, $border, 0, 'C');
                 $this->Cell($cols[2]['w'], 7, substr($mk->nama_matkul ?? '-', 0, 50), $border, 0, 'L');
                 $this->Cell($cols[3]['w'], 7, '', $border, 1, 'C');
                 $rowCount++;
             }
         }
 
-        // Fill remaining rows
-        while ($rowCount < $maxRows) {
-            $this->SetX($startX);
-            $this->Cell($cols[0]['w'], 7, $rowCount + 1, 1, 0, 'C');
-            $this->Cell($cols[1]['w'], 7, '', 1, 0, 'C');
-            $this->Cell($cols[2]['w'], 7, '', 1, 0, 'L');
-            $this->Cell($cols[3]['w'], 7, '', 1, 1, 'C');
-            $rowCount++;
-        }
+
 
         // ---------------------------------------------------------
         // 4. Footer & Signature (ALWAYS PRINT)

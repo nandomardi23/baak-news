@@ -8,10 +8,14 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, Users, BookOpen, Clock, GraduationCap } from 'lucide-vue-next';
+import { ArrowLeft, Users, BookOpen, Clock, GraduationCap, CalendarDays } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
 
 interface DosenPengajar {
     id: number;
@@ -41,6 +45,8 @@ interface KelasKuliah {
     kapasitas: number;
     prodi: string;
     semester: string;
+    tanggal_uts: string | null;
+    tanggal_uas: string | null;
     dosen_pengajar: DosenPengajar[];
     peserta: Peserta[];
     total_peserta: number;
@@ -64,6 +70,23 @@ setBreadcrumbs([
     { title: 'Kelas Kuliah', href: '/admin/kelas-kuliah' },
     { title: 'Detail Kelas', href: '#' },
 ]);
+
+const formJadwal = useForm({
+    tanggal_uts: props.kelasKuliah.tanggal_uts || '',
+    tanggal_uas: props.kelasKuliah.tanggal_uas || '',
+});
+
+const submitJadwal = () => {
+    formJadwal.post(`/admin/kelas-kuliah/${props.kelasKuliah.id}/jadwal`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Berhasil', { description: 'Jadwal Ujian berhasil diperbarui' });
+        },
+        onError: (errors) => {
+            toast.error('Gagal', { description: 'Periksa kembali data jadwal ujian.' });
+        }
+    });
+};
 </script>
 
 <template>
@@ -148,6 +171,52 @@ setBreadcrumbs([
                                 </div>
                             </div>
                         </div>
+                    </CardContent>
+                </Card>
+
+                <!-- Jadwal Ujian Card -->
+                <Card class="w-full shadow-sm border-slate-200/60 mt-2">
+                    <CardHeader class="border-b bg-slate-50/50 pb-4">
+                        <CardTitle class="text-base font-bold flex items-center gap-2.5 text-slate-800">
+                            <div class="p-2 bg-indigo-100 text-indigo-600 rounded-md">
+                                <CalendarDays class="w-4 h-4" />
+                            </div>
+                            Jadwal Ujian
+                        </CardTitle>
+                        <CardDescription>
+                            Atur jadwal pelaksanaan ujian untuk kelas ini. Tanggal ini akan dicetak di Kartu Ujian Mahasiswa.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent class="p-6">
+                        <form @submit.prevent="submitJadwal" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+                            <div class="space-y-2">
+                                <Label for="tanggal_uts">Tanggal UTS</Label>
+                                <Input 
+                                    id="tanggal_uts" 
+                                    type="date" 
+                                    v-model="formJadwal.tanggal_uts"
+                                    :class="{ 'border-red-500': formJadwal.errors.tanggal_uts }"
+                                />
+                                <p v-if="formJadwal.errors.tanggal_uts" class="text-xs text-red-500">{{ formJadwal.errors.tanggal_uts }}</p>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <Label for="tanggal_uas">Tanggal UAS</Label>
+                                <Input 
+                                    id="tanggal_uas" 
+                                    type="date" 
+                                    v-model="formJadwal.tanggal_uas"
+                                    :class="{ 'border-red-500': formJadwal.errors.tanggal_uas }"
+                                />
+                                <p v-if="formJadwal.errors.tanggal_uas" class="text-xs text-red-500">{{ formJadwal.errors.tanggal_uas }}</p>
+                            </div>
+
+                            <div class="md:col-span-2 flex justify-end mt-2">
+                                <Button type="submit" :disabled="formJadwal.processing" class="bg-indigo-600 hover:bg-indigo-700">
+                                    Simpan Jadwal Ujian
+                                </Button>
+                            </div>
+                        </form>
                     </CardContent>
                 </Card>
 

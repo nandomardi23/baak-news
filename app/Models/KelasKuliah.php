@@ -31,6 +31,8 @@ class KelasKuliah extends Model
         'dosen_id',
         'id_dosen',
         'nama_dosen',
+        'tanggal_uts',
+        'tanggal_uas',
     ];
 
     /**
