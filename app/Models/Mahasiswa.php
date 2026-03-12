@@ -147,26 +147,35 @@ class Mahasiswa extends Model
     }
 
     /**
+     * Helper to format text to title case reliably
+     */
+    private function formatTitleCase(?string $str): string
+    {
+        if (!$str) return '';
+        return ucwords(strtolower(trim($str)));
+    }
+
+    /**
      * Get formatted alamat lengkap
      */
     public function getAlamatLengkapAttribute(): string
     {
         $parts = [];
         if ($this->alamat)
-            $parts[] = $this->alamat;
+            $parts[] = $this->alamat; // Preserve original casing for street addresses, form already title cases
         if ($this->rt && $this->rw)
             $parts[] = "RT {$this->rt} RW {$this->rw}";
         if ($this->kelurahan)
-            $parts[] = $this->kelurahan;
+            $parts[] = "Kel. " . $this->formatTitleCase($this->kelurahan);
         if ($this->kecamatan)
-            $parts[] = $this->kecamatan;
+            $parts[] = "Kec. " . $this->formatTitleCase($this->kecamatan);
         if ($this->kota_kabupaten)
-            $parts[] = $this->kota_kabupaten;
+            $parts[] = $this->formatTitleCase($this->kota_kabupaten);
         if ($this->provinsi)
-            $parts[] = $this->provinsi;
+            $parts[] = "Prov. " . $this->formatTitleCase($this->provinsi);
         if ($this->kode_pos)
             $parts[] = $this->kode_pos;
-        return implode(', ', $parts);
+        return implode(', ', array_filter($parts));
     }
 
     /**
@@ -180,14 +189,14 @@ class Mahasiswa extends Model
         if ($this->rt_ortu && $this->rw_ortu)
             $parts[] = "RT {$this->rt_ortu} RW {$this->rw_ortu}";
         if ($this->kelurahan_ortu)
-            $parts[] = $this->kelurahan_ortu;
+            $parts[] = "Kel. " . $this->formatTitleCase($this->kelurahan_ortu);
         if ($this->kecamatan_ortu)
-            $parts[] = $this->kecamatan_ortu;
+            $parts[] = "Kec. " . $this->formatTitleCase($this->kecamatan_ortu);
         if ($this->kota_kabupaten_ortu)
-            $parts[] = $this->kota_kabupaten_ortu;
+            $parts[] = $this->formatTitleCase($this->kota_kabupaten_ortu);
         if ($this->provinsi_ortu)
-            $parts[] = $this->provinsi_ortu;
-        return implode(', ', $parts);
+            $parts[] = "Prov. " . $this->formatTitleCase($this->provinsi_ortu);
+        return implode(', ', array_filter($parts));
     }
 
     /**
