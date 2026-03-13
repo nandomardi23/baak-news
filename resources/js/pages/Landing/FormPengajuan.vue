@@ -516,34 +516,40 @@ const submit = () => {
                             </div>
                         </div>
                         <div class="mt-4">
-                            <label class="block text-slate-600 text-sm font-medium mb-2">Alamat</label>
-                            <textarea v-model="form.alamat" @blur="form.alamat = toTitleCase(form.alamat)" rows="2" placeholder="Alamat lengkap"
-                                class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
-                        </div>
-                        <div class="grid grid-cols-4 gap-3 mt-3">
-                            <input v-model="form.rt" type="text" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
-                            <input v-model="form.rw" type="text" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
+                            <label class="block text-slate-600 text-sm font-medium mb-2">Alamat Mahasiswa</label>
                             
-                            <select v-model="form.provinsi" @change="onProvinsiChange" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
-                                <option value="" disabled>Pilih Provinsi</option>
-                                <option v-for="prov in provinces" :key="prov.id" :value="prov.name">{{ prov.name }}</option>
-                            </select>
-                        </div>
-                        <div class="grid sm:grid-cols-3 gap-3 mt-3">
-                            <select v-model="form.kota_kabupaten" @change="onKotaChange" :disabled="!form.provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Kota/Kab</option>
-                                <option v-for="reg in regencies" :key="reg.id" :value="reg.name">{{ reg.name }}</option>
-                            </select>
-                            
-                            <select v-model="form.kecamatan" @change="onKecamatanChange" :disabled="!form.kota_kabupaten" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Kecamatan</option>
-                                <option v-for="dist in districts" :key="dist.id" :value="dist.name">{{ dist.name }}</option>
-                            </select>
-                            
-                            <select v-model="form.kelurahan" :disabled="!form.kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Kelurahan/Desa</option>
-                                <option v-for="vil in villages" :key="vil.id" :value="vil.name">{{ vil.name }}</option>
-                            </select>
+                            <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                                <select v-model="form.provinsi" @change="onProvinsiChange" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition">
+                                    <option value="" disabled>Pilih Provinsi</option>
+                                    <option v-for="prov in provinces" :key="prov.id" :value="prov.name">{{ prov.name }}</option>
+                                </select>
+                                
+                                <select v-model="form.kota_kabupaten" @change="onKotaChange" :disabled="!form.provinsi" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Kota/Kab</option>
+                                    <option v-for="reg in regencies" :key="reg.id" :value="reg.name">{{ reg.name }}</option>
+                                </select>
+                                
+                                <select v-model="form.kecamatan" @change="onKecamatanChange" :disabled="!form.kota_kabupaten" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Kecamatan</option>
+                                    <option v-for="dist in districts" :key="dist.id" :value="dist.name">{{ dist.name }}</option>
+                                </select>
+                                
+                                <select v-model="form.kelurahan" :disabled="!form.kecamatan" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Kelurahan/Desa</option>
+                                    <option v-for="vil in villages" :key="vil.id" :value="vil.name">{{ vil.name }}</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-4 sm:col-span-3">
+                                    <textarea v-model="form.alamat" @blur="form.alamat = toTitleCase(form.alamat)" rows="1" placeholder="Nama jalan, gang, nomor rumah, dll"
+                                        class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none"></textarea>
+                                </div>
+                                <div class="col-span-4 sm:col-span-1 flex gap-3">
+                                    <input v-model="form.rt" type="text" placeholder="RT" class="w-1/2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
+                                    <input v-model="form.rw" type="text" placeholder="RW" class="w-1/2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center"/>
+                                </div>
+                            </div>
                         </div>
                         <div class="mt-3">
                             <input v-model="form.no_hp" type="tel" placeholder="No. HP / WhatsApp"
@@ -600,33 +606,39 @@ const submit = () => {
 
                         <div class="mt-3">
                             <label class="block text-slate-600 text-sm font-medium mb-2">Alamat Orang Tua</label>
-                            <textarea v-model="form.alamat_ortu" :disabled="isAlamatSama" @blur="form.alamat_ortu = toTitleCase(form.alamat_ortu)" rows="2" placeholder="Alamat Lengkap Orang Tua (jika berbeda)"
-                                class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none disabled:opacity-50 disabled:bg-slate-50"></textarea>
-                        </div>
-                        <div class="grid grid-cols-4 gap-3 mt-3">
-                            <input v-model="form.rt_ortu" type="text" :disabled="isAlamatSama" placeholder="RT" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center disabled:opacity-50 disabled:bg-slate-50"/>
-                            <input v-model="form.rw_ortu" type="text" :disabled="isAlamatSama" placeholder="RW" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center disabled:opacity-50 disabled:bg-slate-50"/>
                             
-                            <select v-model="form.provinsi_ortu" @change="onParentProvinsiChange" :disabled="isAlamatSama" class="col-span-2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Provinsi</option>
-                                <option v-for="prov in provinces" :key="prov.id" :value="prov.name">{{ prov.name }}</option>
-                            </select>
-                        </div>
-                        <div class="grid sm:grid-cols-3 gap-3 mt-3">
-                            <select v-model="form.kota_kabupaten_ortu" @change="onParentKotaChange" :disabled="!form.provinsi_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Kota/Kab</option>
-                                <option v-for="reg in parentRegencies" :key="reg.id" :value="reg.name">{{ reg.name }}</option>
-                            </select>
-                            
-                            <select v-model="form.kecamatan_ortu" @change="onParentKecamatanChange" :disabled="!form.kota_kabupaten_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Kecamatan</option>
-                                <option v-for="dist in parentDistricts" :key="dist.id" :value="dist.name">{{ dist.name }}</option>
-                            </select>
-                            
-                            <select v-model="form.kelurahan_ortu" :disabled="!form.kecamatan_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
-                                <option value="" disabled>Pilih Kelurahan/Desa</option>
-                                <option v-for="vil in parentVillages" :key="vil.id" :value="vil.name">{{ vil.name }}</option>
-                            </select>
+                            <div class="grid sm:grid-cols-2 gap-3 mb-3">
+                                <select v-model="form.provinsi_ortu" @change="onParentProvinsiChange" :disabled="isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Provinsi</option>
+                                    <option v-for="prov in provinces" :key="prov.id" :value="prov.name">{{ prov.name }}</option>
+                                </select>
+                                
+                                <select v-model="form.kota_kabupaten_ortu" @change="onParentKotaChange" :disabled="!form.provinsi_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Kota/Kab</option>
+                                    <option v-for="reg in parentRegencies" :key="reg.id" :value="reg.name">{{ reg.name }}</option>
+                                </select>
+                                
+                                <select v-model="form.kecamatan_ortu" @change="onParentKecamatanChange" :disabled="!form.kota_kabupaten_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Kecamatan</option>
+                                    <option v-for="dist in parentDistricts" :key="dist.id" :value="dist.name">{{ dist.name }}</option>
+                                </select>
+                                
+                                <select v-model="form.kelurahan_ortu" :disabled="!form.kecamatan_ortu || isAlamatSama" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition disabled:opacity-50 disabled:bg-slate-50">
+                                    <option value="" disabled>Pilih Kelurahan/Desa</option>
+                                    <option v-for="vil in parentVillages" :key="vil.id" :value="vil.name">{{ vil.name }}</option>
+                                </select>
+                            </div>
+
+                            <div class="grid grid-cols-4 gap-3">
+                                <div class="col-span-4 sm:col-span-3">
+                                    <textarea v-model="form.alamat_ortu" :disabled="isAlamatSama" @blur="form.alamat_ortu = toTitleCase(form.alamat_ortu)" rows="1" placeholder="Nama jalan, gang, nomor rumah, dll (jika berbeda)"
+                                        class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition resize-none disabled:opacity-50 disabled:bg-slate-50"></textarea>
+                                </div>
+                                <div class="col-span-4 sm:col-span-1 flex gap-3">
+                                    <input v-model="form.rt_ortu" type="text" :disabled="isAlamatSama" placeholder="RT" class="w-1/2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center disabled:opacity-50 disabled:bg-slate-50"/>
+                                    <input v-model="form.rw_ortu" type="text" :disabled="isAlamatSama" placeholder="RW" class="w-1/2 px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition text-center disabled:opacity-50 disabled:bg-slate-50"/>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
