@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AppLogoIcon from '@/components/AppLogoIcon.vue';
 import { Link } from '@inertiajs/vue3';
+import { Toaster } from 'vue-sonner';
 
 defineProps<{
     title?: string;
@@ -53,5 +54,6 @@ defineProps<{
                 </p>
             </div>
         </div>
+        <Toaster position="top-right" />
     </div>
 </template>

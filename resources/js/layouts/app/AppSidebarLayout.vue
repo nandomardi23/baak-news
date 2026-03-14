@@ -16,6 +16,6 @@ const { breadcrumbs } = useBreadcrumbs();
             <AppSidebarHeader :breadcrumbs="breadcrumbs" />
             <slot />
         </AppContent>
-        <Toaster />
+        <Toaster position="top-right" />
     </AppShell>
 </template>

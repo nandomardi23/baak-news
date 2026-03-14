@@ -321,7 +321,7 @@ class KartuUjianService extends BasePdfService
                         $dateField = strtolower($jenis) === 'uas' ? 'tanggal_uas' : 'tanggal_uts';
                         if ($kelasKuliah->$dateField) {
                             try {
-                                $tanggalStr = \Carbon\Carbon::parse($kelasKuliah->$dateField)->format('d/m/Y');
+                                $tanggalStr = $this->formatTanggalLengkap($kelasKuliah->$dateField);
                             } catch (\Exception $e) {
                                 $tanggalStr = '';
                             }

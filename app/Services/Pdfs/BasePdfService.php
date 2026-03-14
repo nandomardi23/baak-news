@@ -148,6 +148,47 @@ abstract class BasePdfService extends Fpdi
         $this->SetFontSize($initialFontSize);
     }
 
+    protected function formatTanggalLengkap($dateString): string
+    {
+        $hariIndo = [
+            'Sunday' => 'Minggu',
+            'Monday' => 'Senin',
+            'Tuesday' => 'Selasa',
+            'Wednesday' => 'Rabu',
+            'Thursday' => 'Kamis',
+            'Friday' => 'Jumat',
+            'Saturday' => 'Sabtu'
+        ];
+
+        $bulanIndo = [
+            1 => 'Januari',
+            2 => 'Februari',
+            3 => 'Maret',
+            4 => 'April',
+            5 => 'Mei',
+            6 => 'Juni',
+            7 => 'Juli',
+            8 => 'Agustus',
+            9 => 'September',
+            10 => 'Oktober',
+            11 => 'November',
+            12 => 'Desember'
+        ];
+
+        if (!$dateString)
+            return '-';
+
+        $timestamp = strtotime($dateString);
+        if (!$timestamp) return '-';
+
+        $dayName = date('l', $timestamp);
+        $day = date('d', $timestamp);
+        $month = (int)date('m', $timestamp);
+        $year = date('Y', $timestamp);
+
+        return ($hariIndo[$dayName] ?? $dayName) . ', ' . $day . ' ' . $bulanIndo[$month] . ' ' . $year;
+    }
+
     protected function formatTanggal($dateString): string
     {
         $bulanIndo = [

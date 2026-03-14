@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { Toaster } from 'vue-sonner';
 
 defineProps<{
     /** 'full' = Home/Profile-style (h-20, 4 nav links, footer), 'simple' = inner pages (h-16, 3 nav links, no footer) */
@@ -158,5 +159,6 @@ const isMobileMenuOpen = ref(false);
                 </div>
             </div>
         </footer>
+        <Toaster position="top-right" />
     </div>
 </template>
