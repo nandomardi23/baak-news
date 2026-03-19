@@ -13,55 +13,165 @@ class KhsService extends BasePdfService
     {
         $this->AddPage('P', 'A4');
         $this->SetMargins(15, 10, 15);
+        $this->SetLeftMargin(15);
+        $this->SetRightMargin(15);
         $this->SetAutoPageBreak(true, 15);
 
         $this->useBackgroundTemplate('khs');
 
-        $this->SetY(45);
+        $this->SetY(41);
+
+        // Title Block
+        $this->SetFont('Arial', 'BU', 11);
+        $this->Cell(0, 5, 'KARTU HASIL STUDI (KHS)', 0, 1, 'C');
+        $this->SetFont('Arial', 'B', 10);
+        $this->Cell(0, 5, $tahunAkademik->nama_semester ?? '', 0, 1, 'C');
+        $this->Ln(5);
 
         // Student Info Block
-        $this->SetFont('Arial', 'B', 9);
-        $w1 = 55;
-        $sep = 5;
-        $w2 = 60; // Slightly larger to give more room
+        $this->SetFont('Arial', '', 8);
 
-        // Row 1
-        $this->Cell($w1, 5, 'NAMA MAHASISWA', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->SetFont('Arial', '', 9);
-        $this->writeAdaptiveCell($w2, 5, strtoupper($mahasiswa->nama), 0, 0);
-
-        // Jurusan
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(25, 5, 'JURUSAN', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->SetFont('Arial', '', 9);
-        $this->writeAdaptiveCell(50, 5, strtoupper($mahasiswa->programStudi?->nama_cetak ?? '-'), 0, 1);
-
-        // Row 2
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell($w1, 5, 'N I M', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->SetFont('Arial', '', 9);
-        $this->Cell($w2, 5, $mahasiswa->nim, 0, 0);
-
-        // Semester
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(25, 5, 'SEMESTER', 0, 0);
-        $this->Cell($sep, 5, ':', 0, 0);
-        $this->SetFont('Arial', '', 9);
+        $w1 = 25; // Left label width
+        $sep = 3; // Separator width
+        $w2 = 65; // Left value width
+        $w3 = 30; // Right label width
+        $w4 = 57; // Right value width
 
         $semesterNum = $this->getMahasiswaSemester($mahasiswa, $tahunAkademik);
 
-        $this->Cell(0, 5, $semesterNum, 0, 1);
-
-        // Row 3
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell($w1, 5, 'I P K', 0, 0);
+        // Row 1: SEMESTER & PROGRAM STUDI
+        $this->Cell($w1, 5, 'SEMESTER', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
-        $this->SetFont('Arial', '', 9);
+        $this->Cell($w2, 5, $semesterNum, 0, 0);
 
-        // Fetch IPK from Aktivitas Kuliah up to this semester
+        $this->Cell($w3, 5, 'PROGRAM STUDI', 0, 0);
+        $this->Cell($sep, 5, ':', 0, 0);
+        $this->writeAdaptiveCell($w4, 5, strtoupper($mahasiswa->programStudi?->nama_cetak ?? '-'), 0, 1);
+
+        // Row 2: NIM & NAMA
+        $this->Cell($w1, 5, 'NIM', 0, 0);
+        $this->Cell($sep, 5, ':', 0, 0);
+        $this->Cell($w2, 5, $mahasiswa->nim, 0, 0);
+
+        $this->Cell($w3, 5, 'NAMA', 0, 0);
+        $this->Cell($sep, 5, ':', 0, 0);
+        $this->writeAdaptiveCell($w4, 5, strtoupper($mahasiswa->nama), 0, 1);
+
+        // Row 3: PEMBIMBING AKADEMIK
+        $this->Cell($w1, 5, 'PEMBIMBING', 0, 0);
+        $this->Cell($sep, 5, ':', 0, 0);
+        
+        $pembimbingName = '';
+        if ($mahasiswa->dosenWali) {
+            $pembimbingName = strtoupper($mahasiswa->dosenWali->nama_lengkap ?? $mahasiswa->dosenWali->nama ?? '');
+        }
+        $this->Cell($w2, 5, $pembimbingName, 0, 1);
+        
+        $this->Cell($w1, 5, 'AKADEMIK', 0, 1);
+        $this->Ln(2);
+
+        // Table Header
+        $this->SetFont('Arial', 'B', 8);
+        $x = $this->GetX();
+        $y = $this->GetY();
+        
+        // Main headers setup
+        $this->Rect($x, $y, 8, 10);
+        $this->SetXY($x, $y); 
+        $this->Cell(8, 10, 'No.', 0, 0, 'C');
+        
+        $this->Rect($this->GetX(), $y, 70, 10);
+        $this->Cell(70, 10, 'NAMA MATA KULIAH', 0, 0, 'C');
+        
+        $this->Rect($this->GetX(), $y, 25, 10);
+        $this->Cell(25, 10, 'KODE', 0, 0, 'C');
+        
+        $this->Rect($this->GetX(), $y, 12, 10);
+        $this->Cell(12, 10, 'SKS', 0, 0, 'C');
+        
+        // NILAI AKHIR spanned column
+        $this->Rect($this->GetX(), $y, 30, 5);
+        $this->Cell(30, 5, 'NILAI AKHIR', 0, 0, 'C');
+        
+        $this->Rect($this->GetX(), $y, 35, 10);
+        $this->Cell(35, 10, 'Ket', 0, 0, 'C');
+        
+        // Sub-headers for NILAI AKHIR
+        $this->SetXY($x + 8 + 70 + 25 + 12, $y + 5);
+        $this->Rect($this->GetX(), $y + 5, 10, 5); 
+        $this->Cell(10, 5, 'HM', 0, 0, 'C');
+        
+        $this->Rect($this->GetX(), $y + 5, 10, 5); 
+        $this->Cell(10, 5, 'NM', 0, 0, 'C');
+        
+        $this->Rect($this->GetX(), $y + 5, 10, 5); 
+        $this->Cell(10, 5, 'KN', 0, 1, 'C');
+
+        // Records
+        $nilaiList = $mahasiswa->nilai()
+            ->where('tahun_akademik_id', $tahunAkademik->id)
+            ->with('mataKuliah')
+            ->get();
+
+        $this->SetFont('Arial', '', 8);
+        $totalSKS = 0;
+        $totalKN = 0;
+        $no = 1;
+
+        if ($nilaiList->count() > 0) {
+            foreach ($nilaiList as $nilai) {
+                $mk = $nilai->mataKuliah;
+                if ($mk) {
+                    $sks = $mk->sks_mata_kuliah ?? 0;
+                    $indeks = $nilai->nilai_indeks ?? 0;
+                    $hm = $nilai->nilai_huruf ?? '-';
+                    $kn = $sks * $indeks;
+                    
+                    // Ket logic based on index or grades
+                    $ket = ($indeks > 0 && strtoupper($hm) !== 'E') ? 'LULUS' : 'TIDAK LULUS';
+
+                    $row = [
+                        ['text' => (string) $no++, 'width' => 8, 'align' => 'C'],
+                        ['text' => $mk->nama_matkul ?? '-', 'width' => 70, 'align' => 'L'],
+                        ['text' => $mk->kode_matkul ?? '-', 'width' => 25, 'align' => 'C'],
+                        ['text' => (string) $sks, 'width' => 12, 'align' => 'C'],
+                        ['text' => $hm, 'width' => 10, 'align' => 'C'],
+                        ['text' => number_format($indeks, 2), 'width' => 10, 'align' => 'C'],
+                        ['text' => is_numeric($kn) ? (string) round($kn) : '-', 'width' => 10, 'align' => 'C'],
+                        ['text' => $ket, 'width' => 35, 'align' => 'C'],
+                    ];
+
+                    $h = $this->addRow($row, 6);
+                    if ($h > 0) {
+                        $this->AddPage();
+                        $this->useBackgroundTemplate('khs');
+                        $this->SetY(41);
+                        $this->addRow($row, 6);
+                    }
+
+                    $totalSKS += $sks;
+                    $totalKN += $kn;
+                }
+            }
+        } else {
+            $this->Cell(180, 10, 'Belum ada data Nilai untuk semester ini', 1, 1, 'C');
+        }
+
+        // Summary Row
+        $this->SetFont('Arial', '', 8);
+        $this->Cell(8 + 70 + 25, 6, 'Jumlah', 1, 0, 'C');
+        $this->Cell(12, 6, $totalSKS > 0 ? (string)$totalSKS : '', 1, 0, 'C');
+        $this->Cell(10, 6, '', 1, 0, 'C');
+        $this->Cell(10, 6, '', 1, 0, 'C');
+        $this->Cell(10, 6, $totalKN > 0 ? (string)round($totalKN) : '', 1, 0, 'C');
+        $this->Cell(35, 6, '', 1, 1, 'C');
+
+        $this->Ln(6);
+
+        // IPS, IPK, Beban SKS
+        $ips = $totalSKS > 0 ? $totalKN / $totalSKS : 0;
+
+        // Cumulative IPK logic
         $ipk = $mahasiswa->ipk;
         $aktivitas = \App\Models\AktivitasKuliah::where('nim', $mahasiswa->nim)
             ->where('id_semester', '<=', $tahunAkademik->id_semester)
@@ -72,14 +182,12 @@ class KhsService extends BasePdfService
         if ($aktivitas && $aktivitas->ipk > 0) {
             $ipk = $aktivitas->ipk;
         } else {
-            // Dynamic fallback IPK calculation
             $nilais = $mahasiswa->nilai()
                 ->where('id_periode', '<=', $tahunAkademik->id_semester)
                 ->with('mataKuliah')->get();
             $mkGrades = [];
             foreach ($nilais as $n) {
-                if (!$n->mata_kuliah_id || $n->nilai_indeks === null)
-                    continue;
+                if (!$n->mata_kuliah_id || $n->nilai_indeks === null) continue;
                 if (!isset($mkGrades[$n->mata_kuliah_id]) || $mkGrades[$n->mata_kuliah_id]['indeks'] < $n->nilai_indeks) {
                     $mkGrades[$n->mata_kuliah_id] = [
                         'sks' => $n->mataKuliah->sks_mata_kuliah ?? $n->sks_mata_kuliah ?? 0,
@@ -98,134 +206,71 @@ class KhsService extends BasePdfService
             }
         }
 
-        $this->Cell($w2, 5, number_format((float) ($ipk ?? 0), 2), 0, 1);
-
-        $this->Ln(5);
-
-        // Title Block
-        $this->SetFont('Arial', 'B', 11);
-        $titleWidth = 160;
-        $this->SetX((210 - $titleWidth) / 2);
-        $this->Cell($titleWidth, 7, 'KARTU HASIL STUDI', 1, 1, 'C');
-        $this->SetX((210 - $titleWidth) / 2);
-        $this->SetFont('Arial', '', 10);
-        $this->Cell($titleWidth, 6, strtoupper($tahunAkademik->nama_semester), 'LRB', 1, 'C');
-
-        $this->Ln(5);
-
-        // Table Header
-        $this->SetFont('Arial', 'B', 8);
-        $cols = [
-            'no' => 10,
-            'kode' => 25,
-            'mk' => 95,
-            'sks' => 15,
-            'nilai' => 15,
-            'bobot' => 20
-        ];
-
-        $this->Cell($cols['no'], 8, 'NO', 1, 0, 'C');
-        $this->Cell($cols['kode'], 8, 'KODE MK', 1, 0, 'C');
-        $this->Cell($cols['mk'], 8, 'MATA KULIAH', 1, 0, 'C');
-        $this->Cell($cols['sks'], 8, 'SKS', 1, 0, 'C');
-        $this->Cell($cols['nilai'], 8, 'NILAI', 1, 0, 'C');
-        $this->Cell($cols['bobot'], 8, 'BOBOT', 1, 1, 'C');
-
-        // Rows
-        $nilaiList = $mahasiswa->nilai()
-            ->where('tahun_akademik_id', $tahunAkademik->id)
-            ->with('mataKuliah')
-            ->get();
-
-        $this->SetFont('Arial', '', 9);
-        $totalSks = 0;
-        $totalBobot = 0;
-        $no = 1;
-
-        if ($nilaiList->count() > 0) {
-            foreach ($nilaiList as $nilai) {
-                $mk = $nilai->mataKuliah;
-                if ($mk) {
-                    $sks = $mk->sks_mata_kuliah ?? 0;
-                    $indeks = $nilai->nilai_indeks ?? 0;
-                    $bobot = $sks * $indeks;
-
-                    $row = [
-                        ['text' => (string) $no++, 'width' => $cols['no'], 'align' => 'C'],
-                        ['text' => $mk->kode_matkul ?? '-', 'width' => $cols['kode'], 'align' => 'C'],
-                        ['text' => $mk->nama_matkul ?? '-', 'width' => $cols['mk'], 'align' => 'L'],
-                        ['text' => (string) $sks, 'width' => $cols['sks'], 'align' => 'C'],
-                        ['text' => $nilai->nilai_huruf ?? '-', 'width' => $cols['nilai'], 'align' => 'C'],
-                        ['text' => number_format($bobot, 2), 'width' => $cols['bobot'], 'align' => 'C'],
-                    ];
-
-                    $h = $this->addRow($row, 7);
-                    if ($h > 0) {
-                        $this->AddPage();
-                        $this->useBackgroundTemplate('khs');
-                        $this->SetY(45);
-                        $this->addRow($row, 7);
-                    }
-
-                    $totalSks += $sks;
-                    $totalBobot += $bobot;
-                }
-            }
-        } else {
-            $this->Cell(array_sum($cols), 10, 'Belum ada data Nilai untuk semester ini', 1, 1, 'C');
-        }
-
-        $ips = $totalSks > 0 ? $totalBobot / $totalSks : 0;
-
-        // Summary Block
-        $this->SetFont('Arial', 'B', 10);
-        $this->Cell(130, 8, 'TOTAL', 1, 0, 'R');
-        $this->Cell(15, 8, $totalSks, 1, 0, 'C');
-        $this->Cell(15, 8, '', 1, 0, 'C');
-        $this->Cell(20, 8, number_format($totalBobot, 2), 1, 1, 'C');
-
-        $this->Ln(5);
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(45, 6, 'JUMLAH KREDIT (SKS)', 0, 0, 'L');
-        $this->Cell(5, 6, ':', 0, 0, 'C');
-        $this->SetFont('Arial', '', 9);
-        $this->Cell(30, 6, $totalSks, 0, 1, 'L');
-
-        $this->SetFont('Arial', 'B', 9);
-        $this->Cell(45, 6, 'INDEKS PRESTASI (IPS)', 0, 0, 'L');
-        $this->Cell(5, 6, ':', 0, 0, 'C');
-        $this->SetFont('Arial', '', 9);
-        $this->Cell(30, 6, number_format($ips, 2), 0, 1, 'L');
-
-        $this->Ln(10);
-
-        // Signature
-        if ($this->GetY() + 40 > $this->PageBreakTrigger) {
+        // Print Bottom Info Block & Signatures Page Break Check
+        if ($this->GetY() + 45 > $this->PageBreakTrigger) {
             $this->AddPage();
             $this->useBackgroundTemplate('khs');
-            $this->SetY(45);
+            $this->SetY(41);
         }
 
-        $ySign = $this->GetY();
+        $yCurrent = $this->GetY();
         $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
 
-        $this->SetXY(130, $ySign);
-        $this->Cell(50, 5, $kota . ', ' . $this->formatTanggal(date('Y-m-d')), 0, 1, 'C');
-        $this->SetX(130);
-        $this->Cell(50, 5, 'KETUA PROGRAM STUDI,', 0, 1, 'C');
-        $this->Ln(20);
+        // Row 1: IPS & Date
+        $this->SetFont('Arial', 'B', 8);
+        $this->Cell(65, 5, 'Indeks Prestasi Semester (IPS)', 0, 0);
+        $this->Cell(20, 5, number_format($ips, 2), 0, 0, 'L');
+        
+        $this->SetXY(120, $yCurrent);
+        $this->SetFont('Arial', '', 8);
+        $this->Cell(75, 5, $kota . ', ' . $this->formatTanggal(date('Y-m-d')), 0, 1, 'C');
+
+        // Row 2: IPK & Signer Title
+        $yCurrent = $this->GetY();
+        $this->SetXY(15, $yCurrent);
+        $this->SetFont('Arial', 'B', 8);
+        $this->Cell(65, 5, 'Indeks Prestasi Kumulatif (IPK)', 0, 0);
+        $this->Cell(20, 5, number_format($ipk, 2), 0, 0, 'L');
+
+        $this->SetXY(120, $yCurrent);
+        $this->SetFont('Arial', '', 8);
+        $this->Cell(75, 5, 'Ketua Prodi ' . ucwords(strtolower($mahasiswa->programStudi?->nama_cetak ?? '')), 0, 1, 'C');
+
+        // Row 3: Beban SKS Maks
+        $this->SetXY(15, $this->GetY());
+        $this->SetFont('Arial', 'B', 8);
+        $this->Cell(65, 5, 'Beban SKS Maks Sem. yang akan Datang', 0, 1);
+
+        // Signer name and NIDN
+        $this->Ln(15);
+        // Find Kaprodi dynamically based on Program Studi
+        $prodiName = $mahasiswa->programStudi?->nama_prodi ?? '';
+        $prodiAlias = $mahasiswa->programStudi?->nama_alias ?? '';
+
+        $dynamicKaprodi = Pejabat::active()->where(function ($q) {
+            $q->where('jabatan', 'like', '%Kaprodi%')
+              ->orWhere('jabatan', 'like', '%Ketua Program Studi%')
+              ->orWhere('jabatan', 'like', '%Ketua Prodi%');
+        })->where(function ($q) use ($prodiName, $prodiAlias) {
+            if ($prodiName) $q->orWhere('jabatan', 'like', '%' . $prodiName . '%');
+            if ($prodiAlias) $q->orWhere('jabatan', 'like', '%' . $prodiAlias . '%');
+        })->first();
 
         $signerId = Setting::getValue('signer_khs');
-        $signer = $customSigner ?? Pejabat::find($signerId) ?? Pejabat::active()->where('jabatan', 'like', '%Kaprodi%')->first();
+        // Priority: Custom Signer -> Dynamic Kaprodi by Prodi -> Setting Signer Khs -> Fallback first Kaprodi
+        $signer = $customSigner ?? $dynamicKaprodi ?? Pejabat::find($signerId) ?? Pejabat::active()->where('jabatan', 'like', '%Kaprodi%')->first();
 
-        $this->SetFont('Arial', 'BU', 10);
-        $this->SetX(130);
-        $this->Cell(50, 5, strtoupper($signer?->nama_lengkap ?? '........................'), 0, 1, 'C');
-        $this->SetFont('Arial', '', 9);
-        $this->SetX(130);
-        $this->Cell(50, 5, 'NIDN/NIP: ' . ($signer?->nidn ?? $signer?->nip ?? '........................'), 0, 1, 'C');
+        // Need the prefix logic (like apt LILI SARTIKA S.FARM, APT, S.Farm, M.Farm)
+        $signerName = $signer?->nama_lengkap ?? '............................................';
+        $signerNik = $signer?->nik ?? $signer?->nip ?? $signer?->nidn ?? '......................';
 
-        // Final Output - Add timestamp to avoid browser caching old versions
+        $this->SetFont('Arial', '', 8);
+        $this->SetX(120);
+        $this->Cell(75, 5, $signerName, 0, 1, 'C');
+        $this->SetX(120);
+        $this->Cell(75, 5, 'NIK. ' . $signerNik, 0, 1, 'C');
+
+        // Final Output
         $timestamp = time();
         $filename = 'khs_' . $mahasiswa->nim . '_' . $tahunAkademik->id_semester . '_' . $timestamp . '.pdf';
         $path = storage_path('app/public/surat/' . $filename);

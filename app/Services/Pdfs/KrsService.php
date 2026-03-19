@@ -267,7 +267,7 @@ class KrsService extends BasePdfService
 
             $this->SetFont('Arial', '', 9);
             $this->SetX(125);
-            $this->Cell(70, 5, 'NIDN/NIP: ' . ($signer->nidn ?? $signer->nip ?? '-'), 0, 1, 'C');
+            $this->Cell(70, 5, 'NIK: ' . ($signer->nik ?? $signer->nip ?? $signer->nidn ?? '-'), 0, 1, 'C');
         } else {
             $this->SetFont('Arial', 'B', 9);
             $this->SetX(125);
