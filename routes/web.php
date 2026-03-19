@@ -17,16 +17,22 @@ Route::get('/', [LandingController::class, 'index'])->name('landing.home');
 Route::get('/profil', [LandingController::class, 'profile'])->name('landing.profile');
 Route::get('/search', [LandingController::class, 'search'])->name('landing.search');
 Route::get('/pengajuan/{mahasiswa}', [LandingController::class, 'form'])->name('landing.form');
-Route::post('/pengajuan/{mahasiswa}', [LandingController::class, 'submit'])->name('landing.submit');
+Route::post('/pengajuan/{mahasiswa}', [LandingController::class, 'submit'])->name('landing.submit')->middleware('throttle:5,1');
 Route::get('/status/{mahasiswa}', [LandingController::class, 'status'])->name('landing.status');
 
-// Self-Service Documents (Public, Rate Limited)
-Route::get('/dokumen/{mahasiswa}', [LandingController::class, 'dokumen'])->name('landing.dokumen');
-Route::middleware('throttle:10,1')->group(function () {
-    Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [LandingController::class, 'printKrs'])->name('landing.krs.print');
-    Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController::class, 'printKhs'])->name('landing.khs.print');
-    Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [LandingController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
-    Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [LandingController::class, 'printTranskrip'])->name('landing.transkrip.print');
+// Identity Verification for Documents (Public)
+Route::get('/dokumen/{mahasiswa}/verify', [LandingController::class, 'showVerify'])->name('landing.verify');
+Route::post('/dokumen/{mahasiswa}/verify', [LandingController::class, 'processVerify'])->name('landing.verify.process')->middleware('throttle:5,1');
+
+// Self-Service Documents (Public, Rate Limited + Identity Verified)
+Route::middleware(['verify.mahasiswa'])->group(function () {
+    Route::get('/dokumen/{mahasiswa}', [LandingController::class, 'dokumen'])->name('landing.dokumen');
+    Route::middleware('throttle:10,1')->group(function () {
+        Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [LandingController::class, 'printKrs'])->name('landing.krs.print');
+        Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController::class, 'printKhs'])->name('landing.khs.print');
+        Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [LandingController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
+        Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [LandingController::class, 'printTranskrip'])->name('landing.transkrip.print');
+    });
 });
 
 // Kalender Akademik (Public)
@@ -37,8 +43,8 @@ Route::get('dashboard', function () {
     return redirect()->route('admin.dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// Admin Routes
-Route::middleware(['auth', 'verified'])->prefix('admin')->name('admin.')->group(function () {
+// Admin Routes (Requires authentication + role)
+Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin')->name('admin.')->group(function () {
     // Dashboard
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 

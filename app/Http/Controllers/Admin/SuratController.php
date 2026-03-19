@@ -147,12 +147,20 @@ class SuratController extends Controller
         $customSigner = null;
 
         if ($signerId) {
-            $customSigner = \App\Models\Pejabat::find($signerId);
+            $customSigner = \App\Models\Pejabat::where('id', $signerId)
+                ->where('is_active', true)
+                ->first();
+
+            if (!$customSigner) {
+                abort(422, 'Pejabat penandatangan tidak valid atau sudah tidak aktif.');
+            }
         } elseif ($surat->pejabat) {
             $customSigner = $surat->pejabat;
         } else {
             // Fallback to Ketua
-            $customSigner = \App\Models\Pejabat::where('jabatan', 'Ketua')->first();
+            $customSigner = \App\Models\Pejabat::where('jabatan', 'Ketua')
+                ->where('is_active', true)
+                ->first();
         }
 
         // Use PDF service for surat aktif kuliah

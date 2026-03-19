@@ -341,6 +341,40 @@ class LandingController extends Controller
         ]);
     }
 
+    /**
+     * Show identity verification form for document access
+     */
+    public function showVerify(Mahasiswa $mahasiswa): Response
+    {
+        return Inertia::render('Landing/VerifyIdentity', [
+            'mahasiswa_id' => $mahasiswa->id,
+        ]);
+    }
+
+    /**
+     * Process identity verification
+     */
+    public function processVerify(Request $request, Mahasiswa $mahasiswa): RedirectResponse
+    {
+        $request->validate([
+            'nim' => 'required|string',
+            'tanggal_lahir' => 'required|date',
+        ]);
+
+        if (
+            $mahasiswa->nim === $request->nim &&
+            $mahasiswa->tanggal_lahir &&
+            $mahasiswa->tanggal_lahir->format('Y-m-d') === $request->tanggal_lahir
+        ) {
+            $request->session()->put('verified_mahasiswa_id', $mahasiswa->id);
+            return redirect()->route('landing.dokumen', $mahasiswa->id);
+        }
+
+        return back()->withErrors([
+            'identity' => 'NIM atau tanggal lahir tidak sesuai.',
+        ]);
+    }
+
     // PDF generation is handled by the GeneratesPdf trait
 }
 

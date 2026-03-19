@@ -3,6 +3,12 @@
 use App\Models\Mahasiswa;
 use App\Models\SuratPengajuan;
 use App\Models\User;
+use Spatie\Permission\Models\Role;
+
+beforeEach(function () {
+    // Create admin role for test users
+    Role::findOrCreate('admin', 'web');
+});
 
 /*
 |--------------------------------------------------------------------------
@@ -15,16 +21,25 @@ it('redirects unauthenticated users from admin', function () {
     $response->assertRedirect('/login');
 });
 
-it('allows authenticated users to access admin dashboard', function () {
+it('blocks users without admin role', function () {
     $user = User::factory()->create();
+
+    $response = $this->actingAs($user)->get('/admin');
+    $response->assertStatus(403);
+});
+
+it('allows admin users to access admin dashboard', function () {
+    $user = User::factory()->create();
+    $user->assignRole('admin');
 
     $response = $this->actingAs($user)->get('/admin');
     $response->assertStatus(200);
     $response->assertInertia(fn ($page) => $page->component('Admin/Dashboard'));
 });
 
-it('allows authenticated users to view mahasiswa list', function () {
+it('allows admin users to view mahasiswa list', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     Mahasiswa::factory()->count(5)->create();
 
     $response = $this->actingAs($user)->get('/admin/mahasiswa');
@@ -35,8 +50,9 @@ it('allows authenticated users to view mahasiswa list', function () {
     );
 });
 
-it('allows authenticated users to view mahasiswa detail', function () {
+it('allows admin users to view mahasiswa detail', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $mahasiswa = Mahasiswa::factory()->create();
 
     $response = $this->actingAs($user)->get("/admin/mahasiswa/{$mahasiswa->id}");
@@ -47,8 +63,9 @@ it('allows authenticated users to view mahasiswa detail', function () {
     );
 });
 
-it('allows authenticated users to view surat list', function () {
+it('allows admin users to view surat list', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     SuratPengajuan::factory()->count(3)->create();
 
     $response = $this->actingAs($user)->get('/admin/surat');
@@ -63,9 +80,9 @@ it('allows authenticated users to view surat list', function () {
 
 it('shares flash messages to Inertia', function () {
     $user = User::factory()->create();
+    $user->assignRole('admin');
     $mahasiswa = Mahasiswa::factory()->create();
 
-    // Update dosen wali should flash success and share via Inertia
     $dosen = \App\Models\Dosen::create([
         'id_dosen' => 'test-dosen-001',
         'nama' => 'Dr. Test Dosen',

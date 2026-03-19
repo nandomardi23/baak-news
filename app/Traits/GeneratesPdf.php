@@ -22,7 +22,7 @@ trait GeneratesPdf
         ?TahunAkademik $tahunAkademik = null,
         string $jenis = 'reguler'
     ) {
-        $filename = $this->generatePdf($type, $mahasiswa, $tahunAkademik, $jenis);
+        $filename = basename($this->generatePdf($type, $mahasiswa, $tahunAkademik, $jenis));
         $path = storage_path('app/public/surat/' . $filename);
 
         return response()->file($path, [
@@ -42,7 +42,7 @@ trait GeneratesPdf
         string $jenis = 'reguler'
     ): BinaryFileResponse|\Illuminate\Http\Response {
         try {
-            $filename = $this->generatePdf($type, $mahasiswa, $tahunAkademik, $jenis);
+            $filename = basename($this->generatePdf($type, $mahasiswa, $tahunAkademik, $jenis));
             $path = storage_path('app/public/surat/' . $filename);
 
             if (!file_exists($path)) {

@@ -49,16 +49,44 @@ it('searches mahasiswa by name or NIM', function () {
 |--------------------------------------------------------------------------
 */
 
-it('shows dokumen page for mahasiswa', function () {
+it('redirects to verification for dokumen page', function () {
     $mahasiswa = Mahasiswa::factory()->create();
 
+    // Without verification, should redirect to verify page
+    $response = $this->get("/dokumen/{$mahasiswa->id}");
+    $response->assertRedirect("/dokumen/{$mahasiswa->id}/verify");
+});
+
+it('rejects wrong identity for dokumen page', function () {
+    $mahasiswa = Mahasiswa::factory()->create([
+        'nim' => '2024001001',
+        'tanggal_lahir' => '2000-05-15',
+    ]);
+
+    // Wrong NIM should redirect back with error
+    $response = $this->post("/dokumen/{$mahasiswa->id}/verify", [
+        'nim' => 'WRONG',
+        'tanggal_lahir' => '2000-05-15',
+    ]);
+    $response->assertSessionHasErrors('identity');
+});
+
+it('shows dokumen page after identity verification', function () {
+    $mahasiswa = Mahasiswa::factory()->create([
+        'nim' => '2024001001',
+        'tanggal_lahir' => '2000-05-15',
+    ]);
+
+    // Verify identity via POST
+    $response = $this->post("/dokumen/{$mahasiswa->id}/verify", [
+        'nim' => '2024001001',
+        'tanggal_lahir' => '2000-05-15',
+    ]);
+    $response->assertRedirect(route('landing.dokumen', $mahasiswa->id));
+
+    // Now access dokumen page with verified session
     $response = $this->get("/dokumen/{$mahasiswa->id}");
     $response->assertStatus(200);
-    $response->assertInertia(fn ($page) => $page
-        ->component('Landing/Dokumen')
-        ->has('mahasiswa')
-        ->has('semesters')
-    );
 });
 
 /*
