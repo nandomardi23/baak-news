@@ -20,12 +20,14 @@ Route::get('/pengajuan/{mahasiswa}', [LandingController::class, 'form'])->name('
 Route::post('/pengajuan/{mahasiswa}', [LandingController::class, 'submit'])->name('landing.submit');
 Route::get('/status/{mahasiswa}', [LandingController::class, 'status'])->name('landing.status');
 
-// Self-Service Documents (Public)
+// Self-Service Documents (Public, Rate Limited)
 Route::get('/dokumen/{mahasiswa}', [LandingController::class, 'dokumen'])->name('landing.dokumen');
-Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [LandingController::class, 'printKrs'])->name('landing.krs.print');
-Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController::class, 'printKhs'])->name('landing.khs.print');
-Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [LandingController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
-Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [LandingController::class, 'printTranskrip'])->name('landing.transkrip.print');
+Route::middleware('throttle:10,1')->group(function () {
+    Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [LandingController::class, 'printKrs'])->name('landing.krs.print');
+    Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController::class, 'printKhs'])->name('landing.khs.print');
+    Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [LandingController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
+    Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [LandingController::class, 'printTranskrip'])->name('landing.transkrip.print');
+});
 
 // Kalender Akademik (Public)
 Route::get('/kalender-akademik', [LandingController::class, 'kalender'])->name('landing.kalender');

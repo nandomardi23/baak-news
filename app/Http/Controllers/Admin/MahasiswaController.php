@@ -7,8 +7,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Mahasiswa;
 use App\Models\ProgramStudi;
 use App\Models\TahunAkademik;
-use App\Services\NeoFeederService;
-use App\Services\NeoFeederSyncService;
+use App\Services\Sync\AcademicSyncService;
+use App\Services\Sync\ReferenceSyncService;
+use App\Services\Sync\StudentSyncService;
 use App\Services\PdfGeneratorService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,6 +20,7 @@ use Symfony\Component\HttpFoundation\BinaryFileResponse;
 class MahasiswaController extends Controller
 {
     use \App\Traits\HasDataTable;
+    use \App\Traits\GeneratesPdf;
 
     public function index(Request $request): Response
     {
@@ -80,7 +82,7 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    public function show(Mahasiswa $mahasiswa, NeoFeederSyncService $syncService): Response
+    public function show(Mahasiswa $mahasiswa, AcademicSyncService $syncService): Response
     {
         // Auto-sync KRS jika:
         // 1. Belum ada di database sama sekali
@@ -196,22 +198,22 @@ class MahasiswaController extends Controller
 
     public function printKrs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->generateAndDownloadPdf('krs', $mahasiswa, $tahunAkademik);
+        return $this->pdfDownloadResponse('krs', $mahasiswa, $tahunAkademik);
     }
 
     public function printKhs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->generateAndDownloadPdf('khs', $mahasiswa, $tahunAkademik);
+        return $this->pdfDownloadResponse('khs', $mahasiswa, $tahunAkademik);
     }
 
     public function printKartuUjian(Request $request, Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->generateAndDownloadPdf('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
+        return $this->pdfDownloadResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
     }
 
     public function printTranskrip(Mahasiswa $mahasiswa, Request $request): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->generateAndDownloadPdf('transkrip', $mahasiswa, null, $request->get('jenis', 'reguler'));
+        return $this->pdfDownloadResponse('transkrip', $mahasiswa, null, $request->get('jenis', 'reguler'));
     }
 
     /**
@@ -328,44 +330,11 @@ class MahasiswaController extends Controller
     }
 
 
-    /**
-     * Helper method to generate and download PDF - eliminates code duplication
-     */
-    private function generateAndDownloadPdf(
-        string $type,
-        Mahasiswa $mahasiswa,
-        ?TahunAkademik $tahunAkademik = null,
-        string $jenis = 'reguler'
-    ): BinaryFileResponse|\Illuminate\Http\Response {
-        try {
-            $pdfService = app(PdfGeneratorService::class);
-
-            $filename = match ($type) {
-                'krs' => $pdfService->generateKrs($mahasiswa, $tahunAkademik),
-                'khs' => $pdfService->generateKhs($mahasiswa, $tahunAkademik),
-                'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik, $jenis),
-                'transkrip' => $pdfService->generateTranskrip($mahasiswa, $jenis),
-            };
-
-            $path = storage_path('app/public/surat/' . $filename);
-
-            if (!file_exists($path)) {
-                return response('PDF file not found', 500);
-            }
-
-            return response()->file($path, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
-        } catch (\Exception $e) {
-            \Log::error("Error generating {$type} PDF", [
-                'mahasiswa' => $mahasiswa->nim,
-                'semester' => $tahunAkademik?->id,
-                'error' => $e->getMessage(),
-            ]);
-            return response('Error generating PDF: ' . $e->getMessage(), 500);
-        }
-    }
+    // PDF generation handled by GeneratesPdf trait
 
 
-    public function sync(Request $request, NeoFeederSyncService $syncService): \Illuminate\Http\RedirectResponse
+
+    public function sync(Request $request, ReferenceSyncService $refSyncService, StudentSyncService $studentSyncService): \Illuminate\Http\RedirectResponse
     {
         $type = $request->get('type', 'mahasiswa');
         $message = '';
@@ -373,26 +342,26 @@ class MahasiswaController extends Controller
         try {
             switch ($type) {
                 case 'prodi':
-                    $result = $syncService->syncProdi();
+                    $result = $refSyncService->syncProdi();
                     $message = "Berhasil sync {$result['synced']} program studi. " . count($result['errors']) . " errors.";
                     break;
 
                 case 'semester':
-                    $result = $syncService->syncSemester();
+                    $result = $refSyncService->syncSemester();
                     $message = "Berhasil sync {$result['synced']} semester. " . count($result['errors']) . " errors.";
                     break;
 
                 case 'matakuliah':
-                    $result = $syncService->syncMataKuliah();
+                    $result = (new \App\Services\Sync\CurriculumSyncService(app(\App\Services\NeoFeederService::class)))->syncMataKuliah();
                     $message = "Berhasil sync {$result['synced']} mata kuliah. " . count($result['errors']) . " errors.";
                     break;
 
                 case 'mahasiswa':
                 default:
-                    // Sync sequence for full update via fallback method
-                    $syncService->syncProdi();
-                    $syncService->syncSemester();
-                    $result = $syncService->syncMahasiswa();
+                    // Sync sequence for full update
+                    $refSyncService->syncProdi();
+                    $refSyncService->syncSemester();
+                    $result = $studentSyncService->syncMahasiswa();
                     $message = "Berhasil sync {$result['synced']} mahasiswa. " . count($result['errors']) . " errors.";
                     break;
             }
@@ -419,7 +388,7 @@ class MahasiswaController extends Controller
         );
     }
 
-    public function syncKrs(Mahasiswa $mahasiswa, NeoFeederSyncService $syncService): \Illuminate\Http\RedirectResponse
+    public function syncKrs(Mahasiswa $mahasiswa, AcademicSyncService $syncService): \Illuminate\Http\RedirectResponse
     {
         try {
             if (!$mahasiswa->id_registrasi_mahasiswa) {

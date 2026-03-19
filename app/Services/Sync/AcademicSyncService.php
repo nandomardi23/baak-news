@@ -1576,4 +1576,149 @@ class AcademicSyncService extends BaseSyncService
             return 0;
         }
     }
+
+    /**
+     * Sync KRS for a single Mahasiswa (by id_registrasi_mahasiswa)
+     * Used for on-demand sync when viewing student detail page
+     */
+    public function syncKrsMahasiswa(string $idRegistrasi): array
+    {
+        $response = $this->neoFeeder->getKrsMahasiswa("id_registrasi_mahasiswa = '{$idRegistrasi}'");
+
+        if (!$response || !isset($response['data']) || !is_array($response['data'])) {
+            \Illuminate\Support\Facades\Log::info("SyncKRS [{$idRegistrasi}]: No data from API", [
+                'response_keys' => $response ? array_keys($response) : null,
+                'error_code' => $response['error_code'] ?? null,
+                'error_desc' => $response['error_desc'] ?? null,
+            ]);
+            return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => []];
+        }
+
+        $data = $response['data'];
+        \Illuminate\Support\Facades\Log::info("SyncKRS [{$idRegistrasi}]: API returned " . count($data) . " records");
+
+        $synced = 0;
+        $inserted = 0;
+        $updated = 0;
+        $skipped = 0;
+        $errors = [];
+
+        // Group by Semester
+        $grouped = [];
+        foreach ($data as $item) {
+            $sem = $item['id_periode'] ?? $item['id_semester'] ?? null;
+            if ($sem) {
+                $grouped[$sem][] = $item;
+            }
+        }
+
+        \Illuminate\Support\Facades\Log::info("SyncKRS [{$idRegistrasi}]: Found semesters: " . implode(', ', array_keys($grouped)));
+
+        $mahasiswa = Mahasiswa::where('id_registrasi_mahasiswa', $idRegistrasi)->first();
+        if (!$mahasiswa) {
+            return ['synced' => 0, 'inserted' => 0, 'updated' => 0, 'skipped' => 0, 'total' => 0, 'errors' => ["Mahasiswa not found locally"]];
+        }
+
+        foreach ($grouped as $idSemester => $items) {
+            try {
+                $ta = \App\Models\TahunAkademik::where('id_semester', $idSemester)->first();
+                if (!$ta) {
+                    \Illuminate\Support\Facades\Log::warning("SyncKRS [{$idRegistrasi}]: Semester {$idSemester} not found in TahunAkademik table - SKIPPED");
+                    $skipped++;
+                    continue;
+                }
+
+                $krs = Krs::firstOrCreate(
+                    [
+                        'mahasiswa_id' => $mahasiswa->id,
+                        'tahun_akademik_id' => $ta->id,
+                        'id_semester' => $idSemester,
+                    ],
+                    [
+                        'id_registrasi_mahasiswa' => $idRegistrasi,
+                        'is_approved' => true,
+                    ]
+                );
+
+                if ($krs->wasRecentlyCreated) {
+                    $inserted++;
+                } else {
+                    $updated++;
+                }
+
+                // Reset details for this semester to handle dropped classes
+                $krs->details()->delete();
+
+                foreach ($items as $detail) {
+                    $idMatkul = $detail['id_matkul'] ?? null;
+                    $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
+                    $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
+                    $namaKelas = $detail['nama_kelas_kuliah'] ?? $detail['nama_kelas'] ?? 'A';
+
+                    // Find Mata Kuliah
+                    $mkQuery = \App\Models\MataKuliah::query();
+                    if (!empty($idMatkul)) {
+                        $mkQuery->where('id_matkul', $idMatkul);
+                    } else {
+                        $mkQuery->where('kode_matkul', $kodeMk);
+                    }
+                    $mk = $mkQuery->first();
+
+                    if (!$mk && !empty($kodeMk)) {
+                        $mk = \App\Models\MataKuliah::where('kode_matkul', $kodeMk)->first();
+                    }
+
+                    if ($mk) {
+                        $krsDetail = KrsDetail::create([
+                            'krs_id' => $krs->id,
+                            'mata_kuliah_id' => $mk->id,
+                            'id_kelas_kuliah' => $idKelas,
+                            'nama_kelas' => $namaKelas,
+                        ]);
+
+                        // Fetch Dosen Pengajar if Kelas is set
+                        if ($idKelas && $krsDetail) {
+                            try {
+                                $dosenResponse = $this->neoFeeder->getDosenPengajarKelasKuliah($idKelas);
+                                if ($dosenResponse && !empty($dosenResponse['data'])) {
+                                    $ajar = $dosenResponse['data'][0];
+                                    $idDosen = $ajar['id_dosen'] ?? null;
+
+                                    if ($idDosen) {
+                                        $localDosen = \App\Models\Dosen::where('id_dosen', $idDosen)->first();
+                                        if ($localDosen) {
+                                            $krsDetail->update([
+                                                'dosen_id' => $localDosen->id,
+                                                'nama_dosen' => $localDosen->nama_lengkap,
+                                            ]);
+                                        } else {
+                                            $krsDetail->update([
+                                                'nama_dosen' => $ajar['nama_dosen'] ?? null,
+                                            ]);
+                                        }
+                                    }
+                                }
+                            } catch (\Exception $e) {
+                                // Ignore error fetching dosen, continue
+                            }
+                        }
+                    }
+                }
+
+                $synced++;
+            } catch (\Exception $e) {
+                $errors[] = "Sem $idSemester: " . $e->getMessage();
+            }
+        }
+
+        return [
+            'total' => count($grouped),
+            'synced' => $synced,
+            'inserted' => $inserted,
+            'updated' => $updated,
+            'skipped' => $skipped,
+            'errors' => $errors,
+        ];
+    }
 }
+

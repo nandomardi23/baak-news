@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreSuratPengajuanRequest;
 use App\Models\KalenderAkademik;
 use App\Models\Mahasiswa;
 use App\Models\Pejabat;
 use App\Models\ProgramStudi;
 use App\Models\SuratPengajuan;
 use App\Models\TahunAkademik;
+use App\Traits\GeneratesPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -15,6 +17,7 @@ use Inertia\Response;
 
 class LandingController extends Controller
 {
+    use GeneratesPdf;
     public function index(): Response
     {
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
@@ -123,37 +126,9 @@ class LandingController extends Controller
         ]);
     }
 
-    public function submit(Request $request, Mahasiswa $mahasiswa): RedirectResponse
+    public function submit(StoreSuratPengajuanRequest $request, Mahasiswa $mahasiswa): RedirectResponse
     {
-        $validated = $request->validate([
-            'jenis_surat' => 'required|in:aktif_kuliah,krs,khs,transkrip',
-            'keperluan' => 'required_if:jenis_surat,aktif_kuliah|nullable|string|max:255',
-            'tahun_akademik_id' => 'required_if:jenis_surat,krs,khs|nullable|exists:tahun_akademik,id',
-            'jenis_transkrip' => 'required_if:jenis_surat,transkrip|nullable|in:reguler,rpl',
-            'nama' => 'required|string|max:255', // Allow name correction
-            'tempat_lahir' => 'nullable|string|max:100',
-            'tanggal_lahir' => 'nullable|date',
-            'alamat' => 'nullable|string|max:500',
-            'rt' => 'nullable|string|max:10',
-            'rw' => 'nullable|string|max:10',
-            'kelurahan' => 'nullable|string|max:100',
-            'kecamatan' => 'nullable|string|max:100',
-            'kota_kabupaten' => 'nullable|string|max:100',
-            'provinsi' => 'nullable|string|max:100',
-            'no_hp' => 'nullable|string|max:20',
-            // Parent data
-            'nama_ayah' => 'nullable|string|max:100',
-            'pekerjaan_ayah' => 'nullable|string|max:100',
-            'nama_ibu' => 'nullable|string|max:100',
-            'pekerjaan_ibu' => 'nullable|string|max:100',
-            'alamat_ortu' => 'nullable|string|max:500',
-            'rt_ortu' => 'nullable|string|max:10',
-            'rw_ortu' => 'nullable|string|max:10',
-            'kelurahan_ortu' => 'nullable|string|max:100',
-            'kecamatan_ortu' => 'nullable|string|max:100',
-            'kota_kabupaten_ortu' => 'nullable|string|max:100',
-            'provinsi_ortu' => 'nullable|string|max:100',
-        ]);
+        $validated = $request->validated();
 
         // Update mahasiswa data if provided
         $mahasiswaData = collect($validated)
@@ -293,7 +268,7 @@ class LandingController extends Controller
      */
     public function printKrs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
     {
-        return $this->generatePdfResponse('krs', $mahasiswa, $tahunAkademik);
+        return $this->pdfInlineResponse('krs', $mahasiswa, $tahunAkademik);
     }
 
     /**
@@ -301,7 +276,7 @@ class LandingController extends Controller
      */
     public function printKhs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
     {
-        return $this->generatePdfResponse('khs', $mahasiswa, $tahunAkademik);
+        return $this->pdfInlineResponse('khs', $mahasiswa, $tahunAkademik);
     }
 
     /**
@@ -309,7 +284,7 @@ class LandingController extends Controller
      */
     public function printTranskrip(Mahasiswa $mahasiswa, string $jenis = 'reguler')
     {
-        return $this->generatePdfResponse('transkrip', $mahasiswa, null, $jenis);
+        return $this->pdfInlineResponse('transkrip', $mahasiswa, null, $jenis);
     }
 
     /**
@@ -317,7 +292,7 @@ class LandingController extends Controller
      */
     public function printKartuUjian(Request $request, Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
     {
-        return $this->generatePdfResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
+        return $this->pdfInlineResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
     }
 
     /**
@@ -366,28 +341,6 @@ class LandingController extends Controller
         ]);
     }
 
-    /**
-     * Helper to generate PDF response - eliminates code duplication
-     */
-    private function generatePdfResponse(
-        string $type, 
-        Mahasiswa $mahasiswa, 
-        ?TahunAkademik $tahunAkademik = null, 
-        string $jenis = 'reguler'
-    ) {
-        $pdfService = app(\App\Services\PdfGeneratorService::class);
-        
-        $filename = match($type) {
-            'krs' => $pdfService->generateKrs($mahasiswa, $tahunAkademik),
-            'khs' => $pdfService->generateKhs($mahasiswa, $tahunAkademik),
-            'kartu_ujian' => $pdfService->generateKartuUjian($mahasiswa, $tahunAkademik, $jenis),
-            'transkrip' => $pdfService->generateTranskrip($mahasiswa, $jenis),
-        };
-        
-        return response()->file(storage_path('app/public/surat/' . $filename), [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $filename . '"',
-        ]);
-    }
+    // PDF generation is handled by the GeneratesPdf trait
 }
 

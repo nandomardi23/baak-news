@@ -136,7 +136,15 @@ class DashboardController extends Controller
     private function getMonthlyPengajuan()
     {
         // Optimization: Single query aggregation instead of 12 separate queries
-        $data = SuratPengajuan::selectRaw('YEAR(created_at) as year, MONTH(created_at) as month, count(*) as total')
+        // Use strftime for SQLite compatibility (tests), YEAR/MONTH for MySQL (production)
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            $selectRaw = "strftime('%Y', created_at) as year, strftime('%m', created_at) as month, count(*) as total";
+        } else {
+            $selectRaw = 'YEAR(created_at) as year, MONTH(created_at) as month, count(*) as total';
+        }
+
+        $data = SuratPengajuan::selectRaw($selectRaw)
             ->where('created_at', '>=', now()->subMonths(11)->startOfMonth())
             ->groupBy('year', 'month')
             ->get()
