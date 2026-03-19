@@ -183,17 +183,102 @@ class MahasiswaController extends Controller
         ]);
     }
 
-    public function update(Request $request, Mahasiswa $mahasiswa): \Illuminate\Http\RedirectResponse
+    public function create(): Response
+    {
+        $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
+        $dosen = \App\Models\Dosen::select('id', 'nama', 'gelar_depan', 'gelar_belakang')->orderBy('nama')->get()->map(fn($d) => [
+            'id' => $d->id,
+            'nama' => $d->nama_lengkap
+        ]);
+        
+        return Inertia::render('Admin/Mahasiswa/Create', [
+            'prodi' => $prodi,
+            'dosen' => $dosen,
+        ]);
+    }
+
+    public function store(Request $request): \Illuminate\Http\RedirectResponse
     {
         $validated = $request->validate([
-            'dosen_wali_id' => 'required|exists:dosen,id',
+            'nim' => 'required|string|max:50|unique:mahasiswa,nim',
+            'nama' => 'required|string|max:255',
+            'nik' => 'nullable|string|max:50',
+            'program_studi_id' => 'required|exists:program_studi,id',
+            'angkatan' => 'required|string|max:4',
+            'status_mahasiswa' => 'required|string|max:1',
+            'tempat_lahir' => 'nullable|string|max:100',
+            'tanggal_lahir' => 'nullable|date',
+            'jenis_kelamin' => 'nullable|in:L,P',
+            'id_agama' => 'nullable|numeric',
+            'email' => 'nullable|email|max:100',
+            'no_hp' => 'nullable|string|max:50',
+            'alamat' => 'nullable|string',
+            'dosen_wali_id' => 'nullable|exists:dosen,id',
         ]);
 
-        $mahasiswa->update([
-            'dosen_wali_id' => $validated['dosen_wali_id']
+        $validated['id_mahasiswa'] = \Illuminate\Support\Str::uuid()->toString();
+        $validated['nama_mahasiswa'] = $validated['nama'];
+        
+        Mahasiswa::create($validated);
+
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Berhasil menambahkan data mahasiswa.');
+    }
+
+    public function edit(Mahasiswa $mahasiswa): Response
+    {
+        $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
+        $dosen = \App\Models\Dosen::select('id', 'nama', 'gelar_depan', 'gelar_belakang')->orderBy('nama')->get()->map(fn($d) => [
+            'id' => $d->id,
+            'nama' => $d->nama_lengkap
+        ]);
+        
+        // Format date for input type="date"
+        $mahasiswaArray = $mahasiswa->toArray();
+        $mahasiswaArray['tanggal_lahir'] = $mahasiswa->tanggal_lahir ? $mahasiswa->tanggal_lahir->format('Y-m-d') : null;
+
+        return Inertia::render('Admin/Mahasiswa/Edit', [
+            'mahasiswa' => $mahasiswaArray,
+            'prodi' => $prodi,
+            'dosen' => $dosen,
+        ]);
+    }
+
+    public function update(Request $request, Mahasiswa $mahasiswa): \Illuminate\Http\RedirectResponse
+    {
+        // Support partial updates (like Dosen Wali from Show.vue) 
+        // or full updates from Edit.vue
+        $validated = $request->validate([
+            'nim' => 'sometimes|required|string|max:50|unique:mahasiswa,nim,' . $mahasiswa->id,
+            'nama' => 'sometimes|required|string|max:255',
+            'nik' => 'nullable|string|max:50',
+            'program_studi_id' => 'sometimes|required|exists:program_studi,id',
+            'angkatan' => 'sometimes|required|string|max:4',
+            'status_mahasiswa' => 'sometimes|required|string|max:1',
+            'tempat_lahir' => 'nullable|string|max:100',
+            'tanggal_lahir' => 'nullable|date',
+            'jenis_kelamin' => 'nullable|in:L,P',
+            'id_agama' => 'nullable|numeric',
+            'email' => 'nullable|email|max:100',
+            'no_hp' => 'nullable|string|max:50',
+            'alamat' => 'nullable|string',
+            'dosen_wali_id' => 'nullable|exists:dosen,id',
         ]);
 
-        return redirect()->back()->with('success', 'Berhasil memperbarui Dosen Wali.');
+        if (isset($validated['nama'])) {
+            $validated['nama_mahasiswa'] = $validated['nama'];
+        }
+
+        $mahasiswa->update($validated);
+
+        // If it's a full update from the edit page, we could redirect back to index or show.
+        // We generally redirect back(), and let the client handle Inertia redirection if needed.
+        return redirect()->back()->with('success', 'Berhasil memperbarui data mahasiswa.');
+    }
+
+    public function destroy(Mahasiswa $mahasiswa): \Illuminate\Http\RedirectResponse
+    {
+        $mahasiswa->delete();
+        return redirect()->route('admin.mahasiswa.index')->with('success', 'Berhasil menghapus data mahasiswa.');
     }
 
     public function printKrs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response

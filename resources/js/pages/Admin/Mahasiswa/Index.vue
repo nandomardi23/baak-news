@@ -9,7 +9,7 @@ import { useBreadcrumbs } from '@/composables/useBreadcrumbs';
 defineOptions({ layout: AppLayout });
 const { setBreadcrumbs } = useBreadcrumbs();
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
-import { Eye, FileDown } from 'lucide-vue-next';
+import { Eye, FileDown, Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
@@ -112,6 +112,12 @@ const activeFilterChips = computed(() => {
     }
     return chips;
 });
+
+const deleteMahasiswa = (id: number, nama: string) => {
+    if (confirm(`Apakah Anda yakin ingin menghapus data mahasiswa ${nama}?\nPeringatan: Menghapus mahasiswa ini juga akan menghapus data KRS, nilai, dan dokumen terkait.`)) {
+        router.delete(`/admin/mahasiswa/${id}`);
+    }
+};
 </script>
 
 <template>
@@ -136,6 +142,12 @@ const activeFilterChips = computed(() => {
                 title="Data Mahasiswa"
             >
                 <template #actions>
+                    <Link href="/admin/mahasiswa/create" class="mr-2">
+                        <Button>
+                            <Plus class="w-4 h-4 mr-2" />
+                            Tambah Mahasiswa
+                        </Button>
+                    </Link>
                     <Button variant="outline" @click="handleExport">
                         <FileDown class="w-4 h-4 mr-2" />
                         Export Excel
@@ -195,7 +207,7 @@ const activeFilterChips = computed(() => {
                 </template>
 
                 <template #cell-aksi="{ row }">
-                     <div class="flex items-center justify-end">
+                     <div class="flex items-center justify-end gap-1">
                         <Link :href="`/admin/mahasiswa/${row.id}`">
                              <Button
                                 variant="ghost"
@@ -206,6 +218,25 @@ const activeFilterChips = computed(() => {
                                 <Eye class="w-4 h-4" />
                             </Button>
                         </Link>
+                        <Link :href="`/admin/mahasiswa/${row.id}/edit`">
+                             <Button
+                                variant="ghost"
+                                size="icon"
+                                class="text-slate-500 hover:text-orange-600 hover:bg-slate-50 h-8 w-8"
+                                title="Edit"
+                            >
+                                <Pencil class="w-4 h-4" />
+                            </Button>
+                        </Link>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="text-slate-500 hover:text-red-600 hover:bg-slate-50 h-8 w-8"
+                            title="Hapus"
+                            @click="deleteMahasiswa(row.id, row.nama)"
+                        >
+                            <Trash2 class="w-4 h-4" />
+                        </Button>
                      </div>
                 </template>
             </SmartTable>

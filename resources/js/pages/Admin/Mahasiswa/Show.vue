@@ -138,6 +138,15 @@ const syncDetail = () => {
                         </svg>
                         {{ isSyncing ? 'Syncing...' : 'Sync Data Lengkap' }}
                     </button>
+                    <Link
+                        :href="`/admin/mahasiswa/${mahasiswa.id}/edit`"
+                        class="inline-flex items-center px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition"
+                    >
+                        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                        </svg>
+                        Edit Manual
+                    </Link>
                     <a
                         :href="`/admin/mahasiswa/${mahasiswa.id}/transkrip/print?jenis=reguler`"
                         target="_blank"
