@@ -1123,7 +1123,7 @@ class NeoFeederSyncService
                     $idMatkul = $detail['id_matkul'] ?? null;
                     $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
                     $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
-                    $namaKelas = $detail['nama_kelas_kuliah'] ?? 'A';
+                    $namaKelas = $detail['nama_kelas_kuliah'] ?? $detail['nama_kelas'] ?? 'A';
 
                     // Find Mata Kuliah
                     $mkQuery = MataKuliah::query();
@@ -1248,7 +1248,7 @@ class NeoFeederSyncService
                 $idMatkul = $detail['id_matkul'] ?? null;
                 $kodeMk = $detail['kode_mata_kuliah'] ?? $detail['kode_mk'] ?? null;
                 $idKelas = $detail['id_kelas'] ?? $detail['id_kelas_kuliah'] ?? null;
-                $namaKelas = $detail['nama_kelas_kuliah'] ?? 'A';
+                $namaKelas = $detail['nama_kelas_kuliah'] ?? $detail['nama_kelas'] ?? 'A';
 
                 $mkQuery = MataKuliah::query();
                 if (!empty($idMatkul)) {

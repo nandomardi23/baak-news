@@ -268,8 +268,7 @@ class KartuUjianService extends BasePdfService
         $this->SetFillColor(220, 220, 220);
         $this->RoundedRect($boxX, $boxY, 40, 12, 2, 'DF'); // Radius 2mm
         $this->SetXY($boxX, $boxY);
-        $this->SetFont('Arial', 'B', 12); // Font 10->12
-        $jenisLabel = strtoupper($jenis) === 'UAS' ? 'Kartu UAS' : 'Kartu UTS';
+        $jenisLabel = 'Kartu Ujian';
         $this->Cell(40, 12, $jenisLabel, 0, 0, 'C');
 
         // ---------------------------------------------------------
@@ -390,14 +389,6 @@ class KartuUjianService extends BasePdfService
         $this->SetFont('Arial', '', 10);
         $this->Cell(50, 5, $kota . ', ' . $tanggal, 0, 1, 'C');
 
-        $this->SetX(140);
-        $this->SetFont('Arial', '', 10);
-        $this->Cell(50, 5, 'Ka. BAAK', 0, 1, 'C');
-
-        // Name
-        $this->SetXY(140, $sigY + 25); // Adjusted to +25 for font size 10
-        $this->SetFont('Arial', 'U', 10);
-
         // Get signer from setting, or fallback to Ka. BAAK
         $signerId = Setting::getValue('signer_kartu_ujian');
         $signer = null;
@@ -410,9 +401,17 @@ class KartuUjianService extends BasePdfService
             $signer = Pejabat::where('jabatan', 'like', '%BAAK%')->first();
         }
 
+        $jabatan = $signer?->jabatan ?? 'Ka. BAAK';
         $nama = $signer?->nama_lengkap ?? 'Budi Prasetyo, S.Kom';
         $nidn = $signer?->nidn ?? $signer?->nip ?? '11074';
 
+        $this->SetX(140);
+        $this->SetFont('Arial', '', 10);
+        $this->Cell(50, 5, $jabatan, 0, 1, 'C');
+
+        // Name
+        $this->SetXY(140, $sigY + 25); // Adjusted to +25 for font size 10
+        $this->SetFont('Arial', 'U', 10);
         $this->Cell(50, 5, $nama, 0, 1, 'C');
 
         // NIK

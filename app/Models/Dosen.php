@@ -40,8 +40,14 @@ class Dosen extends Model
         $parts = [];
         if ($this->gelar_depan) $parts[] = $this->gelar_depan;
         $parts[] = $this->nama;
-        if ($this->gelar_belakang) $parts[] = $this->gelar_belakang;
-        return implode(' ', $parts);
+        $fullName = implode(' ', $parts);
+        
+        if ($this->gelar_belakang) {
+            // Add comma if not already there and if there's a name
+            $fullName .= ', ' . $this->gelar_belakang;
+        }
+        
+        return $fullName;
     }
 
     public function scopeActive($query)

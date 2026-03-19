@@ -13,14 +13,16 @@ class KrsService extends BasePdfService
     {
         $this->AddPage('P', 'A4');
         $this->SetMargins(15, 10, 15);
+        // Set standard margins for a symmetrical 180mm content area on A4 (210mm)
+        $this->SetLeftMargin(15);
+        $this->SetRightMargin(15);
         $this->SetAutoPageBreak(true, 15);
 
         // Find background template
         $this->useBackgroundTemplate('krs');
 
-        // If template was used, we probably need an offset. If not, addKopSurat was called.
-        // Let's assume we start content after the header.
-        $this->SetY(45);
+        // Move content higher to match Siakad reference
+        $this->SetY(32);
 
         // Fetch KRS data first to get total SKS
         $krs = $mahasiswa->krs()
@@ -37,53 +39,52 @@ class KrsService extends BasePdfService
 
         // Student Info Block (Two columns)
         $this->SetFont('Arial', 'B', 9);
-        $w1 = 55;
-        $sep = 5;
-        $w2 = 60; // Slightly larger to give more room
+        $w1 = 48; // Left label width
+        $sep = 3; // Separator width
+        $w2 = 52; // Left value width
+        $w3 = 18; // Right label width
+        $w4 = 56; // Right value width
 
-        // Row 1
+        // Row 1: NAMA MAHASISWA & JURUSAN
+        $this->SetFont('Arial', 'B', 9);
         $this->Cell($w1, 5, 'NAMA MAHASISWA', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
         $this->writeAdaptiveCell($w2, 5, strtoupper($mahasiswa->nama), 0, 0);
 
-        // Jurusan
         $this->SetFont('Arial', 'B', 9);
-        $this->Cell(25, 5, 'JURUSAN', 0, 0);
+        $this->Cell($w3, 5, 'JURUSAN', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
-        $this->writeAdaptiveCell(50, 5, strtoupper($mahasiswa->programStudi?->nama_cetak ?? '-'), 0, 1);
+        $this->writeAdaptiveCell($w4, 5, strtoupper($mahasiswa->programStudi?->nama_cetak ?? '-'), 0, 1);
 
-        // Row 2
+        // Row 2: N I M & SEMESTER
         $this->SetFont('Arial', 'B', 9);
         $this->Cell($w1, 5, 'N I M', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
         $this->Cell($w2, 5, $mahasiswa->nim, 0, 0);
 
-        // Semester (Derived from tahun akademik)
         $this->SetFont('Arial', 'B', 9);
-        $this->Cell(25, 5, 'SEMESTER', 0, 0);
+        $this->Cell($w3, 5, 'SEMESTER', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
-
         $semesterNum = $this->getMahasiswaSemester($mahasiswa, $tahunAkademik);
+        $this->Cell($w4, 5, $semesterNum, 0, 1);
 
-        $this->Cell(0, 5, $semesterNum, 0, 1);
-
-        // Row 3
+        // Row 3: SKS & IPK
         $this->SetFont('Arial', 'B', 9);
         $this->Cell($w1, 5, 'JUMLAH SKS YANG DIPEROLEH', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
         $this->Cell($w2, 5, $totalSks, 0, 0);
 
-        // IPK (Get from previous semester if possible, or current)
         $this->SetFont('Arial', 'B', 9);
-        $this->Cell(25, 5, 'IPK', 0, 0);
+        $this->Cell($w3, 5, 'IPK', 0, 0);
         $this->Cell($sep, 5, ':', 0, 0);
         $this->SetFont('Arial', '', 9);
 
+        // IPK logic remains the same
         $ipk = $mahasiswa->ipk;
         $aktivitas = \App\Models\AktivitasKuliah::where('nim', $mahasiswa->nim)
             ->where('id_semester', '<=', $tahunAkademik->id_semester)
@@ -94,7 +95,6 @@ class KrsService extends BasePdfService
         if ($aktivitas && $aktivitas->ipk > 0) {
             $ipk = $aktivitas->ipk;
         } else {
-            // Dynamic fallback IPK calculation
             $nilais = $mahasiswa->nilai()
                 ->where('id_periode', '<=', $tahunAkademik->id_semester)
                 ->with('mataKuliah')->get();
@@ -120,32 +120,32 @@ class KrsService extends BasePdfService
             }
         }
 
-        $this->Cell(0, 5, number_format((float) ($ipk ?? 0), 2), 0, 1);
+        $this->SetFont('Arial', '', 9);
+        $this->Cell($w4, 5, number_format((float) ($ipk ?? 0), 2), 0, 1);
 
-        $this->Ln(5);
+        $this->Ln(2);
 
-        // Title Block (Boxed)
-        $this->SetFont('Arial', 'B', 11);
-        $titleWidth = 160;
-        $this->SetX((210 - $titleWidth) / 2);
-        $this->Cell($titleWidth, 7, 'KARTU RENCANA STUDI', 1, 1, 'C');
-        $this->SetX((210 - $titleWidth) / 2);
+        $this->SetFont('Arial', 'B', 12);
+        $titleWidth = 180;
+        $this->SetX(15);
+        $this->Cell($titleWidth, 6, 'KARTU RENCANA STUDI', 1, 1, 'C');
+        $this->SetX(15);
         $this->SetFont('Arial', '', 10);
-        $this->Cell($titleWidth, 6, strtoupper($tahunAkademik->nama_semester), 'LRB', 1, 'C');
-
-        $this->Ln(5);
+        $this->Cell($titleWidth, 5, strtoupper($tahunAkademik->nama_semester), 'LRB', 1, 'C');
+        
+        $this->Ln(4);
         $this->SetFont('Arial', 'I', 9);
         $this->Cell(0, 5, 'Mata Kuliah yang ditempuh, antara lain :', 0, 1);
 
         // Table Header
         $this->SetFont('Arial', 'B', 8);
         $cols = [
-            'no' => 10,
-            'kode' => 20,
-            'mk' => 60,
-            'sks' => 10,
-            'kelas' => 15,
-            'dosen' => 65
+            'no' => 7,
+            'kode' => 17,
+            'mk' => 65,
+            'sks' => 8,
+            'kelas' => 12,
+            'dosen' => 71
         ];
 
         $this->Cell($cols['no'], 6, 'NO.', 1, 0, 'C');
@@ -165,7 +165,12 @@ class KrsService extends BasePdfService
         }
 
         if ($krs && $krs->details->count() > 0) {
-            foreach ($krs->details as $detail) {
+            // Sort details by kode_matkul
+            $sortedDetails = $krs->details->sortBy(function ($detail) {
+                return $detail->mataKuliah->kode_matkul ?? '';
+            });
+
+            foreach ($sortedDetails as $detail) {
                 $mk = $detail->mataKuliah;
                 $sks = $mk->sks_mata_kuliah ?? 0;
 
@@ -173,21 +178,21 @@ class KrsService extends BasePdfService
                 $dosenList = [];
                 if ($detail->kelasKuliah && $detail->kelasKuliah->dosenPengajar->count() > 0) {
                     foreach ($detail->kelasKuliah->dosenPengajar as $dp) {
-                        $dosenName = $dp->nama ?? $dp->nama_lengkap;
+                        $dosenName = $dp->nama_lengkap ?? $dp->nama;
                         if ($dosenName) {
                             $dosenList[] = $dosenName;
                         }
                     }
                 }
 
-                $dosenStr = !empty($dosenList) ? implode("\n", $dosenList) : ($detail->nama_dosen ?? $detail->dosen?->nama ?? '-');
+                $dosenStr = !empty($dosenList) ? implode("\n", $dosenList) : ($detail->nama_dosen ?? $detail->dosen?->nama_lengkap ?? $detail->dosen?->nama ?? '-');
 
                 $row = [
                     ['text' => $no++ . '.', 'width' => $cols['no'], 'align' => 'C'],
                     ['text' => $mk->kode_matkul ?? '-', 'width' => $cols['kode'], 'align' => 'C'],
                     ['text' => $mk->nama_matkul ?? '-', 'width' => $cols['mk'], 'align' => 'L'],
                     ['text' => (string) $sks, 'width' => $cols['sks'], 'align' => 'C'],
-                    ['text' => $detail->nama_kelas ?? '-', 'width' => $cols['kelas'], 'align' => 'C'],
+                    ['text' => $detail->nama_kelas ?? $detail->kelasKuliah?->nama_kelas_kuliah ?? '-', 'width' => $cols['kelas'], 'align' => 'C'],
                     ['text' => $dosenStr, 'width' => $cols['dosen'], 'align' => 'L'],
                 ];
 
@@ -217,23 +222,26 @@ class KrsService extends BasePdfService
         $this->SetFont('Arial', '', 9);
 
         // Left Side: Mahasiswa
-        $this->SetXY(30, $ySign + 5);
-        $this->Cell(50, 5, 'MAHASISWA,', 0, 1, 'C');
-        $this->Ln(20);
+        $this->SetXY(15, $ySign + 5);
+        $this->SetFont('Arial', 'B', 9);
+        $this->Cell(70, 5, 'MAHASISWA,', 0, 1, 'C');
+        $this->Ln(15);
         $this->SetFont('Arial', 'BU', 9);
-        $this->SetX(30);
-        $this->Cell(50, 5, strtoupper($mahasiswa->nama), 0, 1, 'C');
+        $this->SetX(15);
+        $this->Cell(70, 5, strtoupper($mahasiswa->nama), 0, 1, 'C');
         $this->SetFont('Arial', '', 9);
-        $this->SetX(30);
-        $this->Cell(50, 5, $mahasiswa->nim, 0, 0, 'C');
+        $this->SetX(15);
+        $this->Cell(70, 5, $mahasiswa->nim, 0, 0, 'C');
 
         // Right Side: Pembimbing Akademik
         $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
-        $this->SetXY(130, $ySign);
-        $this->Cell(50, 5, $kota . ', ' . $this->formatTanggal(date('Y-m-d')), 0, 1, 'C');
-        $this->SetX(130);
-        $this->Cell(50, 5, 'PEMBIMBING AKADEMIK,', 0, 1, 'C');
-        $this->Ln(20);
+        $this->SetXY(125, $ySign);
+        $this->SetFont('Arial', '', 9);
+        $this->Cell(70, 5, $kota . ', ' . $this->formatTanggal(date('Y-m-d')), 0, 1, 'C');
+        $this->SetX(125);
+        $this->SetFont('Arial', 'B', 9);
+        $this->Cell(70, 5, 'PEMBIMBING AKADEMIK,', 0, 1, 'C');
+        $this->Ln(15);
 
         // Attempt to find PA if possible, otherwise placeholder
         $signer = $mahasiswa->dosenWali;
@@ -251,19 +259,19 @@ class KrsService extends BasePdfService
 
         // Only display if signer is found, otherwise dots
         if ($signer) {
-            $namaSigner = $isDosen ? $signer->nama : $signer->nama_lengkap;
+            $namaSigner = $isDosen ? ($signer->nama_lengkap ?? $signer->nama) : $signer->nama_lengkap;
 
             $this->SetFont('Arial', 'BU', 9);
-            $this->SetX(130);
-            $this->Cell(50, 5, strtoupper($namaSigner), 0, 1, 'C');
+            $this->SetX(125);
+            $this->Cell(70, 5, strtoupper($namaSigner), 0, 1, 'C');
 
             $this->SetFont('Arial', '', 9);
-            $this->SetX(130);
-            $this->Cell(50, 5, 'NIDN/NIP: ' . ($signer->nidn ?? $signer->nip ?? '-'), 0, 1, 'C');
+            $this->SetX(125);
+            $this->Cell(70, 5, 'NIDN/NIP: ' . ($signer->nidn ?? $signer->nip ?? '-'), 0, 1, 'C');
         } else {
             $this->SetFont('Arial', 'B', 9);
-            $this->SetX(130);
-            $this->Cell(50, 5, '............................................', 0, 1, 'C');
+            $this->SetX(125);
+            $this->Cell(70, 5, '............................................', 0, 1, 'C');
         }
 
         // Final Output - Add timestamp to avoid browser caching old versions
