@@ -96,7 +96,7 @@ const submitJadwal = () => {
         <div class="flex h-full flex-1 flex-col pb-10 w-full max-w-7xl mx-auto">
             
             <!-- Modern Header Section -->
-            <div class="bg-gradient-to-r from-slate-900 to-indigo-900 text-white px-6 py-10 lg:px-10 lg:py-12 rounded-b-3xl sm:rounded-b-[3rem] shadow-lg mb-8 relative overflow-hidden">
+            <div class="bg-linear-to-r from-slate-900 to-indigo-900 text-white px-6 py-10 lg:px-10 lg:py-12 rounded-b-3xl sm:rounded-b-[3rem] shadow-lg mb-8 relative overflow-hidden">
                 <!-- Decorative pattern -->
                 <div class="absolute inset-0 opacity-10" style="background-image: radial-gradient(circle at 2px 2px, white 1px, transparent 0); background-size: 32px 32px;"></div>
                 
