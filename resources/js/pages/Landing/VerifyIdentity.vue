@@ -16,7 +16,7 @@ const submit = () => {
 </script>
 
 <template>
-    <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+    <div class="min-h-screen flex items-center justify-center bg-linear-to-br from-blue-50 to-indigo-100 px-4">
         <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
             <div class="text-center mb-8">
                 <div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
