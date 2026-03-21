@@ -247,18 +247,38 @@ class KhsService extends BasePdfService
         $prodiName = $mahasiswa->programStudi?->nama_prodi ?? '';
         $prodiAlias = $mahasiswa->programStudi?->nama_alias ?? '';
 
-        $dynamicKaprodi = Pejabat::active()->where(function ($q) {
-            $q->where('jabatan', 'like', '%Kaprodi%')
-              ->orWhere('jabatan', 'like', '%Ketua Program Studi%')
-              ->orWhere('jabatan', 'like', '%Ketua Prodi%');
-        })->where(function ($q) use ($prodiName, $prodiAlias) {
-            if ($prodiName) $q->orWhere('jabatan', 'like', '%' . $prodiName . '%');
-            if ($prodiAlias) $q->orWhere('jabatan', 'like', '%' . $prodiAlias . '%');
-        })->first();
+        $dynamicKaprodi = null;
+        if (!empty($prodiName) || !empty($prodiAlias)) {
+            // Create a dynamic search query, prioritizing ones with Head titles
+            $dynamicKaprodi = Pejabat::active()
+                ->where(function ($q) {
+                    $q->where('jabatan', 'like', '%Ketua%')
+                      ->orWhere('jabatan', 'like', '%Ka%')
+                      ->orWhere('jabatan', 'like', '%Kaprodi%')
+                      ->orWhere('jabatan', 'like', '%Koordinator%');
+                })
+                ->where(function ($q) use ($prodiName, $prodiAlias) {
+                    if ($prodiName) $q->orWhere('jabatan', 'like', '%' . $prodiName . '%');
+                    if ($prodiAlias) $q->orWhere('jabatan', 'like', '%' . $prodiAlias . '%');
+                })->first();
+
+            // Fallback: Just match anything containing the Prodi name (dynamic)
+            if (!$dynamicKaprodi) {
+                $dynamicKaprodi = Pejabat::active()
+                    ->where(function ($q) use ($prodiName, $prodiAlias) {
+                        if ($prodiName) $q->orWhere('jabatan', 'like', '%' . $prodiName . '%');
+                        if ($prodiAlias) $q->orWhere('jabatan', 'like', '%' . $prodiAlias . '%');
+                    })->first();
+            }
+        }
 
         $signerId = Setting::getValue('signer_khs');
         // Priority: Custom Signer -> Dynamic Kaprodi by Prodi -> Setting Signer Khs -> Fallback first Kaprodi
-        $signer = $customSigner ?? $dynamicKaprodi ?? Pejabat::find($signerId) ?? Pejabat::active()->where('jabatan', 'like', '%Kaprodi%')->first();
+        $signer = $customSigner ?? $dynamicKaprodi ?? Pejabat::find($signerId) ?? Pejabat::active()->where(function($q) {
+            $q->where('jabatan', 'like', '%Kaprodi%')
+              ->orWhere('jabatan', 'like', '%Ketua Prodi%')
+              ->orWhere('jabatan', 'like', '%Ka%');
+        })->first();
 
         // Need the prefix logic (like apt LILI SARTIKA S.FARM, APT, S.Farm, M.Farm)
         $signerName = $signer?->nama_lengkap ?? '............................................';

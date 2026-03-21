@@ -86,7 +86,40 @@ class TranskripService extends BasePdfService
         
         // Signatures
         $this->Ln(10);
-        $kaprodi = Pejabat::active()->where('jabatan', 'like', '%Kaprodi%')->first();
+        $prodiName = $mahasiswa->programStudi?->nama_prodi ?? '';
+        $prodiAlias = $mahasiswa->programStudi?->nama_alias ?? '';
+
+        $kaprodi = null;
+        if (!empty($prodiName) || !empty($prodiAlias)) {
+            $kaprodi = Pejabat::active()
+                ->where(function ($q) {
+                    $q->where('jabatan', 'like', '%Ketua%')
+                      ->orWhere('jabatan', 'like', '%Ka%')
+                      ->orWhere('jabatan', 'like', '%Kaprodi%')
+                      ->orWhere('jabatan', 'like', '%Koordinator%');
+                })
+                ->where(function ($q) use ($prodiName, $prodiAlias) {
+                    if ($prodiName) $q->orWhere('jabatan', 'like', '%' . $prodiName . '%');
+                    if ($prodiAlias) $q->orWhere('jabatan', 'like', '%' . $prodiAlias . '%');
+                })->first();
+
+            if (!$kaprodi) {
+                $kaprodi = Pejabat::active()
+                    ->where(function ($q) use ($prodiName, $prodiAlias) {
+                        if ($prodiName) $q->orWhere('jabatan', 'like', '%' . $prodiName . '%');
+                        if ($prodiAlias) $q->orWhere('jabatan', 'like', '%' . $prodiAlias . '%');
+                    })->first();
+            }
+        }
+
+        if (!$kaprodi) {
+            $kaprodi = Pejabat::active()->where(function ($q) {
+                $q->where('jabatan', 'like', '%Kaprodi%')
+                  ->orWhere('jabatan', 'like', '%Ketua Program Studi%')
+                  ->orWhere('jabatan', 'like', '%Ketua Prodi%')
+                  ->orWhere('jabatan', 'like', '%Ka%');
+            })->first();
+        }
         $signerId = Setting::getValue('signer_transkrip');
         $ketua = Pejabat::find($signerId) ?? Pejabat::active()->byJabatan('Ketua')->first();
         

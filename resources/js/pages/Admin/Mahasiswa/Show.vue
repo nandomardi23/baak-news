@@ -5,7 +5,7 @@ defineOptions({ layout: AppLayout });
 const { setBreadcrumbs } = useBreadcrumbs();
 import AppLayout from '@/layouts/AppLayout.vue';
 
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import MahasiswaDetailTab from '@/components/mahasiswa/MahasiswaDetailTab.vue';
 import MahasiswaKrsTab from '@/components/mahasiswa/MahasiswaKrsTab.vue';
