@@ -137,16 +137,58 @@ const getInitials = (name: string) => {
         .slice(0, 2);
 };
 
-const openCreateDialog = () => {
-    editingPejabat.value = null;
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const resetForm = () => {
+    form.clearErrors();
+    form.defaults({
+        nama: '',
+        nip: '',
+        nidn: '',
+        nik: '',
+        jabatan: '',
+        gelar_depan: '',
+        gelar_belakang: '',
+        pangkat_golongan: '',
+        periode_awal: '',
+        periode_akhir: '',
+        tandatangan: null,
+        is_active: true,
+        dosen_id: null,
+    });
     form.reset();
+    form.nama = '';
+    form.nip = '';
+    form.nidn = '';
+    form.nik = '';
+    form.jabatan = '';
+    form.gelar_depan = '';
+    form.gelar_belakang = '';
+    form.pangkat_golongan = '';
+    form.periode_awal = '';
+    form.periode_akhir = '';
+    form.tandatangan = null;
     form.is_active = true;
     form.dosen_id = null;
+
+    if (fileInputRef.value) {
+        // Clear the file input using its native element
+        const input = fileInputRef.value.$el || fileInputRef.value;
+        if (input && typeof input.value !== 'undefined') {
+            input.value = '';
+        }
+    }
+};
+
+const openCreateDialog = () => {
+    editingPejabat.value = null;
+    resetForm();
     showDialog.value = true;
 };
 
 const openEditDialog = (item: Pejabat) => {
     editingPejabat.value = item;
+    form.clearErrors();
     form.nama = item.nama || '';
     form.nip = item.nip || '';
     form.nidn = item.nidn || '';
@@ -167,7 +209,7 @@ const closeDialog = () => {
     showDialog.value = false;
     setTimeout(() => {
         editingPejabat.value = null;
-        form.reset();
+        resetForm();
     }, 300);
 };
 
@@ -468,7 +510,7 @@ const handleFileChange = (event: Event) => {
                                 <div v-if="editingPejabat?.tandatangan_path && !form.tandatangan" class="h-20 w-32 border rounded-lg p-2 bg-slate-50 flex items-center justify-center">
                                     <img :src="`/storage/${editingPejabat.tandatangan_path}`" class="max-h-full max-w-full object-contain" />
                                 </div>
-                                <Input type="file" accept="image/png,image/jpeg" @change="handleFileChange" class="flex-1 cursor-pointer" />
+                                <Input ref="fileInputRef" type="file" accept="image/png,image/jpeg" @change="handleFileChange" class="flex-1 cursor-pointer" />
                             </div>
                             <p class="text-[10px] text-slate-500">Format: PNG/JPG. Background transparan lebih disarankan.</p>
                         </div>

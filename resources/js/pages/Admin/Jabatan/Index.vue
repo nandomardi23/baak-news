@@ -46,15 +46,28 @@ const form = useForm({
     is_active: true,
 });
 
+const resetForm = () => {
+    form.clearErrors();
+    form.defaults({
+        nama_jabatan: '',
+        kode_jabatan: '',
+        is_active: true,
+    });
+    form.reset();
+    form.nama_jabatan = '';
+    form.kode_jabatan = '';
+    form.is_active = true;
+};
+
 const openCreateModal = () => {
     editingJabatan.value = null;
-    form.reset();
-    form.is_active = true;
+    resetForm();
     showModal.value = true;
 };
 
 const openEditModal = (item: Jabatan) => {
     editingJabatan.value = item;
+    form.clearErrors();
     form.nama_jabatan = item.nama_jabatan;
     form.kode_jabatan = item.kode_jabatan || '';
     form.is_active = item.is_active;

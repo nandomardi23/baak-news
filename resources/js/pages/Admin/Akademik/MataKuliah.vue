@@ -96,13 +96,33 @@ const form = useForm({
     id_prodi: null as string | number | null,
 });
 
-const openCreate = () => {
+const resetForm = () => {
+    form.clearErrors();
+    form.defaults({
+        kode_matkul: '',
+        nama_matkul: '',
+        sks_mata_kuliah: 0,
+        sks_teori: 0,
+        sks_praktek: 0,
+        id_prodi: null,
+    });
     form.reset();
+    form.kode_matkul = '';
+    form.nama_matkul = '';
+    form.sks_mata_kuliah = 0;
+    form.sks_teori = 0;
+    form.sks_praktek = 0;
+    form.id_prodi = null;
+};
+
+const openCreate = () => {
+    resetForm();
     isCreateOpen.value = true;
 };
 
 const openEdit = (item: MataKuliah) => {
     selectedItem.value = item;
+    form.clearErrors();
     form.kode_matkul = item.kode_matkul;
     form.nama_matkul = item.nama_matkul;
     form.sks_mata_kuliah = item.sks_mata_kuliah;

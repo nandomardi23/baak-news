@@ -62,9 +62,31 @@ const form = useForm({
     warna: '',
 });
 
+const resetForm = () => {
+    form.clearErrors();
+    form.defaults({
+        judul: '',
+        deskripsi: '',
+        tanggal_mulai: '',
+        tanggal_selesai: '',
+        jenis: 'lainnya',
+        tahun_akademik_id: props.filters.tahun_akademik_id || (props.tahunAkademikOptions[0]?.id ?? ''),
+        warna: '',
+    });
+    form.reset();
+    form.judul = '';
+    form.deskripsi = '';
+    form.tanggal_mulai = '';
+    form.tanggal_selesai = '';
+    form.jenis = 'lainnya';
+    form.tahun_akademik_id = props.filters.tahun_akademik_id || (props.tahunAkademikOptions[0]?.id ?? '');
+    form.warna = '';
+};
+
 function openModal(item?: KalenderItem) {
     if (item) {
         editingItem.value = item;
+        form.clearErrors();
         form.judul = item.judul;
         form.deskripsi = item.deskripsi || '';
         form.tanggal_mulai = item.tanggal_mulai;
@@ -73,8 +95,7 @@ function openModal(item?: KalenderItem) {
         form.warna = item.warna;
     } else {
         editingItem.value = null;
-        form.reset();
-        form.tahun_akademik_id = props.filters.tahun_akademik_id || (props.tahunAkademikOptions[0]?.id ?? '');
+        resetForm();
     }
     showModal.value = true;
 }

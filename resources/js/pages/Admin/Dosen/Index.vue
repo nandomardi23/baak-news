@@ -99,13 +99,37 @@ const form = useForm({
     status_aktif: 'Aktif',
 });
 
-const openCreate = () => {
+const resetForm = () => {
+    form.clearErrors();
+    form.defaults({
+        nidn: '',
+        nip: '',
+        nama_dosen: '',
+        nama_lengkap: '',
+        jenis_kelamin: 'L',
+        jabatan_fungsional: '',
+        program_studi_id: null,
+        status_aktif: 'Aktif',
+    });
     form.reset();
+    form.nidn = '';
+    form.nip = '';
+    form.nama_dosen = '';
+    form.nama_lengkap = '';
+    form.jenis_kelamin = 'L';
+    form.jabatan_fungsional = '';
+    form.program_studi_id = null;
+    form.status_aktif = 'Aktif';
+};
+
+const openCreate = () => {
+    resetForm();
     isCreateOpen.value = true;
 };
 
 const openEdit = (item: Dosen) => {
     selectedItem.value = item;
+    form.clearErrors();
     form.nidn = item.nidn || '';
     form.nip = item.nip || '';
     form.nama_dosen = item.nama; // 'nama' is what's used in index mapping for 'nama'
