@@ -24,6 +24,7 @@ class ProgramStudi extends Model
         'jenis_program',
         'is_active',
         'nama_alias',
+        'pejabat_id',
     ];
 
     protected $casts = [
@@ -42,6 +43,11 @@ class ProgramStudi extends Model
     public function mahasiswa(): HasMany
     {
         return $this->hasMany(Mahasiswa::class, 'program_studi_id');
+    }
+
+    public function pejabat(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(Pejabat::class, 'pejabat_id');
     }
 
     public function mataKuliah(): HasMany

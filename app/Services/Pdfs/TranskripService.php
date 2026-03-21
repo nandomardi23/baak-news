@@ -90,7 +90,11 @@ class TranskripService extends BasePdfService
         $prodiAlias = $mahasiswa->programStudi?->nama_alias ?? '';
 
         $kaprodi = null;
-        if (!empty($prodiName) || !empty($prodiAlias)) {
+        if ($mahasiswa->programStudi?->pejabat_id) {
+            $kaprodi = Pejabat::find($mahasiswa->programStudi->pejabat_id);
+        }
+
+        if (!$kaprodi && (!empty($prodiName) || !empty($prodiAlias))) {
             $kaprodi = Pejabat::active()
                 ->where(function ($q) {
                     $q->where('jabatan', 'like', '%Ketua%')

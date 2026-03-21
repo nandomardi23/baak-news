@@ -248,7 +248,11 @@ class KhsService extends BasePdfService
         $prodiAlias = $mahasiswa->programStudi?->nama_alias ?? '';
 
         $dynamicKaprodi = null;
-        if (!empty($prodiName) || !empty($prodiAlias)) {
+        if ($mahasiswa->programStudi?->pejabat_id) {
+            $dynamicKaprodi = Pejabat::find($mahasiswa->programStudi->pejabat_id);
+        }
+
+        if (!$dynamicKaprodi && (!empty($prodiName) || !empty($prodiAlias))) {
             // Create a dynamic search query, prioritizing ones with Head titles
             $dynamicKaprodi = Pejabat::active()
                 ->where(function ($q) {

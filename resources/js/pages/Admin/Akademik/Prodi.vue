@@ -39,6 +39,8 @@ interface Prodi {
     jenis_program: string;
     akreditasi: string | null;
     nama_alias: string | null;
+    pejabat_id?: number | null;
+    pejabat?: { id: number, nama: string, jabatan: string } | null;
     is_active: boolean;
     created_at?: string;
 }
@@ -46,6 +48,7 @@ interface Prodi {
 const props = defineProps<{
     prodiList: any;
     filters: any;
+    pejabatOptions: any;
 }>();
 
 setBreadcrumbs([
@@ -74,6 +77,7 @@ const form = useForm({
     jenis_program: 'reguler',
     akreditasi: null as string | null,
     nama_alias: null as string | null,
+    pejabat_id: null as number | null,
     is_active: true,
 });
 
@@ -90,6 +94,7 @@ const openEdit = (item: Prodi) => {
     form.jenis_program = item.jenis_program;
     form.akreditasi = item.akreditasi;
     form.nama_alias = item.nama_alias;
+    form.pejabat_id = item.pejabat_id || null;
     form.is_active = !!item.is_active;
     isEditOpen.value = true;
 };
@@ -221,6 +226,10 @@ const submitEdit = () => {
                         <span class="col-span-2 font-bold text-emerald-600">{{ selectedItem.nama_alias || '-' }}</span>
                     </div>
                     <div class="grid grid-cols-3 py-2 border-b border-slate-50">
+                        <span class="text-slate-500">Penandatangan (Kaprodi)</span>
+                        <span class="col-span-2 font-bold">{{ selectedItem.pejabat ? selectedItem.pejabat.nama : '-' }} <span v-if="selectedItem.pejabat" class="text-xs text-gray-400 font-normal">({{ selectedItem.pejabat.jabatan }})</span></span>
+                    </div>
+                    <div class="grid grid-cols-3 py-2 border-b border-slate-50">
                         <span class="text-slate-500">Jenjang</span>
                         <span class="col-span-2 uppercase">{{ selectedItem.jenjang }}</span>
                     </div>
@@ -275,6 +284,20 @@ const submitEdit = () => {
                         <Label>Nama Alias (Untuk Cetak Surat)</Label>
                          <Input :model-value="form.nama_alias || ''" @input="form.nama_alias = ($event.target as HTMLInputElement).value" placeholder="Contoh: S1 Keperawatan" />
                         <p class="text-xs text-slate-500">Biarkan kosong jika ingin menggunakan nama bawaan Neo Feeder.</p>
+                    </div>
+                    <div class="space-y-2">
+                        <Label>Kepala Program Studi (Kaprodi)</Label>
+                        <Select :model-value="form.pejabat_id ? String(form.pejabat_id) : ''" @update:model-value="(val) => form.pejabat_id = Number(val)">
+                            <SelectTrigger>
+                                <SelectValue placeholder="Pilih Pejabat Kaprodi" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem v-for="pej in pejabatOptions" :key="pej.id" :value="String(pej.id)">
+                                    {{ pej.nama }} ({{ pej.jabatan }})
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <p class="text-xs text-slate-500">Digunakan sebagai titik penandatanganan KHS & Transkrip.</p>
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div class="space-y-2">

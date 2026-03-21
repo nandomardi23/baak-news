@@ -18,7 +18,7 @@ class ProdiController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = ProgramStudi::query();
+        $query = ProgramStudi::with('pejabat');
 
         $prodiList = $this->applyDataTable($query, $request, [
             'kode_prodi',
@@ -31,6 +31,8 @@ class ProdiController extends Controller
         return Inertia::render('Admin/Akademik/Prodi', [
             'prodiList' => $prodiList,
             'filters' => $request->only(['search', 'sort_field', 'sort_direction']),
+            'pejabatOptions' => \App\Models\Pejabat::active()->orderBy('nama')->get(['id', 'nama', 'jabatan', 'gelar_depan', 'gelar_belakang'])
+                ->map(fn($p) => ['id' => $p->id, 'nama' => $p->nama_lengkap, 'jabatan' => $p->jabatan]),
         ]);
     }
 
@@ -55,6 +57,7 @@ class ProdiController extends Controller
             'akreditasi' => 'nullable|string|max:5',
             'is_active' => 'required|boolean',
             'nama_alias' => 'nullable|string|max:255',
+            'pejabat_id' => 'nullable|exists:pejabat,id',
         ]);
 
         $prodi->update($validated);
