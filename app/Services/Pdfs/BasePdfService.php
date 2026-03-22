@@ -179,11 +179,12 @@ abstract class BasePdfService extends Fpdi
             return '-';
 
         $timestamp = strtotime($dateString);
-        if (!$timestamp) return '-';
+        if (!$timestamp)
+            return '-';
 
         $dayName = date('l', $timestamp);
         $day = date('d', $timestamp);
-        $month = (int)date('m', $timestamp);
+        $month = (int) date('m', $timestamp);
         $year = date('Y', $timestamp);
 
         return ($hariIndo[$dayName] ?? $dayName) . ', ' . $day . ' ' . $bulanIndo[$month] . ' ' . $year;
@@ -241,10 +242,45 @@ abstract class BasePdfService extends Fpdi
 
     protected function getSemesterRoman(Mahasiswa $mahasiswa): string
     {
-        // Berdasarkan instruksi: hitung jumlah KRS yang pernah diisi
-        $krsCount = $mahasiswa->krs()->count();
-        $semesterNum = $krsCount > 0 ? $krsCount : 1;
-        
+        $angkatan = $mahasiswa->angkatan;
+
+        // Try to guess from NIM if angkatan is empty
+        if (!$angkatan && $mahasiswa->nim && strlen($mahasiswa->nim) >= 4) {
+            $yy23 = substr($mahasiswa->nim, 2, 2);
+            $yy01 = substr($mahasiswa->nim, 0, 2);
+            $currentYY = (int) date('y');
+
+            if (is_numeric($yy23) && $yy23 >= 15 && $yy23 <= $currentYY + 1) {
+                $angkatan = '20' . $yy23;
+            } elseif (is_numeric($yy01) && $yy01 >= 15 && $yy01 <= $currentYY + 1) {
+                $angkatan = '20' . $yy01;
+            }
+        }
+
+        if (!$angkatan) {
+            $angkatan = date('Y');
+        }
+
+        $currentMonth = (int) date('n');
+        $currentYear = (int) date('Y');
+
+        // Identify real active semester based on calendar:
+        // Ganjil starts around August (8), Genap starts around February (2)
+        if ($currentMonth >= 8) {
+            $tahunAktif = $currentYear;
+            $jenisSemester = 'ganjil';
+        } else {
+            $tahunAktif = $currentYear - 1;
+            $jenisSemester = 'genap';
+        }
+
+        $yearDiff = $tahunAktif - (int) $angkatan;
+        if ($yearDiff < 0) {
+            $yearDiff = 0;
+        }
+
+        $semesterNum = ($yearDiff * 2) + ($jenisSemester === 'ganjil' ? 1 : 2);
+
         return $this->getRomanMonth((int) $semesterNum);
     }
 
