@@ -211,7 +211,7 @@ class LandingController extends Controller
      */
     public function dokumen(Mahasiswa $mahasiswa): Response
     {
-        $mahasiswa->load(['programStudi', 'krs.tahunAkademik', 'nilai.tahunAkademik']);
+        $mahasiswa->load(['programStudi', 'krs.tahunAkademik', 'nilai.tahunAkademik', 'dosenWali']);
 
         // Get all semesters where student has KRS or Nilai
         $krsSemesters = $mahasiswa->krs->pluck('tahunAkademik')->filter()->unique('id');
@@ -256,11 +256,33 @@ class LandingController extends Controller
                 'angkatan' => $mahasiswa->angkatan,
                 'ipk' => number_format((float) ($mahasiswa->ipk ?? 0), 2),
                 'sks_tempuh' => $mahasiswa->sks_tempuh ?? 0,
+                'dosen_wali_id' => $mahasiswa->dosen_wali_id ? (string) $mahasiswa->dosen_wali_id : null,
+                'dosen_wali_nama' => $mahasiswa->dosenWali?->nama_lengkap ?? null,
             ],
             'semesters' => $allSemesters,
             'existingPending' => $existingPending,
             'recentPengajuan' => $recentPengajuan,
+            'dosens' => \App\Models\Dosen::active()->orderBy('nama')->get()->map(fn($d) => [
+                'id' => (string) $d->id,
+                'nama' => $d->nama_lengkap
+            ]),
         ]);
+    }
+
+    /**
+     * Update Dosen Wali from student self-service page
+     */
+    public function updateDosenWali(Request $request, Mahasiswa $mahasiswa): RedirectResponse
+    {
+        $request->validate([
+            'dosen_wali_id' => 'required|exists:dosen,id',
+        ]);
+
+        $mahasiswa->update([
+            'dosen_wali_id' => $request->dosen_wali_id,
+        ]);
+
+        return redirect()->back()->with('success', 'Dosen Pembimbing Akademik berhasil disimpan.');
     }
 
     /**

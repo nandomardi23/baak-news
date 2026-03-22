@@ -27,6 +27,7 @@ Route::post('/dokumen/{mahasiswa}/verify', [LandingController::class, 'processVe
 // Self-Service Documents (Public, Rate Limited + Identity Verified)
 Route::middleware(['verify.mahasiswa'])->group(function () {
     Route::get('/dokumen/{mahasiswa}', [LandingController::class, 'dokumen'])->name('landing.dokumen');
+    Route::post('/dokumen/{mahasiswa}/dosen-wali', [LandingController::class, 'updateDosenWali'])->name('landing.dosen_wali.update');
     Route::middleware('throttle:10,1')->group(function () {
         Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [LandingController::class, 'printKrs'])->name('landing.krs.print');
         Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController::class, 'printKhs'])->name('landing.khs.print');

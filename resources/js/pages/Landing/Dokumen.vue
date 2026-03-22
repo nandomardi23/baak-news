@@ -1,7 +1,14 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import LandingLayout from '@/layouts/LandingLayout.vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
+import { Button } from '@/components/ui/button';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Check, ChevronsUpDown, UserCheck } from 'lucide-vue-next';
+import { cn } from '@/lib/utils';
+import InputError from '@/components/InputError.vue';
 
 interface Mahasiswa {
     id: number;
@@ -11,6 +18,8 @@ interface Mahasiswa {
     angkatan: string;
     ipk: string;
     sks_tempuh: number;
+    dosen_wali_id?: string;
+    dosen_wali_nama?: string;
 }
 
 interface Semester {
@@ -34,9 +43,30 @@ const props = defineProps<{
     semesters: Semester[];
     existingPending: boolean;
     recentPengajuan: Pengajuan[];
+    dosens: { id: string; nama: string }[];
 }>();
 
 const { getBadgeClass } = useStatusBadge();
+
+const dosenOpen = ref(false);
+const form = useForm({
+    dosen_wali_id: props.mahasiswa.dosen_wali_id || '',
+});
+
+const selectedDosenName = computed(() => {
+    if (!form.dosen_wali_id) return '';
+    const found = props.dosens?.find(d => String(d.id) === String(form.dosen_wali_id));
+    return found?.nama || '';
+});
+
+const saveDosenWali = () => {
+    form.post(`/dokumen/${props.mahasiswa.id}/dosen-wali`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            dosenOpen.value = false;
+        }
+    });
+};
 </script>
 
 <template>
@@ -59,7 +89,7 @@ const { getBadgeClass } = useStatusBadge();
                         <h1 class="text-2xl font-bold text-slate-900">{{ mahasiswa.nama }}</h1>
                         <p class="text-slate-500">{{ mahasiswa.nim }} • {{ mahasiswa.prodi }}</p>
                     </div>
-                    <div class="flex gap-4 text-center">
+                    <div class="flex gap-4 text-center mt-4 sm:mt-0">
                         <div class="px-4 py-2 bg-blue-50 rounded-xl">
                             <p class="text-2xl font-bold text-blue-600">{{ mahasiswa.ipk }}</p>
                             <p class="text-xs text-slate-500">IPK</p>
@@ -67,6 +97,69 @@ const { getBadgeClass } = useStatusBadge();
                         <div class="px-4 py-2 bg-emerald-50 rounded-xl">
                             <p class="text-2xl font-bold text-emerald-600">{{ mahasiswa.sks_tempuh }}</p>
                             <p class="text-xs text-slate-500">SKS</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Dosen Wali Selector -->
+                <div class="mt-6 pt-6 border-t border-slate-100">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <h3 class="font-semibold text-slate-800 flex items-center gap-2">
+                                <UserCheck class="w-5 h-5 text-blue-500" />
+                                Pembimbing Akademik (Dosen Wali)
+                            </h3>
+                            <p class="text-xs text-slate-500 mt-1 max-w-md">Pilih dosen wali Anda untuk dicantumkan pada dokumen KRS yang akan dicetak.</p>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+                            <div class="w-full sm:w-[300px]">
+                                <Popover v-model:open="dosenOpen">
+                                    <PopoverTrigger as-child>
+                                        <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            :aria-expanded="dosenOpen"
+                                            class="w-full justify-between font-normal bg-white"
+                                        >
+                                            <span :class="selectedDosenName ? 'text-foreground truncate' : 'text-muted-foreground'">
+                                                {{ selectedDosenName || 'Cari nama dosen...' }}
+                                            </span>
+                                            <ChevronsUpDown class="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                    </PopoverTrigger>
+                                    <PopoverContent class="w-[--reka-popover-trigger-width] p-0" align="start">
+                                        <Command>
+                                            <CommandInput placeholder="Ketik nama dosen..." />
+                                            <CommandEmpty>Dosen tidak ditemukan.</CommandEmpty>
+                                            <CommandList>
+                                                <CommandGroup>
+                                                    <CommandItem
+                                                        v-for="d in dosens"
+                                                        :key="d.id"
+                                                        :value="d.nama"
+                                                        @select="() => { form.dosen_wali_id = String(d.id); dosenOpen = false; }"
+                                                    >
+                                                        <Check :class="cn('mr-2 h-4 w-4', String(form.dosen_wali_id) === String(d.id) ? 'opacity-100' : 'opacity-0')" />
+                                                        {{ d.nama }}
+                                                    </CommandItem>
+                                                </CommandGroup>
+                                            </CommandList>
+                                        </Command>
+                                    </PopoverContent>
+                                </Popover>
+                                <InputError :message="form.errors.dosen_wali_id" class="mt-1" />
+                            </div>
+                            
+                            <Button 
+                                v-if="form.isDirty" 
+                                @click="saveDosenWali" 
+                                :disabled="form.processing"
+                                class="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
+                            >
+                                <span v-if="form.processing">Menyimpan...</span>
+                                <span v-else>Simpan</span>
+                            </Button>
                         </div>
                     </div>
                 </div>

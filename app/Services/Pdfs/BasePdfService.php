@@ -241,19 +241,11 @@ abstract class BasePdfService extends Fpdi
 
     protected function getSemesterRoman(Mahasiswa $mahasiswa): string
     {
-        // We don't have TahunAkademik object passed here usually, 
-        // but we can try to guess from current date or just return '.......' if we can't calculate.
-        // However, usually we should have enough info.
-        // Let's rely on the mahasiswa->semester_ke field if available, or calculate it.
-
-        // Check if we have global semester calc
-        $ta = TahunAkademik::where('is_active', true)->first();
-        if ($ta) {
-            $num = $this->getMahasiswaSemester($mahasiswa, $ta);
-            return $this->getRomanMonth($num); // Reuse roman function for 1-12
-        }
-
-        return '.......';
+        // Berdasarkan instruksi: hitung jumlah KRS yang pernah diisi
+        $krsCount = $mahasiswa->krs()->count();
+        $semesterNum = $krsCount > 0 ? $krsCount : 1;
+        
+        return $this->getRomanMonth((int) $semesterNum);
     }
 
     protected function hexToRgb($hex): array
