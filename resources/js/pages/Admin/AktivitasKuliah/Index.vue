@@ -133,12 +133,13 @@ const statusOptions = [
             >
                 <template #filters>
                     <!-- Semester Filter -->
-                    <div class="w-full sm:w-48">
+                    <div class="space-y-2 w-full">
+                        <label class="text-sm font-semibold text-slate-700">Semester</label>
                         <Select
                             :model-value="filters.semester || 'all'"
                             @update:model-value="(val) => applyFilter('semester', val === 'all' ? null : String(val))"
                         >
-                            <SelectTrigger class="h-9 w-full">
+                            <SelectTrigger class="h-10 w-full bg-slate-50 border-slate-200">
                                 <SelectValue placeholder="Pilih Semester" />
                             </SelectTrigger>
                             <SelectContent>
@@ -151,12 +152,13 @@ const statusOptions = [
                     </div>
 
                     <!-- Prodi Filter -->
-                    <div class="w-full sm:w-48">
+                    <div class="space-y-2 w-full">
+                        <label class="text-sm font-semibold text-slate-700">Program Studi</label>
                         <Select
                             :model-value="filters.prodi || 'all'"
                             @update:model-value="(val) => applyFilter('prodi', val === 'all' ? null : String(val))"
                         >
-                            <SelectTrigger class="h-9 w-full">
+                            <SelectTrigger class="h-10 w-full bg-slate-50 border-slate-200">
                                 <SelectValue placeholder="Pilih Prodi" />
                             </SelectTrigger>
                             <SelectContent>
@@ -169,12 +171,13 @@ const statusOptions = [
                     </div>
 
                     <!-- Status Filter -->
-                    <div class="w-full sm:w-40">
+                    <div class="space-y-2 w-full">
+                        <label class="text-sm font-semibold text-slate-700">Status Mahasiswa</label>
                         <Select
                             :model-value="filters.status || 'all'"
                             @update:model-value="(val) => applyFilter('status', val === 'all' ? null : String(val))"
                         >
-                            <SelectTrigger class="h-9 w-full">
+                            <SelectTrigger class="h-10 w-full bg-slate-50 border-slate-200">
                                 <SelectValue placeholder="Status" />
                             </SelectTrigger>
                             <SelectContent>

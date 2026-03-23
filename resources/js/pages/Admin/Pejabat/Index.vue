@@ -10,6 +10,7 @@ import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import DatePicker from 'primevue/datepicker';
 import {
     Dialog,
     DialogContent,
@@ -496,12 +497,42 @@ const handleFileChange = (event: Event) => {
 
                         <div class="space-y-1.5">
                             <Label>Periode Awal</Label>
-                            <Input v-model="form.periode_awal" type="date" />
+                            <DatePicker 
+                                :model-value="form.periode_awal ? new Date(form.periode_awal) : null"
+                                @update:model-value="(val) => {
+                                    if (val && val instanceof Date) {
+                                        const year = val.getFullYear();
+                                        const month = String(val.getMonth() + 1).padStart(2, '0');
+                                        const day = String(val.getDate()).padStart(2, '0');
+                                        form.periode_awal = `${year}-${month}-${day}`;
+                                    } else {
+                                        form.periode_awal = '';
+                                    }
+                                }"
+                                dateFormat="yy-mm-dd" 
+                                showIcon 
+                                class="w-full flex h-10 border-input bg-background" 
+                            />
                         </div>
 
                         <div class="space-y-1.5">
                             <Label>Periode Akhir</Label>
-                            <Input v-model="form.periode_akhir" type="date" />
+                            <DatePicker 
+                                :model-value="form.periode_akhir ? new Date(form.periode_akhir) : null"
+                                @update:model-value="(val) => {
+                                    if (val && val instanceof Date) {
+                                        const year = val.getFullYear();
+                                        const month = String(val.getMonth() + 1).padStart(2, '0');
+                                        const day = String(val.getDate()).padStart(2, '0');
+                                        form.periode_akhir = `${year}-${month}-${day}`;
+                                    } else {
+                                        form.periode_akhir = '';
+                                    }
+                                }"
+                                dateFormat="yy-mm-dd" 
+                                showIcon 
+                                class="w-full flex h-10 border-input bg-background" 
+                            />
                         </div>
 
                         <div class="col-span-2 space-y-3 pt-2">

@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import InputError from '@/components/InputError.vue';
+import DatePicker from 'primevue/datepicker';
 
 defineOptions({ layout: AppLayout });
 const { setBreadcrumbs } = useBreadcrumbs();
@@ -135,7 +136,23 @@ const submit = () => {
                     </div>
                     <div class="space-y-2">
                         <Label for="tanggal_lahir">Tanggal Lahir</Label>
-                        <Input id="tanggal_lahir" type="date" v-model="form.tanggal_lahir" />
+                        <DatePicker
+                            id="tanggal_lahir"
+                            :model-value="form.tanggal_lahir ? new Date(form.tanggal_lahir) : null"
+                            @update:model-value="(val) => {
+                                if (val && val instanceof Date) {
+                                    const year = val.getFullYear();
+                                    const month = String(val.getMonth() + 1).padStart(2, '0');
+                                    const day = String(val.getDate()).padStart(2, '0');
+                                    form.tanggal_lahir = `${year}-${month}-${day}`;
+                                } else {
+                                    form.tanggal_lahir = '';
+                                }
+                            }"
+                            dateFormat="yy-mm-dd"
+                            showIcon
+                            class="w-full flex h-10 border-input bg-background"
+                        />
                         <InputError :message="form.errors.tanggal_lahir" />
                     </div>
                     <div class="space-y-2">

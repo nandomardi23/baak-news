@@ -7,6 +7,7 @@ const { setBreadcrumbs } = useBreadcrumbs();
 
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import DatePicker from 'primevue/datepicker';
 
 interface KalenderItem {
     id: number;
@@ -323,19 +324,43 @@ const selectedJenisColor = computed(() => {
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Tanggal Mulai *</label>
-                                    <input
-                                        v-model="form.tanggal_mulai"
-                                        type="date"
+                                    <DatePicker
+                                        :model-value="form.tanggal_mulai ? new Date(form.tanggal_mulai) : null"
+                                        @update:model-value="(val) => {
+                                            if (val && val instanceof Date) {
+                                                const year = val.getFullYear();
+                                                const month = String(val.getMonth() + 1).padStart(2, '0');
+                                                const day = String(val.getDate()).padStart(2, '0');
+                                                form.tanggal_mulai = `${year}-${month}-${day}`;
+                                            } else {
+                                                form.tanggal_mulai = '';
+                                            }
+                                        }"
+                                        dateFormat="yy-mm-dd"
+                                        showIcon
                                         required
-                                        class="w-full px-4 py-2 rounded-lg border bg-card focus:ring-2 focus:ring-blue-500 outline-none"
+                                        class="w-full"
+                                        inputClass="w-full px-4 py-2 flex rounded-lg border bg-card focus:ring-2 focus:ring-blue-500 outline-none"
                                     />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Tanggal Selesai</label>
-                                    <input
-                                        v-model="form.tanggal_selesai"
-                                        type="date"
-                                        class="w-full px-4 py-2 rounded-lg border bg-card focus:ring-2 focus:ring-blue-500 outline-none"
+                                    <DatePicker
+                                        :model-value="form.tanggal_selesai ? new Date(form.tanggal_selesai) : null"
+                                        @update:model-value="(val) => {
+                                            if (val && val instanceof Date) {
+                                                const year = val.getFullYear();
+                                                const month = String(val.getMonth() + 1).padStart(2, '0');
+                                                const day = String(val.getDate()).padStart(2, '0');
+                                                form.tanggal_selesai = `${year}-${month}-${day}`;
+                                            } else {
+                                                form.tanggal_selesai = '';
+                                            }
+                                        }"
+                                        dateFormat="yy-mm-dd"
+                                        showIcon
+                                        class="w-full"
+                                        inputClass="w-full px-4 py-2 flex rounded-lg border bg-card focus:ring-2 focus:ring-blue-500 outline-none"
                                     />
                                 </div>
                             </div>

@@ -7,6 +7,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
+import DatePicker from 'primevue/datepicker';
 
 interface Dosen {
     id: number;
@@ -216,19 +217,41 @@ const handleFileChange = (event: Event) => {
 
                         <div>
                             <label class="block text-sm font-medium mb-2">Periode Awal</label>
-                            <input
-                                v-model="form.periode_awal"
-                                type="date"
-                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            <DatePicker 
+                                :model-value="form.periode_awal ? new Date(form.periode_awal) : null"
+                                @update:model-value="(val) => {
+                                    if (val && val instanceof Date) {
+                                        const year = val.getFullYear();
+                                        const month = String(val.getMonth() + 1).padStart(2, '0');
+                                        const day = String(val.getDate()).padStart(2, '0');
+                                        form.periode_awal = `${year}-${month}-${day}`;
+                                    } else {
+                                        form.periode_awal = '';
+                                    }
+                                }"
+                                dateFormat="yy-mm-dd" 
+                                showIcon 
+                                class="w-full flex h-10 border rounded-lg bg-white" 
                             />
                         </div>
 
                         <div>
                             <label class="block text-sm font-medium mb-2">Periode Akhir</label>
-                            <input
-                                v-model="form.periode_akhir"
-                                type="date"
-                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            <DatePicker 
+                                :model-value="form.periode_akhir ? new Date(form.periode_akhir) : null"
+                                @update:model-value="(val) => {
+                                    if (val && val instanceof Date) {
+                                        const year = val.getFullYear();
+                                        const month = String(val.getMonth() + 1).padStart(2, '0');
+                                        const day = String(val.getDate()).padStart(2, '0');
+                                        form.periode_akhir = `${year}-${month}-${day}`;
+                                    } else {
+                                        form.periode_akhir = '';
+                                    }
+                                }"
+                                dateFormat="yy-mm-dd" 
+                                showIcon 
+                                class="w-full flex h-10 border rounded-lg bg-white" 
                             />
                         </div>
 

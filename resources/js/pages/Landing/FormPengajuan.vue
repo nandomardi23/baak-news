@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import DatePicker from 'primevue/datepicker';
 
 interface Mahasiswa {
     id: number;
@@ -511,8 +512,22 @@ const submit = () => {
                             </div>
                             <div>
                                 <label class="block text-slate-600 text-sm font-medium mb-2">Tanggal Lahir</label>
-                                <input v-model="form.tanggal_lahir" type="date"
-                                    class="w-full px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                                <DatePicker 
+                                    :model-value="form.tanggal_lahir ? new Date(form.tanggal_lahir) : null"
+                                    @update:model-value="(val) => {
+                                        if (val && val instanceof Date) {
+                                            const year = val.getFullYear();
+                                            const month = String(val.getMonth() + 1).padStart(2, '0');
+                                            const day = String(val.getDate()).padStart(2, '0');
+                                            form.tanggal_lahir = `${year}-${month}-${day}`;
+                                        } else {
+                                            form.tanggal_lahir = '';
+                                        }
+                                    }" 
+                                    dateFormat="yy-mm-dd" 
+                                    showIcon 
+                                    class="w-full" 
+                                />
                             </div>
                         </div>
                         <div class="mt-4">

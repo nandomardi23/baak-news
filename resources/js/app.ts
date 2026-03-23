@@ -7,6 +7,8 @@ import { createApp, h } from 'vue';
 import { initializeTheme } from './composables/useAppearance';
 import { ZiggyVue } from 'ziggy-js';
 import { route } from 'ziggy-js';
+import PrimeVue from 'primevue/config';
+import Aura from '@primevue/themes/aura';
 
 import type { DefineComponent } from 'vue';
 
@@ -17,15 +19,21 @@ window.route = route;
 
 createInertiaApp({
     title: (title) => (title ? `${title} - ${appName}` : appName),
-    resolve: (name) =>
-        resolvePageComponent(
-            `./pages/${name}.vue`,
-            import.meta.glob<DefineComponent>('./pages/**/*.vue'),
-        ),
+    resolve: async (name) => {
+        const pages = import.meta.glob<DefineComponent>('./pages/**/*.vue');
+        return resolvePageComponent(`./pages/${name}.vue`, pages).catch(
+            () => resolvePageComponent('./pages/Error.vue', pages),
+        );
+    },
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
             .use(ZiggyVue)
+            .use(PrimeVue, {
+                theme: {
+                    preset: Aura
+                }
+            })
             .mount(el);
     },
     progress: {

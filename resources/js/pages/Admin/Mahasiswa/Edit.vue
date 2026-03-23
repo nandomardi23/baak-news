@@ -13,6 +13,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { ref, computed } from 'vue';
 import { Check, ChevronsUpDown, ArrowLeft, Save, User, GraduationCap, MapPin, BookOpen } from 'lucide-vue-next';
 import { cn } from '@/lib/utils';
+import DatePicker from 'primevue/datepicker';
 
 defineOptions({ layout: AppLayout });
 const { setBreadcrumbs } = useBreadcrumbs();
@@ -169,7 +170,23 @@ const submit = () => {
                         </div>
                         <div class="space-y-1.5">
                             <Label for="tanggal_lahir" class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Tanggal Lahir</Label>
-                            <Input id="tanggal_lahir" type="date" v-model="form.tanggal_lahir" />
+                            <DatePicker
+                                id="tanggal_lahir"
+                                :model-value="form.tanggal_lahir ? new Date(form.tanggal_lahir) : null"
+                                @update:model-value="(val) => {
+                                    if (val && val instanceof Date) {
+                                        const year = val.getFullYear();
+                                        const month = String(val.getMonth() + 1).padStart(2, '0');
+                                        const day = String(val.getDate()).padStart(2, '0');
+                                        form.tanggal_lahir = `${year}-${month}-${day}`;
+                                    } else {
+                                        form.tanggal_lahir = '';
+                                    }
+                                }"
+                                dateFormat="yy-mm-dd"
+                                showIcon
+                                class="w-full flex h-10 border-input bg-background"
+                            />
                             <InputError :message="form.errors.tanggal_lahir" />
                         </div>
                         <div class="space-y-1.5">

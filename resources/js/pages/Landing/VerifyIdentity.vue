@@ -1,5 +1,6 @@
 <script setup>
-import { useForm } from '@inertiajs/vue3'
+import { useForm } from '@inertiajs/vue3';
+import DatePicker from 'primevue/datepicker';
 
 const props = defineProps({
     mahasiswa_id: Number,
@@ -43,12 +44,23 @@ const submit = () => {
 
                 <div>
                     <label for="tanggal_lahir" class="block text-sm font-medium text-gray-700 mb-1.5">Tanggal Lahir</label>
-                    <input
+                    <DatePicker
                         id="tanggal_lahir"
-                        v-model="form.tanggal_lahir"
-                        type="date"
-                        required
-                        class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                        :model-value="form.tanggal_lahir ? new Date(form.tanggal_lahir) : null"
+                        @update:model-value="(val) => {
+                            if (val && val instanceof Date) {
+                                // Format to YYYY-MM-DD ignoring timezone shifts
+                                const year = val.getFullYear();
+                                const month = String(val.getMonth() + 1).padStart(2, '0');
+                                const day = String(val.getDate()).padStart(2, '0');
+                                form.tanggal_lahir = `${year}-${month}-${day}`;
+                            } else {
+                                form.tanggal_lahir = '';
+                            }
+                        }"
+                        dateFormat="yy-mm-dd"
+                        showIcon
+                        class="w-full"
                     />
                 </div>
 

@@ -8,6 +8,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import DatePicker from 'primevue/datepicker';
 import { ArrowLeft, Users, BookOpen, Clock, GraduationCap, CalendarDays } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
@@ -93,7 +94,7 @@ const submitJadwal = () => {
     <Head :title="`Detail Kelas - ${kelasKuliah.nama_kelas_kuliah}`" />
 
     
-        <div class="flex h-full flex-1 flex-col pb-10 w-full max-w-7xl mx-auto">
+        <div class="flex h-full flex-1 flex-col pb-10 w-full max-w-full mx-auto">
             
             <!-- Modern Header Section -->
             <div class="bg-linear-to-r from-slate-900 to-indigo-900 text-white px-6 py-10 lg:px-10 lg:py-12 rounded-b-3xl sm:rounded-b-[3rem] shadow-lg mb-8 relative overflow-hidden">
@@ -191,10 +192,22 @@ const submitJadwal = () => {
                         <form @submit.prevent="submitJadwal" class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
                             <div class="space-y-2">
                                 <Label for="tanggal_uts">Tanggal UTS</Label>
-                                <Input 
+                                <DatePicker
                                     id="tanggal_uts" 
-                                    type="date" 
-                                    v-model="formJadwal.tanggal_uts"
+                                    :model-value="formJadwal.tanggal_uts ? new Date(formJadwal.tanggal_uts) : null"
+                                    @update:model-value="(val) => {
+                                        if (val && val instanceof Date) {
+                                            const year = val.getFullYear();
+                                            const month = String(val.getMonth() + 1).padStart(2, '0');
+                                            const day = String(val.getDate()).padStart(2, '0');
+                                            formJadwal.tanggal_uts = `${year}-${month}-${day}`;
+                                        } else {
+                                            formJadwal.tanggal_uts = '';
+                                        }
+                                    }"
+                                    dateFormat="yy-mm-dd"
+                                    showIcon
+                                    class="w-full flex h-10 border-input bg-background"
                                     :class="{ 'border-red-500': formJadwal.errors.tanggal_uts }"
                                 />
                                 <p v-if="formJadwal.errors.tanggal_uts" class="text-xs text-red-500">{{ formJadwal.errors.tanggal_uts }}</p>
@@ -202,10 +215,22 @@ const submitJadwal = () => {
                             
                             <div class="space-y-2">
                                 <Label for="tanggal_uas">Tanggal UAS</Label>
-                                <Input 
+                                <DatePicker
                                     id="tanggal_uas" 
-                                    type="date" 
-                                    v-model="formJadwal.tanggal_uas"
+                                    :model-value="formJadwal.tanggal_uas ? new Date(formJadwal.tanggal_uas) : null"
+                                    @update:model-value="(val) => {
+                                        if (val && val instanceof Date) {
+                                            const year = val.getFullYear();
+                                            const month = String(val.getMonth() + 1).padStart(2, '0');
+                                            const day = String(val.getDate()).padStart(2, '0');
+                                            formJadwal.tanggal_uas = `${year}-${month}-${day}`;
+                                        } else {
+                                            formJadwal.tanggal_uas = '';
+                                        }
+                                    }"
+                                    dateFormat="yy-mm-dd"
+                                    showIcon
+                                    class="w-full flex h-10 border-input bg-background"
                                     :class="{ 'border-red-500': formJadwal.errors.tanggal_uas }"
                                 />
                                 <p v-if="formJadwal.errors.tanggal_uas" class="text-xs text-red-500">{{ formJadwal.errors.tanggal_uas }}</p>

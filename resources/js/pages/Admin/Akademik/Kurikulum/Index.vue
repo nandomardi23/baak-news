@@ -57,7 +57,7 @@ const columns = [
     <Head title="Kurikulum" />
 
     
-        <div class="flex h-full flex-1 flex-col gap-8 p-6 w-full max-w-7xl mx-auto lg:p-10">
+        <div class="flex h-full flex-1 flex-col gap-8 p-6 w-full max-w-full mx-auto lg:p-10">
             
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
