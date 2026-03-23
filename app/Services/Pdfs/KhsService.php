@@ -210,7 +210,7 @@ class KhsService extends BasePdfService
         if ($this->GetY() + 45 > $this->PageBreakTrigger) {
             $this->AddPage();
             $this->useBackgroundTemplate('khs');
-            $this->SetY(41);
+            $this->SetY(60);
         }
 
         $yCurrent = $this->GetY();

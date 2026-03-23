@@ -212,10 +212,10 @@ class KrsService extends BasePdfService
         $this->Ln(10);
 
         // Signatures Section
-        if ($this->GetY() + 40 > $this->PageBreakTrigger) {
+        if ($this->GetY() + 35 > $this->PageBreakTrigger) {
             $this->AddPage();
             $this->useBackgroundTemplate('krs');
-            $this->SetY(45);
+            $this->SetY(60);
         }
 
         $ySign = $this->GetY();
