@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -70,7 +71,10 @@ const saveDosenWali = () => {
 </script>
 
 <template>
-    <Head :title="`Dokumen - ${mahasiswa.nama}`" />
+    <SeoHead 
+        :title="`Portal Dokumen | ${mahasiswa.nama}`" 
+        :description="`Portal cetak KRS, KHS, Transkrip dan pengajuan surat keterangan untuk ${mahasiswa.nama}.`"
+    />
 
     <LandingLayout variant="simple">
         <div class="max-w-5xl mx-auto py-8 px-4 sm:py-12">

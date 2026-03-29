@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 
 interface KalenderItem {
     id: number;
@@ -46,7 +47,10 @@ const groupedByMonth = computed(() => {
 </script>
 
 <template>
-    <Head title="Kalender Akademik" />
+    <SeoHead 
+        title="Kalender Akademik - BAAK STIKES Hang Tuah" 
+        description="Jadwal kalender akademik lengkap STIKES Hang Tuah Tanjungpinang."
+    />
 
     <LandingLayout variant="simple">
         <main class="max-w-6xl mx-auto px-4 py-8">

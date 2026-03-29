@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 
 interface Mahasiswa {
     id: number;
@@ -17,7 +18,10 @@ defineProps<{
 </script>
 
 <template>
-    <Head :title="`Hasil Pencarian: ${search}`" />
+    <SeoHead 
+        :title="`Hasil Pencarian: ${search} - BAAK STIKES Hang Tuah`" 
+        :description="`Menampilkan hasil pencarian data mahasiswa untuk query '${search}'.`"
+    />
 
     <LandingLayout variant="simple">
         <div class="w-full mx-auto py-8 px-4 sm:py-12">

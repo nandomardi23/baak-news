@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 
 interface Prodi {
     id: number;
@@ -22,7 +23,10 @@ const handleSearch = () => {
 </script>
 
 <template>
-    <Head title="BAAK - STIKES Hang Tuah Tanjungpinang" />
+    <SeoHead 
+        title="BAAK - STIKES Hang Tuah Tanjungpinang" 
+        description="Layanan pengajuan surat dan dokumen akademik secara digital untuk mempermudah kebutuhan administrasi mahasiswa STIKES Hang Tuah Tanjungpinang."
+    />
 
     <LandingLayout variant="full" :show-background="true" :show-footer="true">
         <!-- Hero Section -->

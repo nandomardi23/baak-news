@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Link, useForm } from '@inertiajs/vue3';
 import { computed, ref, onMounted, watch } from 'vue';
 import axios from 'axios';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 import DatePicker from 'primevue/datepicker';
 
 interface Mahasiswa {
@@ -335,7 +336,10 @@ const submit = () => {
 </script>
 
 <template>
-    <Head :title="pageTitle" />
+    <SeoHead 
+        :title="`${pageTitle} | ${mahasiswa.nama}`" 
+        :description="`Isi formulir pengajuan surat keterangan dan dokumen akademik lainnya untuk ${mahasiswa.nama}.`"
+    />
 
     <LandingLayout variant="simple">
         <div class="w-full mx-auto py-8 px-4 sm:py-12">

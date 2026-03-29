@@ -39,6 +39,24 @@ Route::middleware(['verify.mahasiswa'])->group(function () {
 // Kalender Akademik (Public)
 Route::get('/kalender-akademik', [LandingController::class, 'kalender'])->name('landing.kalender');
 
+// Sitemap (Public)
+Route::get('/sitemap.xml', function () {
+    $content = '<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+        <loc>' . url('/') . '</loc>
+        <changefreq>daily</changefreq>
+        <priority>1.0</priority>
+    </url>
+    <url>
+        <loc>' . url('/kalender-akademik') . '</loc>
+        <changefreq>weekly</changefreq>
+        <priority>0.8</priority>
+    </url>
+</urlset>';
+    return response($content)->header('Content-Type', 'text/xml');
+});
+
 // Auth routes
 Route::get('dashboard', function () {
     return redirect()->route('admin.dashboard');

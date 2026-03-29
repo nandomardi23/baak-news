@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
 
 interface Mahasiswa {
@@ -30,7 +31,10 @@ const { getBadgeClass } = useStatusBadge();
 </script>
 
 <template>
-    <Head title="Status Pengajuan" />
+    <SeoHead 
+        :title="`Status Pengajuan | ${mahasiswa.nama}`" 
+        :description="`Lacak status pengajuan dokumen akademik untuk ${mahasiswa.nama} secara real-time.`"
+    />
 
     <LandingLayout variant="simple">
         <div class="max-w-4xl mx-auto py-12 px-4">

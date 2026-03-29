@@ -32,9 +32,9 @@ const isMobileMenuOpen = ref(false);
                     <!-- Logo -->
                     <component :is="variant === 'simple' ? Link : 'div'" :href="variant === 'simple' ? '/' : undefined"
                         class="flex items-center gap-3" :class="variant === 'simple' ? 'group' : ''">
-                        <div class="w-10 h-10 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/20 text-white"
-                            :class="variant === 'simple' ? 'bg-linear-to-br from-blue-600 to-indigo-600 rounded-xl group-hover:shadow-blue-500/40 transition' : 'bg-blue-600'">
-                            <svg :class="variant === 'simple' ? 'w-5 h-5' : 'w-6 h-6'" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                        <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-lg shadow-blue-500/20"
+                            :class="variant === 'simple' ? 'rounded-xl group-hover:shadow-blue-500/40 transition' : ''">
+                            <img src="/images/logo.gif" alt="Logo" class="w-full h-full object-contain" />
                         </div>
                         <component :is="variant === 'simple' ? 'span' : 'h1'"
                             class="font-bold bg-clip-text text-transparent bg-linear-to-r"
@@ -127,8 +127,8 @@ const isMobileMenuOpen = ref(false);
                 <div class="grid md:grid-cols-4 gap-12 mb-12">
                     <div class="col-span-2">
                         <div class="flex items-center gap-3 mb-6">
-                            <div class="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center text-white">
-                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                            <div class="w-8 h-8 rounded-md flex items-center justify-center overflow-hidden">
+                                <img src="/images/logo.gif" alt="Logo" class="w-full h-full object-contain" />
                             </div>
                             <h2 class="text-xl font-bold text-white">SHT-BAAK</h2>
                         </div>
