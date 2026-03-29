@@ -157,8 +157,10 @@ class SuratPengajuan extends Model
             ->whereNotNull('nomor_surat')
             ->count() + 1;
         
-        // Format: /I/2026
-        return '/' . $month . '/' . $year;
+        $number = str_pad($count, 3, '0', STR_PAD_LEFT);
+        
+        // Format: 001/BAAK/III/2026
+        return $number . '/BAAK/' . $month . '/' . $year;
     }
 
     /**

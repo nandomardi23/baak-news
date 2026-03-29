@@ -113,24 +113,23 @@ class DashboardController extends Controller
 
     private function getIpkDistribution(): array
     {
-        $ranges = [
-            '3.50 - 4.00' => [3.50, 4.00],
-            '3.00 - 3.49' => [3.00, 3.49],
-            '2.50 - 2.99' => [2.50, 2.99],
-            '2.00 - 2.49' => [2.00, 2.49],
-            '< 2.00' => [0, 1.99],
-        ];
+        $result = Mahasiswa::active()
+            ->selectRaw("
+                SUM(CASE WHEN ipk >= 3.50 AND ipk <= 4.00 THEN 1 ELSE 0 END) as range_350_400,
+                SUM(CASE WHEN ipk >= 3.00 AND ipk < 3.50 THEN 1 ELSE 0 END) as range_300_349,
+                SUM(CASE WHEN ipk >= 2.50 AND ipk < 3.00 THEN 1 ELSE 0 END) as range_250_299,
+                SUM(CASE WHEN ipk >= 2.00 AND ipk < 2.50 THEN 1 ELSE 0 END) as range_200_249,
+                SUM(CASE WHEN ipk >= 0 AND ipk < 2.00 THEN 1 ELSE 0 END) as range_000_199
+            ")
+            ->first();
 
-        $result = [];
-        foreach ($ranges as $label => [$min, $max]) {
-            $result[] = [
-                'range' => $label,
-                'total' => Mahasiswa::active()
-                    ->whereBetween('ipk', [$min, $max])
-                    ->count(),
-            ];
-        }
-        return $result;
+        return [
+            ['range' => '3.50 - 4.00', 'total' => (int) ($result->range_350_400 ?? 0)],
+            ['range' => '3.00 - 3.49', 'total' => (int) ($result->range_300_349 ?? 0)],
+            ['range' => '2.50 - 2.99', 'total' => (int) ($result->range_250_299 ?? 0)],
+            ['range' => '2.00 - 2.49', 'total' => (int) ($result->range_200_249 ?? 0)],
+            ['range' => '< 2.00', 'total' => (int) ($result->range_000_199 ?? 0)],
+        ];
     }
 
     private function getMonthlyPengajuan()

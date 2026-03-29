@@ -138,7 +138,7 @@ const getInitials = (name: string) => {
         .slice(0, 2);
 };
 
-const fileInputRef = ref<HTMLInputElement | null>(null);
+const fileInputRef = ref<InstanceType<typeof Input> | null>(null);
 
 const resetForm = () => {
     form.clearErrors();
@@ -158,25 +158,11 @@ const resetForm = () => {
         dosen_id: null,
     });
     form.reset();
-    form.nama = '';
-    form.nip = '';
-    form.nidn = '';
-    form.nik = '';
-    form.jabatan = '';
-    form.gelar_depan = '';
-    form.gelar_belakang = '';
-    form.pangkat_golongan = '';
-    form.periode_awal = '';
-    form.periode_akhir = '';
-    form.tandatangan = null;
-    form.is_active = true;
-    form.dosen_id = null;
 
     if (fileInputRef.value) {
-        // Clear the file input using its native element
-        const input = fileInputRef.value.$el || fileInputRef.value;
-        if (input && typeof input.value !== 'undefined') {
-            input.value = '';
+        const el = (fileInputRef.value as any).$el as HTMLInputElement | undefined;
+        if (el) {
+            el.value = '';
         }
     }
 };
@@ -319,7 +305,7 @@ const handleFileChange = (event: Event) => {
                             <TableCell>
                                 <div class="flex flex-col font-mono text-xs text-slate-600 gap-1">
                                     <span v-if="item.nip" class="flex items-center gap-1.5">
-                                        <span class="text-slate-400 w-8">NIK</span>
+                                        <span class="text-slate-400 w-8">NIP</span>
                                         <span>{{ item.nip }}</span>
                                     </span>
                                     <span v-if="item.nidn" class="flex items-center gap-1.5">

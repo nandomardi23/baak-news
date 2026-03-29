@@ -427,7 +427,7 @@ const submit = () => {
                     <!-- Jenis Surat Card Selection -->
                     <div>
                         <label class="block text-slate-700 font-bold mb-3">Jenis Surat <span class="text-red-500">*</span></label>
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="flex flex-wrap gap-3">
                             <label v-for="opt in jenisSuratOptions" :key="opt.value"
                                 :class="[form.jenis_surat === opt.value ? 'ring-2 ring-blue-500 border-blue-200 bg-blue-50/50' : 'hover:border-slate-300 hover:bg-slate-50']"
                                 class="cursor-pointer p-4 rounded-xl border-2 border-slate-200 transition-all">

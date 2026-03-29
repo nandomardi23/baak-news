@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSuratPengajuanRequest;
+use App\Models\Dosen;
 use App\Models\KalenderAkademik;
 use App\Models\Mahasiswa;
 use App\Models\Pejabat;
@@ -262,7 +263,7 @@ class LandingController extends Controller
             'semesters' => $allSemesters,
             'existingPending' => $existingPending,
             'recentPengajuan' => $recentPengajuan,
-            'dosens' => \App\Models\Dosen::active()->orderBy('nama')->get()->map(fn($d) => [
+            'dosens' => Dosen::active()->orderBy('nama')->get()->map(fn($d) => [
                 'id' => (string) $d->id,
                 'nama' => $d->nama_lengkap
             ]),
@@ -389,6 +390,7 @@ class LandingController extends Controller
             $mahasiswa->tanggal_lahir->format('Y-m-d') === $request->tanggal_lahir
         ) {
             $request->session()->put('verified_mahasiswa_id', $mahasiswa->id);
+            $request->session()->put('verified_mahasiswa_at', now());
             return redirect()->route('landing.dokumen', $mahasiswa->id);
         }
 

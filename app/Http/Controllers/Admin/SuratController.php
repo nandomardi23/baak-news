@@ -232,9 +232,6 @@ class SuratController extends Controller
     /**
      * Bulk approve multiple surat
      */
-    /**
-     * Bulk approve multiple surat
-     */
     public function bulkApprove(Request $request): RedirectResponse
     {
         $request->validate([
