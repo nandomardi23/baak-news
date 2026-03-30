@@ -24,8 +24,8 @@ const showPassword = ref(false);
 
 <template>
     <AuthBase
-        title="Log in to your account"
-        description="Enter your email and password below to log in"
+        title="Sign In"
+        description="Enter your email and password to sign in!"
     >
         <Head title="Log in" />
 
@@ -41,10 +41,11 @@ const showPassword = ref(false);
             :reset-on-success="['password']"
             v-slot="{ errors, processing }"
             class="flex flex-col gap-6"
+            novalidate
         >
             <div class="grid gap-6">
                 <div class="grid gap-2">
-                    <Label for="email">Email address</Label>
+                    <Label for="email" class="text-sm font-semibold text-slate-700">Email<span class="text-blue-600 ml-1">*</span></Label>
                     <Input
                         id="email"
                         type="email"
@@ -53,23 +54,14 @@ const showPassword = ref(false);
                         autofocus
                         :tabindex="1"
                         autocomplete="email"
-                        placeholder="email@example.com"
+                        placeholder="info@gmail.com"
+                        class="h-12 rounded-xl border-slate-200 bg-slate-50/50 px-4 text-base focus-visible:ring-4 focus-visible:ring-blue-500/10 focus-visible:border-blue-600 transition-all"
                     />
                     <InputError :message="errors.email" />
                 </div>
 
                 <div class="grid gap-2">
-                    <div class="flex items-center justify-between">
-                        <Label for="password">Password</Label>
-                        <TextLink
-                            v-if="canResetPassword"
-                            :href="request()"
-                            class="text-sm"
-                            :tabindex="5"
-                        >
-                            Forgot password?
-                        </TextLink>
-                    </div>
+                    <Label for="password" class="text-sm font-semibold text-slate-700">Password<span class="text-blue-600 ml-1">*</span></Label>
                     <div class="relative">
                         <Input
                             id="password"
@@ -78,13 +70,13 @@ const showPassword = ref(false);
                             required
                             :tabindex="2"
                             autocomplete="current-password"
-                            placeholder="Password"
-                            class="pr-10"
+                            placeholder="Enter your password"
+                            class="h-12 rounded-xl border-slate-200 bg-slate-50/50 px-4 pr-11 text-base focus-visible:ring-4 focus-visible:ring-blue-500/10 focus-visible:border-blue-600 transition-all"
                         />
                         <button 
                             type="button"
                             @click="showPassword = !showPassword"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 focus:outline-none transition-colors"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 focus:outline-none transition-all rounded-lg"
                             tabindex="-1"
                         >
                             <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -100,30 +92,38 @@ const showPassword = ref(false);
                 </div>
 
                 <div class="flex items-center justify-between">
-                    <Label for="remember" class="flex items-center space-x-3">
+                    <Label for="remember" class="flex items-center space-x-3 text-sm text-slate-600 font-normal">
                         <Checkbox id="remember" name="remember" :tabindex="3" />
-                        <span>Remember me</span>
+                        <span>Keep me logged in</span>
                     </Label>
+                    <TextLink
+                        v-if="canResetPassword"
+                        :href="request()"
+                        class="text-sm text-blue-600 font-medium"
+                        :tabindex="5"
+                    >
+                        Forgot password?
+                    </TextLink>
                 </div>
 
                 <Button
                     type="submit"
-                    class="mt-4 w-full"
+                    class="mt-6 w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700 text-white rounded-xl shadow-md hover:shadow-lg transition-all"
                     :tabindex="4"
                     :disabled="processing"
                     data-test="login-button"
                 >
                     <Spinner v-if="processing" />
-                    Log in
+                    Sign In
                 </Button>
             </div>
 
             <div
-                class="text-center text-sm text-muted-foreground"
+                class="text-left text-sm text-slate-600 font-medium"
                 v-if="canRegister"
             >
                 Don't have an account?
-                <TextLink :href="register()" :tabindex="5">Sign up</TextLink>
+                <TextLink :href="register()" :tabindex="5" class="text-blue-600 font-medium">Sign Up</TextLink>
             </div>
         </Form>
     </AuthBase>
