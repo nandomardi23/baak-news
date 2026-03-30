@@ -27,7 +27,8 @@ class MahasiswaController extends Controller
         $query = Mahasiswa::query()
             ->select('mahasiswa.*')
             ->leftJoin('program_studi', 'mahasiswa.program_studi_id', '=', 'program_studi.id')
-            ->with('programStudi');
+            ->with('programStudi')
+            ->withCount(['krs', 'nilai', 'suratPengajuan']);
 
         if ($request->filled('prodi')) {
             $query->where('mahasiswa.program_studi_id', $request->prodi);
@@ -63,6 +64,9 @@ class MahasiswaController extends Controller
             'angkatan' => $item->angkatan,
             'status' => $item->status_text,
             'ipk' => $item->ipk !== null ? (float) $item->ipk : null,
+            'krs_count' => $item->krs_count ?? 0,
+            'nilai_count' => $item->nilai_count ?? 0,
+            'surat_pengajuan_count' => $item->surat_pengajuan_count ?? 0,
         ]);
 
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);

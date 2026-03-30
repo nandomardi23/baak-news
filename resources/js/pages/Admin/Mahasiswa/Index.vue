@@ -12,6 +12,7 @@ import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Eye, FileDown, Plus, Pencil, Trash2 } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import Swal from 'sweetalert2';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
 
 interface Mahasiswa {
@@ -22,6 +23,9 @@ interface Mahasiswa {
     angkatan: string;
     status: string;
     ipk: number | null;
+    krs_count?: number;
+    nilai_count?: number;
+    surat_pengajuan_count?: number;
 }
 
 const props = defineProps<{
@@ -113,10 +117,30 @@ const activeFilterChips = computed(() => {
     return chips;
 });
 
-const deleteMahasiswa = (id: number, nama: string) => {
-    if (confirm(`Apakah Anda yakin ingin menghapus data mahasiswa ${nama}?\nPeringatan: Menghapus mahasiswa ini juga akan menghapus data KRS, nilai, dan dokumen terkait.`)) {
-        router.delete(`/admin/mahasiswa/${id}`);
+const deleteMahasiswa = (row: Mahasiswa) => {
+    let warningText = `Apakah Anda yakin ingin menghapus data mahasiswa ${row.nama}?`;
+    let iconType: 'warning' | 'error' = 'warning';
+
+    if (row.krs_count || row.nilai_count || row.surat_pengajuan_count) {
+        warningText = `PERINGATAN: Mahasiswa ${row.nama} memiliki ${row.krs_count || 0} KRS, ${row.nilai_count || 0} Nilai, dan ${row.surat_pengajuan_count || 0} Riwayat Surat. Menghapus data ini BERISIKO KEHILANGAN semua riwayat akademiknya selamanya!`;
+        iconType = 'error';
     }
+
+    Swal.fire({
+        title: 'Konfirmasi Hapus',
+        text: warningText,
+        icon: iconType,
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/mahasiswa/${row.id}`);
+        }
+    });
 };
 </script>
 
@@ -233,7 +257,7 @@ const deleteMahasiswa = (id: number, nama: string) => {
                             size="icon"
                             class="text-slate-500 hover:text-red-600 hover:bg-slate-50 h-8 w-8"
                             title="Hapus"
-                            @click="deleteMahasiswa(row.id, row.nama)"
+                            @click="deleteMahasiswa(row)"
                         >
                             <Trash2 class="w-4 h-4" />
                         </Button>

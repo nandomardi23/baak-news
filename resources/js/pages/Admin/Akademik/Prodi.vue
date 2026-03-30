@@ -43,6 +43,8 @@ interface Prodi {
     pejabat?: { id: number, nama: string, jabatan: string } | null;
     is_active: boolean;
     created_at?: string;
+    mahasiswa_count?: number;
+    mata_kuliah_count?: number;
 }
 
 const props = defineProps<{
@@ -100,10 +102,18 @@ const openEdit = (item: Prodi) => {
 };
 
 const openDelete = (item: Prodi) => {
+    let warningText = 'Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.';
+    let iconType: 'warning' | 'error' = 'warning';
+    
+    if (item.mahasiswa_count || item.mata_kuliah_count) {
+        warningText = `PERINGATAN: Terdapat ${item.mahasiswa_count || 0} Mahasiswa dan ${item.mata_kuliah_count || 0} Mata Kuliah yang terkait dengan program studi ini. Penghapusan ini BERISIKO KEHILANGAN DATA berantai pada tabel-tabel anak selamanya!`;
+        iconType = 'error';
+    }
+
     Swal.fire({
         title: 'Apakah anda yakin?',
-        text: 'Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.',
-        icon: 'warning',
+        text: warningText,
+        icon: iconType,
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#64748b',

@@ -54,6 +54,7 @@ interface Dosen {
     status_aktif: string | null;
     prodi: string | null;
     program_studi_id?: number; 
+    kelas_mengajar_count?: number;
 }
 
 const props = defineProps<{
@@ -399,7 +400,10 @@ const activeFilterChips = computed(() => {
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription v-if="selectedItem?.kelas_mengajar_count" class="text-red-600 font-medium font-sans">
+                        PERINGATAN: Dosen ini tercatat mengajar pada {{ selectedItem.kelas_mengajar_count }} Kelas Kuliah. Menghapus data ini akan me-*reset* (menghapus) data dosen pengajar pada kelas tersebut selamanya!
+                    </AlertDialogDescription>
+                    <AlertDialogDescription v-else>
                         Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

@@ -16,7 +16,7 @@ class MataKuliahController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = MataKuliah::with('programStudi');
+        $query = MataKuliah::with('programStudi')->withCount(['krsDetail', 'nilai']);
 
         if ($request->filled('prodi')) {
             $query->where('id_prodi', $request->prodi);
@@ -49,6 +49,8 @@ class MataKuliahController extends Controller
                 'sks_praktek' => $mk->sks_praktek,
                 'prodi' => $mk->programStudi?->nama_prodi,
                 'id_prodi' => $mk->id_prodi, // needed for edit
+                'krs_detail_count' => $mk->krs_detail_count ?? 0,
+                'nilai_count' => $mk->nilai_count ?? 0,
             ]);
 
         $prodiList = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'id_prodi', 'nama_prodi']);

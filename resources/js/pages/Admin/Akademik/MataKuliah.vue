@@ -48,6 +48,8 @@ interface MataKuliah {
     sks_praktek: number | null;
     prodi: string | null;
     id_prodi: string | null;
+    krs_detail_count?: number;
+    nilai_count?: number;
 }
 
 interface Prodi {
@@ -297,7 +299,10 @@ const submitDelete = () => {
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription v-if="selectedItem?.krs_detail_count || selectedItem?.nilai_count" class="text-red-600 font-medium font-sans">
+                        PERINGATAN: Terdapat {{ selectedItem.krs_detail_count || 0 }} KRS Mahasiswa dan {{ selectedItem.nilai_count || 0 }} Nilai Ujian yang terkait dengan mata kuliah ini. Menghapus akan mereset/menghapus semua data studi mahasiswa tersebut selamanya!
+                    </AlertDialogDescription>
+                    <AlertDialogDescription v-else>
                         Tindakan ini tidak dapat dibatalkan. Data mata kuliah ini akan dihapus permanen.
                     </AlertDialogDescription>
                 </AlertDialogHeader>

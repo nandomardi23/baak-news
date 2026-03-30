@@ -18,7 +18,7 @@ class ProdiController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = ProgramStudi::with('pejabat');
+        $query = ProgramStudi::with('pejabat')->withCount(['mahasiswa', 'mataKuliah']);
 
         $prodiList = $this->applyDataTable($query, $request, [
             'kode_prodi',

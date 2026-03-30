@@ -13,7 +13,7 @@ class DosenController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Dosen::with('programStudi');
+        $query = Dosen::with('programStudi')->withCount(['kelasMengajar']);
 
         // Search
         if ($search = $request->input('search')) {
@@ -53,6 +53,7 @@ class DosenController extends Controller
                 'status_aktif' => $item->status_aktif,
                 'prodi' => $item->programStudi?->nama_prodi,
                 'program_studi_id' => $item->program_studi_id,
+                'kelas_mengajar_count' => $item->kelas_mengajar_count ?? 0,
             ]);
 
         return Inertia::render('Admin/Dosen/Index', [

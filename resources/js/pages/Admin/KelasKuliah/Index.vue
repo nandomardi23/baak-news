@@ -38,6 +38,7 @@ interface KelasKuliah {
     semester: string | null;
     program_studi_id?: number;
     tahun_akademik_id?: number;
+    dosen_pengajar?: any[];
 }
 
 const props = defineProps<{
@@ -213,7 +214,10 @@ const activeFilterChips = computed(() => {
             <AlertDialogContent>
                 <AlertDialogHeader>
                     <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription>
+                    <AlertDialogDescription v-if="(selectedItem?.peserta ?? 0) > 0 || (selectedItem?.dosen_pengajar?.length ?? 0) > 0" class="text-red-600 font-medium font-sans">
+                        PERINGATAN: Kelas ini memiliki {{ selectedItem?.peserta || 0 }} Peserta Mahasiswa dan {{ selectedItem?.dosen_pengajar?.length || 0 }} Dosen Pengajar. Menghapus data kelas ini akan mereset KRS/Jadwal secara berantai selamanya!
+                    </AlertDialogDescription>
+                    <AlertDialogDescription v-else>
                         Tindakan ini tidak dapat dibatalkan. Data kelas kuliah "{{ selectedItem?.nama_kelas_kuliah }}" akan dihapus permanen dari sistem.
                     </AlertDialogDescription>
                 </AlertDialogHeader>
