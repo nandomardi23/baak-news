@@ -8,7 +8,7 @@ import { initializeTheme } from './composables/useAppearance';
 import { ZiggyVue } from 'ziggy-js';
 import { route } from 'ziggy-js';
 import PrimeVue from 'primevue/config';
-import Aura from '@primevue/themes/aura';
+import Aura from '@primeuix/themes/aura';
 
 import type { DefineComponent } from 'vue';
 
