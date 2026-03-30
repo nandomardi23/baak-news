@@ -9,7 +9,7 @@ import AppLogoIcon from '@/components/AppLogoIcon.vue';
         <AppLogoIcon class="h-full w-full object-contain" />
     </div>
     <div class="ml-3 grid flex-1 text-left leading-tight">
-        <span class="font-bold text-slate-800 text-base">BAAK News</span>
+        <span class="font-bold text-slate-800 text-base">BAAK</span>
         <span class="text-xs text-slate-500 font-medium tracking-wide">Administrator</span>
     </div>
 </template>

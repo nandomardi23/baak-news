@@ -13,7 +13,7 @@ class GeneralSettingsController extends Controller
     {
         return Inertia::render('Admin/Settings/General', [
             'settings' => [
-                'app_name' => Setting::getValue('app_name', 'BAAK News'),
+                'app_name' => Setting::getValue('app_name', 'BAAK'),
                 'app_description' => Setting::getValue('app_description', 'Sistem Informasi Akademik'),
                 'institute_name' => Setting::getValue('institute_name', 'STIKES Hang Tuah'),
                 'institute_abbreviation' => Setting::getValue('institute_abbreviation', 'STIKES-HT'),
