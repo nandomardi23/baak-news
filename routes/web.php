@@ -20,6 +20,9 @@ Route::get('/pengajuan/{mahasiswa}', [LandingController::class, 'form'])->name('
 Route::post('/pengajuan/{mahasiswa}', [LandingController::class, 'submit'])->name('landing.submit')->middleware('throttle:5,1');
 Route::get('/status/{mahasiswa}', [LandingController::class, 'status'])->name('landing.status');
 
+// Download Dokumen Template (Public)
+Route::get('/dokumen-template/{dokumen_template}/download', [LandingController::class, 'downloadDokumenTemplate'])->name('landing.dokumen-template.download');
+
 // Identity Verification for Documents (Public)
 Route::get('/dokumen/{mahasiswa}/verify', [LandingController::class, 'showVerify'])->name('landing.verify');
 Route::post('/dokumen/{mahasiswa}/verify', [LandingController::class, 'processVerify'])->name('landing.verify.process')->middleware('throttle:5,1');
@@ -109,6 +112,9 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     Route::post('role/import-neo', [\App\Http\Controllers\Admin\RoleController::class, 'importNeo'])->name('role.import-neo')->middleware('role:admin|staff_baak');
     Route::resource('role', \App\Http\Controllers\Admin\RoleController::class)->middleware('role:admin|staff_baak');
     Route::get('logs', [\App\Http\Controllers\Admin\ActivityLogController::class, 'index'])->middleware('role:admin')->name('logs.index');
+
+    // Dokumen Template Management
+    Route::resource('dokumen-template', \App\Http\Controllers\Admin\DokumenTemplateController::class)->except(['create', 'show', 'edit']);
 
     // Template Surat (Admin only)
     Route::middleware('role:admin')->group(function () {

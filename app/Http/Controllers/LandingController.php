@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreSuratPengajuanRequest;
+use App\Models\DokumenTemplate;
 use App\Models\Dosen;
 use App\Models\KalenderAkademik;
 use App\Models\Mahasiswa;
@@ -13,18 +14,36 @@ use App\Models\TahunAkademik;
 use App\Traits\GeneratesPdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class LandingController extends Controller
 {
     use GeneratesPdf;
-    public function index(): Response
+    public function index(Request $request): Response
     {
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
+        
+        $templatesQuery = DokumenTemplate::query();
+
+        if ($request->filled('search_template')) {
+            $templatesQuery->where(function($q) use ($request) {
+                $q->where('nama', 'like', '%' . $request->search_template . '%')
+                  ->orWhere('deskripsi', 'like', '%' . $request->search_template . '%');
+            });
+        }
+
+        if ($request->filled('kategori') && $request->kategori !== 'all') {
+            $templatesQuery->where('kategori', $request->kategori);
+        }
+
+        $templates = $templatesQuery->orderBy('created_at', 'desc')->paginate(5)->withQueryString();
 
         return Inertia::render('Landing/Home', [
             'prodi' => $prodi,
+            'templates' => $templates,
+            'filters' => $request->only(['search_template', 'kategori']),
         ]);
     }
 
@@ -212,7 +231,24 @@ class LandingController extends Controller
      */
     public function dokumen(Mahasiswa $mahasiswa): Response
     {
-        $mahasiswa->load(['programStudi', 'krs.tahunAkademik', 'nilai.tahunAkademik', 'dosenWali']);
+        $mahasiswa->load(['programStudi', 'krs.tahunAkademik', 'nilai.tahunAkademik', 'nilai.mataKuliah', 'dosenWali']);
+
+        // Calculate actual SKS and IPK from grades
+        $totalSks = 0;
+        $totalBobot = 0;
+        foreach ($mahasiswa->nilai as $nilai) {
+            if ($mk = $nilai->mataKuliah) {
+                if ($nilai->nilai_huruf) {
+                    $bobot = $mk->sks_mata_kuliah * ($nilai->nilai_indeks ?? 0);
+                    $totalSks += $mk->sks_mata_kuliah;
+                    $totalBobot += $bobot;
+                }
+            }
+        }
+        
+        $calculatedIpk = $totalSks > 0 ? $totalBobot / $totalSks : 0;
+        $ipk = (float)($mahasiswa->ipk ?? 0) > 0 ? (float)$mahasiswa->ipk : $calculatedIpk;
+        $sks = ($mahasiswa->sks_tempuh ?? 0) > 0 ? $mahasiswa->sks_tempuh : $totalSks;
 
         // Get all semesters where student has KRS or Nilai
         $krsSemesters = $mahasiswa->krs->pluck('tahunAkademik')->filter()->unique('id');
@@ -255,8 +291,8 @@ class LandingController extends Controller
                 'nama' => $mahasiswa->nama,
                 'prodi' => $mahasiswa->programStudi?->nama_prodi,
                 'angkatan' => $mahasiswa->angkatan,
-                'ipk' => number_format((float) ($mahasiswa->ipk ?? 0), 2),
-                'sks_tempuh' => $mahasiswa->sks_tempuh ?? 0,
+                'ipk' => number_format($ipk, 2),
+                'sks_tempuh' => $sks,
                 'dosen_wali_id' => $mahasiswa->dosen_wali_id ? (string) $mahasiswa->dosen_wali_id : null,
                 'dosen_wali_nama' => $mahasiswa->dosenWali?->nama_lengkap ?? null,
             ],
@@ -397,6 +433,17 @@ class LandingController extends Controller
         return back()->withErrors([
             'identity' => 'NIM atau tanggal lahir tidak sesuai.',
         ]);
+    }
+
+    /**
+     * Download Document Template (Public)
+     */
+    public function downloadDokumenTemplate(DokumenTemplate $dokumen_template)
+    {
+        if ($dokumen_template->file_path && Storage::disk('public')->exists($dokumen_template->file_path)) {
+            return response()->download(storage_path('app/public/' . $dokumen_template->file_path), $dokumen_template->nama . '.' . $dokumen_template->file_type);
+        }
+        abort(404, 'File tidak ditemukan.');
     }
 
     // PDF generation is handled by the GeneratesPdf trait

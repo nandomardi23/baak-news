@@ -9,16 +9,36 @@ interface Prodi {
     nama_prodi: string;
 }
 
-defineProps<{
+interface DokumenTemplate {
+    id: number;
+    nama: string;
+    deskripsi: string | null;
+    kategori: string;
+    ukuran_format: string;
+    file_type: string;
+}
+
+const props = defineProps<{
     prodi: Prodi[];
+    templates?: any;
+    filters?: any;
 }>();
 
 const search = ref('');
+const searchTemplate = ref(props.filters?.search_template || '');
+const filterKategori = ref(props.filters?.kategori || 'all');
 
 const handleSearch = () => {
     if (search.value.length >= 3) {
         router.get('/search', { search: search.value });
     }
+};
+
+const handleFilterTemplates = () => {
+    router.get('/', {
+        search_template: searchTemplate.value,
+        kategori: filterKategori.value === 'all' ? null : filterKategori.value
+    }, { preserveState: true, preserveScroll: true });
 };
 </script>
 
@@ -92,44 +112,71 @@ const handleSearch = () => {
                     <h2 class="text-3xl font-bold text-slate-900 mt-2">Alur Pengajuan Surat</h2>
                 </div>
                 
-                <div class="grid md:grid-cols-4 gap-8 relative">
-                    <!-- Connector Line (Hidden on mobile) -->
-                    <div class="hidden md:block absolute top-10 left-0 right-0 h-0.5 bg-linear-to-r from-blue-100 via-blue-200 to-blue-100 -z-10"></div>
-                    
-                    <!-- Step 1 -->
-                    <div class="relative group">
-                        <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md border border-slate-100 group-hover:shadow-lg group-hover:scale-105 transition duration-300 relative z-10">
-                            <div class="w-16 h-16 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 text-xl font-bold border border-blue-100">1</div>
-                        </div>
-                        <h3 class="text-lg font-bold text-slate-900 text-center mb-3">Cari Data</h3>
-                        <p class="text-slate-500 text-sm text-center leading-relaxed">Cari data mahasiswa Anda menggunakan Nama atau NIM pada form pencarian.</p>
-                    </div>
+                <div class="relative max-w-7xl mx-auto py-10">
+                    <!-- Responsive horizontal/vertical connector line -->
+                    <div class="hidden lg:block absolute top-[85px] left-[8%] right-[8%] h-0.5 bg-linear-to-r from-blue-300 via-purple-300 to-emerald-300 -z-10 rounded-full"></div>
+                    <div class="hidden lg:block absolute top-[85px] left-[8%] right-[8%] h-2 bg-linear-to-r from-blue-500 via-purple-500 to-emerald-500 opacity-20 blur-sm -z-10 rounded-full"></div>
 
-                    <!-- Step 2 -->
-                    <div class="relative group">
-                        <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md border border-slate-100 group-hover:shadow-lg group-hover:scale-105 transition duration-300 relative z-10">
-                            <div class="w-16 h-16 bg-cyan-50 rounded-xl flex items-center justify-center text-cyan-600 text-xl font-bold border border-cyan-100">2</div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-6 lg:gap-4 relative z-0">
+                        <!-- Step 1 -->
+                        <div class="group relative flex flex-col items-center p-5 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-xl shadow-blue-900/5 hover:border-blue-400 hover:shadow-blue-500/10 transition-all duration-300 hover:-translate-y-2">
+                            <span class="absolute -top-3 px-3 py-1 rounded-full bg-linear-to-r from-blue-600 to-cyan-500 text-white text-[10px] font-bold tracking-wider shadow-md shadow-blue-500/30">LANGKAH 1</span>
+                            <div class="w-16 h-16 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mb-4 group-hover:bg-blue-600 group-hover:text-white transition-colors duration-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v11m0 5H4a2 2 0 01-2-2v-5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2zM15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 text-center mb-2">Cari Data</h3>
+                            <p class="text-slate-500 text-xs text-center leading-relaxed font-medium">Cari data mahasiswa Anda menggunakan nama atau NIM pada form pencarian.</p>
                         </div>
-                        <h3 class="text-lg font-bold text-slate-900 text-center mb-3">Isi Form</h3>
-                        <p class="text-slate-500 text-sm text-center leading-relaxed">Lengkapi formulir pengajuan surat keterangan atau dokumen akademik.</p>
-                    </div>
 
-                    <!-- Step 3 -->
-                    <div class="relative group">
-                        <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md border border-slate-100 group-hover:shadow-lg group-hover:scale-105 transition duration-300 relative z-10">
-                            <div class="w-16 h-16 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 text-xl font-bold border border-indigo-100">3</div>
+                        <!-- Step 2 -->
+                        <div class="group relative flex flex-col items-center p-5 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-xl shadow-cyan-900/5 hover:border-cyan-400 hover:shadow-cyan-500/10 transition-all duration-300 hover:-translate-y-2 lg:mt-6">
+                            <span class="absolute -top-3 px-3 py-1 rounded-full bg-linear-to-r from-cyan-600 to-teal-500 text-white text-[10px] font-bold tracking-wider shadow-md shadow-cyan-500/30">LANGKAH 2</span>
+                            <div class="w-16 h-16 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center mb-4 group-hover:bg-cyan-600 group-hover:text-white transition-colors duration-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 text-center mb-2">Isi Formulir</h3>
+                            <p class="text-slate-500 text-xs text-center leading-relaxed font-medium">Lengkapi formulir pengajuan surat keterangan atau dokumen akademik secara saksama.</p>
                         </div>
-                        <h3 class="text-lg font-bold text-slate-900 text-center mb-3">Proses</h3>
-                        <p class="text-slate-500 text-sm text-center leading-relaxed">Admin akan memvalidasi data dan memproses dokumen yang Anda ajukan.</p>
-                    </div>
 
-                    <!-- Step 4 -->
-                    <div class="relative group">
-                        <div class="w-20 h-20 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-md border border-slate-100 group-hover:shadow-lg group-hover:scale-105 transition duration-300 relative z-10">
-                            <div class="w-16 h-16 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600 text-xl font-bold border border-emerald-100">4</div>
+                        <!-- Step 3 -->
+                        <div class="group relative flex flex-col items-center p-5 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-xl shadow-indigo-900/5 hover:border-indigo-400 hover:shadow-indigo-500/10 transition-all duration-300 hover:-translate-y-2">
+                            <span class="absolute -top-3 px-3 py-1 rounded-full bg-linear-to-r from-indigo-600 to-blue-500 text-white text-[10px] font-bold tracking-wider shadow-md shadow-indigo-500/30">LANGKAH 3</span>
+                            <div class="w-16 h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mb-4 group-hover:bg-indigo-600 group-hover:text-white transition-colors duration-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 text-center mb-2">Validasi BAAK</h3>
+                            <p class="text-slate-500 text-xs text-center leading-relaxed font-medium">Data akan divalidasi oleh pihak BAAK dan tahap pemrosesan dokumen dimulai.</p>
                         </div>
-                        <h3 class="text-lg font-bold text-slate-900 text-center mb-3">Selesai</h3>
-                        <p class="text-slate-500 text-sm text-center leading-relaxed">Silakan ambil dokumen fisik di kantor BAAK setelah status selesai.</p>
+
+                        <!-- Step 4 -->
+                        <div class="group relative flex flex-col items-center p-5 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-xl shadow-violet-900/5 hover:border-violet-400 hover:shadow-violet-500/10 transition-all duration-300 hover:-translate-y-2 lg:mt-6">
+                            <span class="absolute -top-3 px-3 py-1 rounded-full bg-linear-to-r from-violet-600 to-purple-500 text-white text-[10px] font-bold tracking-wider shadow-md shadow-violet-500/30">LANGKAH 4</span>
+                            <div class="w-16 h-16 rounded-2xl bg-violet-50 text-violet-600 flex items-center justify-center mb-4 group-hover:bg-violet-600 group-hover:text-white transition-colors duration-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 text-center mb-2">Ambil Dokumen</h3>
+                            <p class="text-slate-500 text-xs text-center leading-relaxed font-medium">Setelah proses validasi selesai, ambil dokumen fisik Anda di ruangan BAAK.</p>
+                        </div>
+
+                        <!-- Step 5 -->
+                        <div class="group relative flex flex-col items-center p-5 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-xl shadow-purple-900/5 hover:border-purple-400 hover:shadow-purple-500/10 transition-all duration-300 hover:-translate-y-2">
+                            <span class="absolute -top-3 px-3 py-1 rounded-full bg-linear-to-r from-purple-600 to-pink-500 text-white text-[10px] font-bold tracking-wider shadow-md shadow-purple-500/30">LANGKAH 5</span>
+                            <div class="w-16 h-16 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center mb-4 group-hover:bg-purple-600 group-hover:text-white transition-colors duration-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 text-center mb-2">Tanda Tangan Prodi</h3>
+                            <p class="text-slate-500 text-xs text-center leading-relaxed font-medium">Mintalah pengesahan tanda tangan dari dosen program studi terkait pada dokumen.</p>
+                        </div>
+                        
+                        <!-- Step 6 -->
+                        <div class="group relative flex flex-col items-center p-5 bg-white/70 backdrop-blur-xl rounded-3xl border border-slate-200/60 shadow-xl shadow-emerald-900/5 hover:border-emerald-400 hover:shadow-emerald-500/10 transition-all duration-300 hover:-translate-y-2 lg:mt-6">
+                            <span class="absolute -top-3 px-3 py-1 rounded-full bg-linear-to-r from-emerald-600 to-teal-500 text-white text-[10px] font-bold tracking-wider shadow-md shadow-emerald-500/30">LANGKAH 6</span>
+                            <div class="w-16 h-16 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center mb-4 group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-500 shadow-inner">
+                                <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                            </div>
+                            <h3 class="text-sm font-bold text-slate-800 text-center mb-2">Pengesahan Pimpinan</h3>
+                            <p class="text-slate-500 text-xs text-center leading-relaxed font-medium">Ke sekretariat pimpinan untuk mendapat tanda tangan validasi akhir sampai selesai.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -177,8 +224,117 @@ const handleSearch = () => {
                             <svg class="w-7 h-7 text-amber-600 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
                         </div>
                         <h3 class="text-lg font-bold text-slate-900 mb-2 group-hover:text-amber-700 transition">Transkrip Nilai</h3>
-                        <p class="text-slate-500 text-sm">Rekapitulasi seluruh nilai akademik (Reguler & RPL).</p>
+                        <p class="text-slate-500 text-sm">Rekapitulasi seluruh nilai akademik mahasiswa.</p>
                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Template Dokumen Section -->
+        <section id="templates" class="py-24 px-4 bg-slate-50/80 border-t border-slate-100">
+            <div class="w-full mx-auto max-w-7xl">
+                <div class="text-center mb-16">
+                    <span class="text-blue-600 font-semibold tracking-wider text-sm uppercase">Unduhan</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-2">Template Dokumen</h2>
+                    <p class="text-slate-500 mt-2">Unduh template dokumen akademik yang Anda perlukan.</p>
+                </div>
+
+                <!-- Ada Template -->
+                <div v-if="templates && templates.data && templates.data.length > 0" class="overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm">
+                    <!-- Filters -->
+                    <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                        <div class="relative w-full sm:max-w-xs">
+                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                            <input type="text" v-model="searchTemplate" @keyup.enter="handleFilterTemplates" placeholder="Cari dokumen..." class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white" />
+                        </div>
+                        <div class="w-full sm:w-auto flex gap-2">
+                            <select v-model="filterKategori" @change="handleFilterTemplates" class="block w-full sm:w-48 pl-3 pr-10 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white appearance-none h-[38px] cursor-pointer">
+                                <option value="all">Semua Kategori</option>
+                                <option value="Skripsi">Skripsi</option>
+                                <option value="Tugas">Tugas</option>
+                                <option value="Absen Praktek">Absen Praktek</option>
+                                <option value="Laporan">Laporan</option>
+                                <option value="Administrasi">Administrasi</option>
+                                <option value="Lainnya">Lainnya</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse min-w-[800px]">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
+                                    <th class="px-6 py-4 font-semibold w-[15%]">Kategori</th>
+                                    <th class="px-6 py-4 font-semibold w-[55%]">Nama Dokumen</th>
+                                    <th class="px-6 py-4 font-semibold w-[15%] text-center">Format & Ukuran</th>
+                                    <th class="px-6 py-4 font-semibold w-[15%] text-center">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                <tr v-for="template in templates.data" :key="template.id" class="hover:bg-slate-50/50 transition-colors group">
+                                    <td class="px-6 py-5 align-top">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                            {{ template.kategori }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-5 align-top">
+                                        <div class="font-bold text-slate-900 mb-1.5 text-base group-hover:text-blue-700 transition-colors">{{ template.nama }}</div>
+                                        <div class="text-sm text-slate-500 leading-relaxed max-w-2xl" v-if="template.deskripsi">{{ template.deskripsi }}</div>
+                                    </td>
+                                    <td class="px-6 py-5 align-top text-center">
+                                        <div class="flex flex-col items-center justify-center h-full gap-1.5 mt-0.5">
+                                            <span class="text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ template.file_type }}</span>
+                                            <span class="text-xs text-slate-500 font-medium whitespace-nowrap">{{ template.ukuran_format }}</span>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-5 align-top text-center">
+                                        <div class="flex items-center justify-center h-full">
+                                            <a :href="`/dokumen-template/${template.id}/download`" target="_blank" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm shadow-blue-500/20 active:scale-95 transition-all w-full justify-center">
+                                                Unduh
+                                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Pagination -->
+                    <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between" v-if="templates.links && templates.links.length > 3">
+                         <div class="text-sm text-slate-500 hidden sm:block">
+                            Menampilkan <span class="font-semibold text-slate-800">{{ templates.from }}</span> - <span class="font-semibold text-slate-800">{{ templates.to }}</span> dari <span class="font-semibold text-slate-800">{{ templates.total }}</span>
+                        </div>
+                        <div class="flex items-center gap-1">
+                            <Link v-for="(link, index) in templates.links" :key="index" :href="link.url || '#'" :class="[
+                                'inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
+                                link.active ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200',
+                                !link.url ? 'opacity-50 cursor-not-allowed pointer-events-none' : ''
+                            ]" v-html="link.label.replace('&laquo; Previous', '←').replace('Next &raquo;', '→')" preserve-scroll preserve-state></Link>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Kosong (Empty State) -->
+                <div v-else-if="templates && templates.data && templates.data.length === 0 && (filters?.search_template || filters?.kategori)" class="text-center py-16 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-300 max-w-3xl mx-auto">
+                    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-5 text-slate-400">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Pencarian Tidak Ditemukan</h3>
+                    <p class="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">Tidak ada dokumen yang sesuai dengan filter pencarian Anda. Silakan coba kata kunci lain.</p>
+                    <button @click="searchTemplate = ''; filterKategori = 'all'; handleFilterTemplates()" class="mt-6 px-4 py-2 bg-blue-50 text-blue-600 hover:bg-blue-100 font-semibold rounded-lg text-sm transition">Reset Pencarian</button>
+                </div>
+
+                <!-- Kosong Total -->
+                <div v-else class="text-center py-16 bg-white/50 backdrop-blur-sm rounded-3xl border border-dashed border-slate-300 max-w-3xl mx-auto">
+                    <div class="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-5 text-slate-400">
+                        <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                    </div>
+                    <h3 class="text-xl font-bold text-slate-900 mb-2">Belum Ada Template</h3>
+                    <p class="text-slate-500 text-sm max-w-md mx-auto leading-relaxed">Saat ini belum ada dokumen atau template akademik yang diunggah oleh pihak BAAK/Admin untuk dapat diunduh.</p>
                 </div>
             </div>
         </section>

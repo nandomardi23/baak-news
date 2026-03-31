@@ -234,8 +234,10 @@ const saveDosenWali = () => {
                             </div>
                         </div>
                         <div class="flex gap-3">
-                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/reguler`" target="_blank" class="flex-1 py-3 bg-purple-600 text-white font-medium rounded-xl hover:bg-purple-700 transition text-center">Cetak Transkrip Reguler</a>
-                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/rpl`" target="_blank" class="flex-1 py-3 bg-indigo-600 text-white font-medium rounded-xl hover:bg-indigo-700 transition text-center">Cetak Transkrip RPL</a>
+                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/reguler`" target="_blank" class="flex-1 py-3.5 bg-linear-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition shadow-lg shadow-purple-500/30 text-center flex items-center justify-center gap-2">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
+                                Cetak Transkrip Nilai
+                            </a>
                         </div>
                     </div>
                 </div>

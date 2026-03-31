@@ -50,6 +50,7 @@ const isMobileMenuOpen = ref(false);
                             <Link href="/profil" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Profil</Link>
                             <a href="/#alur" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Alur Sistem</a>
                             <a href="/#layanan" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Layanan</a>
+                            <a href="/#templates" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Unduhan</a>
                         </slot>
                         <Link href="/login" class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5">
                             Login Admin
@@ -98,6 +99,7 @@ const isMobileMenuOpen = ref(false);
                             <Link href="/profil" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Profil</Link>
                             <a href="/#alur" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Alur Sistem</a>
                             <a href="/#layanan" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Layanan</a>
+                            <a href="/#templates" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Unduhan</a>
                         </slot>
                         <div class="pt-4 mt-4 border-t border-slate-100">
                             <Link href="/login" class="block w-full text-center px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/30 active:scale-95 transition">

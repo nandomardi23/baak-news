@@ -480,22 +480,7 @@ const submit = () => {
                         </select>
                     </div>
 
-                    <!-- Jenis Transkrip -->
-                    <div v-if="showJenisTranskrip">
-                        <label class="block text-slate-700 font-bold mb-3">Jenis Transkrip <span class="text-red-500">*</span></label>
-                        <div class="flex flex-col sm:flex-row gap-3">
-                            <label :class="[form.jenis_transkrip === 'reguler' ? 'ring-2 ring-blue-500 border-blue-200 bg-blue-50' : 'hover:border-slate-300']"
-                                class="flex-1 cursor-pointer flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 transition-all">
-                                <input v-model="form.jenis_transkrip" type="radio" value="reguler" class="w-5 h-5 text-blue-600"/>
-                                <span class="font-semibold text-slate-700">Reguler</span>
-                            </label>
-                            <label :class="[form.jenis_transkrip === 'rpl' ? 'ring-2 ring-blue-500 border-blue-200 bg-blue-50' : 'hover:border-slate-300']"
-                                class="flex-1 cursor-pointer flex items-center gap-3 p-4 rounded-xl border-2 border-slate-200 transition-all">
-                                <input v-model="form.jenis_transkrip" type="radio" value="rpl" class="w-5 h-5 text-blue-600"/>
-                                <span class="font-semibold text-slate-700">RPL (Rekognisi)</span>
-                            </label>
-                        </div>
-                    </div>
+                    <!-- Jenis Transkrip -> Hidden since we unified it into just Transkrip Nilai -->
 
                     <!-- Data Lengkap Section -->
                     <div class="border-t border-slate-100 pt-6">

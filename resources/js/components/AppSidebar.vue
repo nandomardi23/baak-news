@@ -31,6 +31,7 @@ import {
     Cog,
     IdCard,
     Building2,
+    FileDown,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -60,6 +61,7 @@ const navGroups = [
             { title: 'Pengajuan Surat', href: '/admin/surat', icon: FileText },
             { title: 'Batch Kartu Ujian', href: '/admin/mahasiswa/kartu-ujian/batch', icon: IdCard },
             { title: 'Template Designer', href: '/admin/templates', icon: Palette },
+            { title: 'Template Dokumen', href: '/admin/dokumen-template', icon: FileDown },
         ],
     },
     {
