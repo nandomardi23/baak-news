@@ -71,7 +71,6 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          script_stop: true
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
             php artisan down --retry=60 --refresh=15 || true
@@ -99,7 +98,6 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          script_stop: true
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
             php artisan config:cache
