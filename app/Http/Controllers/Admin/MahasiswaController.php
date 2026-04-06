@@ -88,28 +88,8 @@ class MahasiswaController extends Controller
 
     public function show(Mahasiswa $mahasiswa, AcademicSyncService $syncService): Response
     {
-        // Auto-sync KRS jika:
-        // 1. Belum ada di database sama sekali
-        // 2. ATAU ada tapi datanya belum lengkap (belum ada nama dosen karena dari bulk sync)
-        $needsSync = false;
-        if ($mahasiswa->id_registrasi_mahasiswa) {
-            $hasNoKrs = $mahasiswa->krs()->count() === 0;
-            $hasIncompleteDetails = $mahasiswa->krs()->whereHas('details', function ($q) {
-                $q->whereNull('nama_dosen');
-            })->exists();
-
-            if ($hasNoKrs || $hasIncompleteDetails) {
-                $needsSync = true;
-            }
-        }
-
-        if ($needsSync) {
-            try {
-                $syncService->syncKrsMahasiswa($mahasiswa->id_registrasi_mahasiswa);
-            } catch (\Exception $e) {
-                \Log::warning("Auto-sync KRS failed for {$mahasiswa->nim}: " . $e->getMessage());
-            }
-        }
+        // Note: Auto-sync KRS telah dimatikan dari sini karena menyebabkan halaman diload sangat lambat (memanggil API PDDikti secara sinkron).
+        // Gunakan tombol 'Sync KRS' secara manual di UI jika data krs belum ada.
 
         $mahasiswa->load(['programStudi', 'dosenWali', 'nilai.mataKuliah', 'nilai.tahunAkademik', 'krs.details.mataKuliah', 'krs.details.dosen', 'krs.tahunAkademik', 'krs.details.kelasKuliah.dosenPengajar']);
 
