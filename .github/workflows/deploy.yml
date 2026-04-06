@@ -77,6 +77,7 @@ jobs:
             git pull origin main
             rm -rf vendor
             composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
+            rm -rf public/build/*
             php artisan migrate --force
 
       # Step 2: Upload built assets to server
