@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
   # ──────────────────────────────────────────
-  # Job 1: Run linting checks
+  # Job 1: Lint
   # ──────────────────────────────────────────
   lint:
     runs-on: ubuntu-latest
@@ -54,7 +54,7 @@ jobs:
         run: npm run lint
 
   # ──────────────────────────────────────────
-  # Job 2: Run tests
+  # Job 2: Test
   # ──────────────────────────────────────────
   test:
     runs-on: ubuntu-latest
@@ -101,18 +101,53 @@ jobs:
         run: ./vendor/bin/pest
 
   # ──────────────────────────────────────────
-  # Job 3: Deploy to production server
+  # Job 3: Build frontend assets
+  # ──────────────────────────────────────────
+  build:
+    runs-on: ubuntu-latest
+    needs: [lint, test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install Node Dependencies
+        run: npm ci
+
+      - name: Build Production Assets
+        run: npm run build
+
+      - name: Upload Build Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-assets
+          path: public/build/
+          retention-days: 1
+
+  # ──────────────────────────────────────────
+  # Job 4: Deploy to Hostinger
   # ──────────────────────────────────────────
   deploy:
     runs-on: ubuntu-latest
-    needs: [lint, test]
+    needs: [build]
     environment: production
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Deploy to Server via SSH
+      - name: Download Build Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: build-assets
+          path: public/build/
+
+      # Step 1: Git pull & composer install on server
+      - name: Pull Latest Code on Server
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -122,4 +157,40 @@ jobs:
           script_stop: true
           script: |
             cd ${{ secrets.DEPLOY_PATH }}
-            bash deploy.sh
+            php artisan down --retry=60 --refresh=15 || true
+            git pull origin main
+            composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress
+            php artisan migrate --force
+
+      # Step 2: Upload built assets to server
+      - name: Upload Build Assets to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "public/build/*"
+          target: ${{ secrets.DEPLOY_PATH }}
+          overwrite: true
+
+      # Step 3: Optimize & bring back online
+      - name: Optimize & Go Live
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script_stop: true
+          script: |
+            cd ${{ secrets.DEPLOY_PATH }}
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan event:cache
+            php artisan storage:link 2>/dev/null || true
+            php artisan queue:restart
+            php artisan up
+            echo "✅ Deployed successfully!"
+            git log -1 --pretty=format:"%h - %s (%cr)" HEAD

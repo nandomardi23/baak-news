@@ -1,11 +1,14 @@
 #!/bin/bash
 
 # ============================================================
-# BAAK News - Production Deployment Script
+# BAAK News - Manual Deployment Script
 # ============================================================
-# Script ini dijalankan di server production oleh GitHub Actions.
-# Pastikan server sudah memiliki PHP 8.2+, Composer, Node.js 22+,
-# dan NPM terinstall.
+# Script ini untuk deploy MANUAL di server (tanpa GitHub Actions).
+# Jika menggunakan CI/CD, deployment dilakukan otomatis oleh
+# GitHub Actions workflow (deploy.yml).
+#
+# Untuk shared hosting Hostinger, TIDAK perlu install Node.js.
+# Build assets dilakukan di GitHub Actions.
 # ============================================================
 
 set -e  # Exit on any error
@@ -18,27 +21,27 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 echo -e "${BLUE}============================================================${NC}"
-echo -e "${BLUE}  BAAK News - Starting Deployment...${NC}"
+echo -e "${BLUE}  BAAK News - Manual Deployment${NC}"
 echo -e "${BLUE}  $(date '+%Y-%m-%d %H:%M:%S')${NC}"
 echo -e "${BLUE}============================================================${NC}"
 
 # ──────────────────────────────────────
 # Step 1: Enable Maintenance Mode
 # ──────────────────────────────────────
-echo -e "\n${YELLOW}[1/8] Enabling maintenance mode...${NC}"
+echo -e "\n${YELLOW}[1/6] Enabling maintenance mode...${NC}"
 php artisan down --retry=60 --refresh=15 || true
 
 # ──────────────────────────────────────
 # Step 2: Pull Latest Code
 # ──────────────────────────────────────
-echo -e "\n${YELLOW}[2/8] Pulling latest code from main...${NC}"
+echo -e "\n${YELLOW}[2/6] Pulling latest code from main...${NC}"
 git fetch origin main
 git reset --hard origin/main
 
 # ──────────────────────────────────────
 # Step 3: Install PHP Dependencies
 # ──────────────────────────────────────
-echo -e "\n${YELLOW}[3/8] Installing PHP dependencies...${NC}"
+echo -e "\n${YELLOW}[3/6] Installing PHP dependencies...${NC}"
 composer install \
     --no-dev \
     --no-interaction \
@@ -47,24 +50,15 @@ composer install \
     --no-progress
 
 # ──────────────────────────────────────
-# Step 4: Install & Build Frontend Assets
+# Step 4: Run Database Migrations
 # ──────────────────────────────────────
-echo -e "\n${YELLOW}[4/8] Installing Node dependencies...${NC}"
-npm ci --production=false
-
-echo -e "\n${YELLOW}[5/8] Building frontend assets...${NC}"
-npm run build
-
-# ──────────────────────────────────────
-# Step 5: Run Database Migrations
-# ──────────────────────────────────────
-echo -e "\n${YELLOW}[6/8] Running database migrations...${NC}"
+echo -e "\n${YELLOW}[4/6] Running database migrations...${NC}"
 php artisan migrate --force
 
 # ──────────────────────────────────────
-# Step 6: Cache & Optimize
+# Step 5: Cache & Optimize
 # ──────────────────────────────────────
-echo -e "\n${YELLOW}[7/8] Optimizing application...${NC}"
+echo -e "\n${YELLOW}[5/6] Optimizing application...${NC}"
 php artisan config:cache
 php artisan route:cache
 php artisan view:cache
@@ -72,14 +66,11 @@ php artisan event:cache
 php artisan storage:link 2>/dev/null || true
 
 # ──────────────────────────────────────
-# Step 7: Restart Queue Workers
+# Step 6: Restart Queue & Go Live
 # ──────────────────────────────────────
-echo -e "\n${YELLOW}[8/8] Restarting queue workers...${NC}"
+echo -e "\n${YELLOW}[6/6] Restarting queue workers...${NC}"
 php artisan queue:restart
 
-# ──────────────────────────────────────
-# Step 8: Disable Maintenance Mode
-# ──────────────────────────────────────
 echo -e "\n${GREEN}Disabling maintenance mode...${NC}"
 php artisan up
 
@@ -92,3 +83,6 @@ echo -e "${GREEN}============================================================${N
 echo -e "\n${BLUE}Deployed commit:${NC}"
 git log -1 --pretty=format:"  %h - %s (%cr by %an)" HEAD
 echo ""
+
+echo -e "\n${YELLOW}⚠️  NOTE: Build assets (public/build/) harus di-upload${NC}"
+echo -e "${YELLOW}   secara terpisah jika tidak menggunakan GitHub Actions CI/CD.${NC}"
