@@ -58,9 +58,21 @@ class SuratController extends Controller
             'created_at' => $item->created_at->format('d M Y H:i'),
         ]);
 
+        // Get active pejabat for signer selection (for quick print from table)
+        $pejabatList = \App\Models\Pejabat::active()
+            ->orderBy('jabatan')
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'nama' => $p->nama_lengkap,
+                'jabatan' => $p->jabatan,
+                'label' => $p->nama_lengkap . ' (' . $p->jabatan . ')',
+            ]);
+
         return Inertia::render('Admin/Surat/Index', [
             'pengajuan' => $pengajuan,
             'filters' => $request->only(['status', 'jenis', 'search', 'sort_field', 'sort_direction']),
+            'pejabatList' => $pejabatList,
         ]);
     }
 

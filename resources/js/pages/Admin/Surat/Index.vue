@@ -9,7 +9,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import { useStatusBadge } from '@/composables/useStatusBadge';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
-import { Eye, Printer, Trash2 } from 'lucide-vue-next';
+import { Eye, Printer, Trash2, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
@@ -26,10 +26,21 @@ interface Surat {
     created_at: string;
 }
 
+interface Pejabat {
+    id: number;
+    nama: string;
+    jabatan: string;
+    label: string;
+}
+
 const props = defineProps<{
     pengajuan: any;
     filters: Record<string, any>;
+    pejabatList: Pejabat[];
 }>();
+
+const selectedSignerId = ref<number | null>(null);
+const printModalSurat = ref<Surat | null>(null);
 
 setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
@@ -78,6 +89,22 @@ const deleteSurat = (id: number) => {
         router.delete(`/admin/surat/${id}`);
     }
 };
+
+const openPrintModal = (row: Surat) => {
+    printModalSurat.value = row;
+    selectedSignerId.value = null;
+};
+
+const closePrintModal = () => {
+    printModalSurat.value = null;
+    selectedSignerId.value = null;
+};
+
+const printUrl = computed(() => {
+    if (!printModalSurat.value) return '#';
+    const base = `/admin/surat/${printModalSurat.value.id}/print`;
+    return selectedSignerId.value ? `${base}?signer_id=${selectedSignerId.value}` : base;
+});
 
 const { getBadgeClass } = useStatusBadge();
 
@@ -201,20 +228,17 @@ const activeFilterChips = computed(() => {
                             </Button>
                         </Link>
                         
-                        <a 
+                        <!-- Print button: opens modal to pick signer -->
+                        <Button
                             v-if="row.status === 'approved' || row.status === 'printed'" 
-                            :href="`/admin/surat/${row.id}/print`" 
-                            target="_blank"
+                            variant="ghost"
+                            size="icon"
+                            class="text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 h-8 w-8"
+                            title="Cetak"
+                            @click="openPrintModal(row)"
                         >
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="text-slate-500 hover:text-emerald-600 hover:bg-emerald-50 h-8 w-8"
-                                title="Cetak"
-                            >
-                                <Printer class="w-4 h-4" />
-                            </Button>
-                        </a>
+                            <Printer class="w-4 h-4" />
+                        </Button>
 
                         <Button
                             variant="ghost"
@@ -229,5 +253,68 @@ const activeFilterChips = computed(() => {
                 </template>
             </SmartTable>
         </div>
-    
+
+    <!-- Print Modal -->
+    <Teleport to="body">
+        <Transition
+            enter-active-class="transition duration-200 ease-out"
+            enter-from-class="opacity-0"
+            enter-to-class="opacity-100"
+            leave-active-class="transition duration-150 ease-in"
+            leave-from-class="opacity-100"
+            leave-to-class="opacity-0"
+        >
+            <div v-if="printModalSurat" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4" @click.self="closePrintModal">
+                <div class="bg-card rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+                    <!-- Header -->
+                    <div class="px-6 py-4 border-b bg-muted/30 flex items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="w-9 h-9 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
+                                <Printer class="w-4 h-4" />
+                            </div>
+                            <h3 class="text-base font-bold">Cetak Surat</h3>
+                        </div>
+                        <button @click="closePrintModal" class="p-1 rounded-lg hover:bg-muted transition">
+                            <X class="w-4 h-4 text-muted-foreground" />
+                        </button>
+                    </div>
+
+                    <!-- Body -->
+                    <div class="p-6 space-y-4">
+                        <!-- Surat Info -->
+                        <div class="p-3 bg-muted/50 rounded-xl space-y-1">
+                            <p class="font-semibold text-sm">{{ printModalSurat.mahasiswa.nama }}</p>
+                            <p class="text-xs text-muted-foreground font-mono">{{ printModalSurat.mahasiswa.nim }}</p>
+                            <p class="text-xs text-muted-foreground">{{ printModalSurat.jenis_surat_label }}</p>
+                        </div>
+
+                        <!-- Pejabat Selection -->
+                        <div>
+                            <label class="text-xs text-muted-foreground font-medium mb-1.5 block">Pejabat Penandatangan</label>
+                            <select
+                                v-model="selectedSignerId"
+                                class="w-full px-3 py-2.5 border rounded-xl text-sm bg-background focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
+                            >
+                                <option :value="null">-- Default (Ketua) --</option>
+                                <option v-for="p in pejabatList" :key="p.id" :value="p.id">
+                                    {{ p.label }}
+                                </option>
+                            </select>
+                        </div>
+
+                        <!-- Print Button -->
+                        <a
+                            :href="printUrl"
+                            target="_blank"
+                            @click="closePrintModal"
+                            class="w-full inline-flex items-center justify-center gap-2 px-5 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl transition-all active:scale-[0.98]"
+                        >
+                            <Printer class="w-4 h-4" />
+                            Cetak Surat
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </Transition>
+    </Teleport>
 </template>
