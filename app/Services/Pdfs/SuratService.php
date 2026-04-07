@@ -51,7 +51,7 @@ class SuratService extends BasePdfService
 
         // Title
         $this->SetFont('Arial', '', 11);
-        $this->SetY(48); // Menurunkan posisi agar tidak menabrak kop surat
+        $this->SetY(44); // Menaikkan posisi sedikit dari 48
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
 
         $romanMonth = $this->getRomanMonth((int) date('n'));
@@ -67,7 +67,7 @@ class SuratService extends BasePdfService
 
         $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
 
-        $this->Ln(20); // Dibuat lebih renggang dari nomor ke isi (sebelumnya 15)
+        $this->Ln(12); // Dibuat lebih dekat dari nomor ke isi biodata (sebelumnya 20)
 
         // Student Data
         $startX = 30; // Left margin for labels
