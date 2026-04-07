@@ -158,6 +158,7 @@ const isMobileMenuOpen = ref(false);
                 </div>
                 <div class="border-t border-slate-800 pt-8 text-center text-sm">
                     <p>&copy; {{ new Date().getFullYear() }} STIKES Hang Tuah Tanjungpinang. All Rights Reserved.</p>
+                    <p class="mt-2 text-slate-500 text-xs">Present by Fernando Mardi Nurzaman</p>
                 </div>
             </div>
         </footer>
