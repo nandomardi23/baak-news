@@ -160,7 +160,7 @@ class SuratPengajuan extends Model
         $number = str_pad($count, 3, '0', STR_PAD_LEFT);
         
         if ($this->jenis_surat === 'aktif_kuliah') {
-            return 'Sket / ' . $number . ' /' . $month . '/' . $year;
+            return 'Sket /       /' . $month . '/' . $year;
         }
         
         // Format: 001/BAAK/III/2026
