@@ -51,7 +51,7 @@ class SuratService extends BasePdfService
 
         // Title
         $this->SetFont('Arial', '', 11);
-        $this->SetY(38); // Adjusted Y again from 42 to 38
+        $this->SetY(48); // Menurunkan posisi agar tidak menabrak kop surat
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
 
         $romanMonth = $this->getRomanMonth((int) date('n'));
@@ -67,7 +67,7 @@ class SuratService extends BasePdfService
 
         $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
 
-        $this->Ln(15); // Increased from 8 to 15 (approx 2 enters)
+        $this->Ln(20); // Dibuat lebih renggang dari nomor ke isi (sebelumnya 15)
 
         // Student Data
         $startX = 30; // Left margin for labels
@@ -95,7 +95,7 @@ class SuratService extends BasePdfService
             $this->SetLeftMargin($originalMargin);
         }
 
-        $this->Ln(8);
+        $this->Ln(12); // Dibuat lebih renggang dari data mhs ke anak dari (sebelumnya 8)
         $this->SetX($startX);
         $this->Cell(0, 6, 'Anak dari :', 0, 1);
 
@@ -122,13 +122,13 @@ class SuratService extends BasePdfService
             $this->SetLeftMargin($originalMargin);
         }
 
-        $this->Ln(8);
+        $this->Ln(12); // Dibuat lebih renggang dari data ortu ke paragraf penutup (sebelumnya 8)
         $this->SetX($startX); // Align with data ($startX = 30)
         // Match right edge of data: Start 30 + Width 145 = 175 (Data value ends at 75 + 100 = 175)
         $this->MultiCell(145, 6, "        Adalah benar yang bersangkutan mahasiswa semester " . $this->getSemesterRoman($mahasiswa) . " Program Studi " . ($mahasiswa->programStudi?->nama_cetak ?? '-') . " Stikes Hang Tuah Tanjungpinang.", 0, 'J');
 
         // Signature
-        $this->Ln(15);
+        $this->Ln(20); // Dibuat lebih renggang dari paragraf ke tanggal wilayah TTD (sebelumnya 15)
 
         $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
         $bs = [
@@ -163,6 +163,12 @@ class SuratService extends BasePdfService
         $this->SetX(120);
         $signerName = $customSigner?->nama_lengkap ?? 'apt. Dra. Mila Abdullah, M.M';
         $this->Cell(60, 5, $signerName, 0, 1, 'C');
+
+        // Pangkat / Golongan (Militer dsb)
+        if ($customSigner && $customSigner->pangkat_golongan) {
+            $this->SetX(120);
+            $this->Cell(60, 5, $customSigner->pangkat_golongan, 0, 1, 'C');
+        }
 
         // Signer ID (Always 'NIK' label)
         // Prioritize NIP (NIK Kepegawaian), then NIDN, then KTP
