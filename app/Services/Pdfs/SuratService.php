@@ -136,7 +136,7 @@ class SuratService extends BasePdfService
         // Signature
         $this->Ln(20); // Dibuat lebih renggang dari paragraf ke tanggal wilayah TTD (sebelumnya 15)
 
-        $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
+        $kota = Setting::getValue('kota_terbit', 'Tanjung Pinang');
         $bs = [
             1 => 'Januari',
             'Februari',
