@@ -78,7 +78,16 @@ class StudentSyncService extends BaseSyncService
                 ];
             }
 
-            $this->batchUpsert(Mahasiswa::class, $records, ['id_registrasi_mahasiswa'], [
+            // Deduplicate by NIM - NeoFeeder sometimes returns duplicate NIM records
+            // which causes the entire batch INSERT to fail due to NIM unique constraint.
+            // Keep the last occurrence (latest registration) for each NIM.
+            $uniqueRecords = [];
+            foreach ($records as $record) {
+                $uniqueRecords[$record['nim']] = $record;
+            }
+            $records = array_values($uniqueRecords);
+
+            $updateColumns = [
                 'id_mahasiswa',
                 'nim',
                 'nama',
@@ -89,8 +98,25 @@ class StudentSyncService extends BaseSyncService
                 'program_studi_id',
                 'status_mahasiswa',
                 'updated_at'
-            ]);
-            $synced = count($records);
+            ];
+
+            // Try batch upsert first, fallback to one-by-one on failure
+            try {
+                $this->batchUpsert(Mahasiswa::class, $records, ['id_registrasi_mahasiswa'], $updateColumns);
+                $synced = count($records);
+            } catch (\Exception $e) {
+                \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Batch upsert failed, falling back to one-by-one. Error: " . $e->getMessage());
+                // Fallback: insert records one-by-one to avoid losing entire batch
+                foreach ($records as $record) {
+                    try {
+                        Mahasiswa::upsert([$record], ['id_registrasi_mahasiswa'], $updateColumns);
+                        $synced++;
+                    } catch (\Exception $inner) {
+                        $errors[] = "Mahasiswa {$record['nim']} ({$record['nama']}): " . $inner->getMessage();
+                        \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Failed to upsert NIM {$record['nim']}: " . $inner->getMessage());
+                    }
+                }
+            }
         }
 
         $nextOffset = $offset + $batchCount;

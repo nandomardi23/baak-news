@@ -295,6 +295,70 @@ class AcademicSyncService extends BaseSyncService
             $mahasiswaMap = Mahasiswa::whereIn('id_registrasi_mahasiswa', $idRegMahasiswas)
                 ->pluck('id', 'id_registrasi_mahasiswa');
 
+            // --- AUTO-CREATE MISSING MAHASISWA ---
+            // NeoFeeder's GetListMahasiswa pagination sometimes skips records,
+            // so students referenced by KRS may not exist locally.
+            // Fetch and insert them individually to prevent data loss.
+            $missingRegIds = array_diff($idRegMahasiswas, $mahasiswaMap->keys()->toArray());
+            if (!empty($missingRegIds)) {
+                Log::info("SyncKrs: Found " . count($missingRegIds) . " missing mahasiswa. Auto-fetching from NeoFeeder.");
+                $prodiMap = \App\Models\ProgramStudi::pluck('id', 'id_prodi')->toArray();
+
+                foreach ($missingRegIds as $idReg) {
+                    try {
+                        // Find the NIM from the KRS data
+                        $krsItem = collect($data)->firstWhere('id_registrasi_mahasiswa', $idReg);
+                        $nim = $krsItem['nim'] ?? null;
+
+                        if (!$nim) continue;
+
+                        // Fetch from NeoFeeder by NIM
+                        $mhsResponse = $this->neoFeeder->getMahasiswa(1, 0, "nim = '{$nim}'");
+                        $mhsData = $mhsResponse['data'][0] ?? null;
+
+                        if (!$mhsData) {
+                            // Try by id_registrasi_mahasiswa
+                            $mhsResponse = $this->neoFeeder->getMahasiswa(1, 0, "id_registrasi_mahasiswa = '{$idReg}'");
+                            $mhsData = $mhsResponse['data'][0] ?? null;
+                        }
+
+                        if ($mhsData) {
+                            $tanggalLahir = null;
+                            if (!empty($mhsData['tanggal_lahir'])) {
+                                try {
+                                    $tanggalLahir = \Carbon\Carbon::createFromFormat('d-m-Y', $mhsData['tanggal_lahir'])->format('Y-m-d');
+                                } catch (\Exception $e) {
+                                    try { $tanggalLahir = \Carbon\Carbon::parse($mhsData['tanggal_lahir'])->format('Y-m-d'); } catch (\Exception $e2) {}
+                                }
+                            }
+
+                            Mahasiswa::updateOrCreate(
+                                ['id_registrasi_mahasiswa' => $mhsData['id_registrasi_mahasiswa']],
+                                [
+                                    'id_mahasiswa' => $mhsData['id_mahasiswa'],
+                                    'nim' => $mhsData['nim'],
+                                    'nama' => $mhsData['nama_mahasiswa'],
+                                    'jenis_kelamin' => $mhsData['jenis_kelamin'],
+                                    'tanggal_lahir' => $tanggalLahir,
+                                    'angkatan' => substr((string) $mhsData['id_periode'], 0, 4),
+                                    'id_prodi' => $mhsData['id_prodi'],
+                                    'program_studi_id' => $prodiMap[$mhsData['id_prodi']] ?? null,
+                                    'status_mahasiswa' => $mhsData['nama_status_mahasiswa'],
+                                ]
+                            );
+                            Log::info("SyncKrs: Auto-created mahasiswa NIM {$mhsData['nim']} ({$mhsData['nama_mahasiswa']})");
+                        }
+                    } catch (\Exception $e) {
+                        Log::warning("SyncKrs: Failed to auto-create mahasiswa id_reg={$idReg}: " . $e->getMessage());
+                    }
+                }
+
+                // Refresh mahasiswaMap after auto-creation
+                $mahasiswaMap = Mahasiswa::whereIn('id_registrasi_mahasiswa', $idRegMahasiswas)
+                    ->pluck('id', 'id_registrasi_mahasiswa');
+            }
+            // -----------------------------------------------
+
             $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
                 ->pluck('id', 'id_matkul');
 
