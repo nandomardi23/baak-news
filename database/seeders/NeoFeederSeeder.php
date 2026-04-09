@@ -14,23 +14,23 @@ class NeoFeederSeeder extends Seeder
     {
         // Hubungkan ke http://103.59.95.161:3003/ws/live2.php
         Setting::setValue(
-            'neo_feeder_url', 
-            'http://103.59.95.161:3003/ws/live2.php', 
-            false, 
+            'neo_feeder_url',
+            'https://stikesht.feeder-cloud.com/ws/live2.php',
+            false,
             'Neo Feeder API URL'
         );
 
         Setting::setValue(
-            'neo_feeder_username', 
-            'BudiPrasetyo', 
-            false, 
+            'neo_feeder_username',
+            'BudiPrasetyo',
+            false,
             'Neo Feeder Username'
         );
 
         Setting::setValue(
-            'neo_feeder_password', 
-            'jayahangtuah2023!', 
-            true, 
+            'neo_feeder_password',
+            'jayahangtuah2023!',
+            true,
             'Neo Feeder Password (encrypted)'
         );
     }
