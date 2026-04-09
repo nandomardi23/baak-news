@@ -50,8 +50,8 @@ class SuratService extends BasePdfService
         }
 
         // Title
-        $this->SetFont('Arial', '', 11);
-        $this->SetY(48); // Dikembalikan ke posisi 48 karena 44 menabrak garis (garis berakhir di sekitar 44-45)
+        $this->SetFont('Arial', 'B', 12);
+        $this->SetY(52); // Dikembalikan ke posisi 52 agar ada spasi yang cukup dengan garis kop surat
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
 
         $romanMonth = $this->getRomanMonth((int) date('n'));
@@ -67,7 +67,7 @@ class SuratService extends BasePdfService
 
         $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
 
-        $this->Ln(15); // Jarak ideal antara nomor dan identitas (sebelumnya sempat 20 dan 12)
+        $this->Ln(12); // Jarak antara nomor dan identitas (disesuaikan menjadi 12)
 
         // Student Data
         $startX = 30; // Left margin for labels
@@ -195,19 +195,23 @@ class SuratService extends BasePdfService
         }
 
         $this->SetY(10);
-        $this->SetFont('Arial', 'B', 12);
+        $this->SetFont('Arial', 'B', 11);
         $this->Cell(25); // Offset for logo
-        $this->Cell(0, 6, Setting::getValue('kop_nama_yayasan', 'YAYASAN NALA'), 0, 1, 'C');
+        $this->Cell(0, 5, Setting::getValue('kop_nama_yayasan', 'YAYASAN NALA'), 0, 1, 'C');
 
         $this->SetFont('Arial', 'B', 14);
         $this->Cell(25);
-        $this->MultiCell(0, 7, Setting::getValue('kop_nama_kampus', 'STIKES HANG TUAH TANJUNGPINANG'), 0, 'C');
-
-        $this->SetFont('Arial', '', 9);
+        $this->Cell(0, 7, 'STIKES HANG TUAH TANJUNGPINANG', 0, 1, 'C');
+        
         $this->Cell(25);
-        $this->MultiCell(0, 5, Setting::getValue('kop_alamat', 'Jl. WR. Supratman No. 11 Tanjungpinang'), 0, 'C');
+        $this->Cell(0, 7, 'KEPULAUAN RIAU', 0, 1, 'C');
 
-        $this->Ln(2);
+        $this->SetFont('Arial', '', 8);
+        $this->Cell(25);
+        $alamat = Setting::getValue('kop_alamat', 'Jl. WR. Supratman, No. 11, Air Raja, Tanjungpinang Timur, Kota Tanjungpinang, Kepulauan Riau. Tlp / Wa (0771) 4440071 / 081170066770');
+        $this->MultiCell(0, 4, $alamat, 0, 'C');
+
+        $this->Ln(1);
         $this->SetLineWidth(0.8);
         $this->Line(15, $this->GetY(), 195, $this->GetY());
         $this->SetLineWidth(0.2);

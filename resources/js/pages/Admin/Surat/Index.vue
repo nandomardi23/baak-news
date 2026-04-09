@@ -39,8 +39,13 @@ const props = defineProps<{
     pejabatList: Pejabat[];
 }>();
 
-const selectedSignerId = ref<number | null>(null);
+const selectedSignerId = ref<string | number | null>('default');
 const printModalSurat = ref<Surat | null>(null);
+
+const pejabatOptions = computed(() => [
+    { label: 'Default (Ketua)', value: 'default' },
+    ...props.pejabatList.map(p => ({ label: p.label, value: p.id }))
+]);
 
 setBreadcrumbs([
     { title: 'Dashboard', href: '/admin' },
@@ -92,7 +97,7 @@ const deleteSurat = (id: number) => {
 
 const openPrintModal = (row: Surat) => {
     printModalSurat.value = row;
-    selectedSignerId.value = null;
+    selectedSignerId.value = 'default';
 };
 
 const closePrintModal = () => {
@@ -103,7 +108,8 @@ const closePrintModal = () => {
 const printUrl = computed(() => {
     if (!printModalSurat.value) return '#';
     const base = `/admin/surat/${printModalSurat.value.id}/print`;
-    return selectedSignerId.value ? `${base}?signer_id=${selectedSignerId.value}` : base;
+    const signerId = selectedSignerId.value !== 'default' ? selectedSignerId.value : null;
+    return signerId ? `${base}?signer_id=${signerId}` : base;
 });
 
 const { getBadgeClass } = useStatusBadge();
@@ -291,15 +297,13 @@ const activeFilterChips = computed(() => {
                         <!-- Pejabat Selection -->
                         <div>
                             <label class="text-xs text-muted-foreground font-medium mb-1.5 block">Pejabat Penandatangan</label>
-                            <select
+                            <ComboboxFilter
                                 v-model="selectedSignerId"
-                                class="w-full px-3 py-2.5 border rounded-xl text-sm bg-background focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                            >
-                                <option :value="null">-- Default (Ketua) --</option>
-                                <option v-for="p in pejabatList" :key="p.id" :value="p.id">
-                                    {{ p.label }}
-                                </option>
-                            </select>
+                                :options="pejabatOptions"
+                                placeholder="Pilih Pejabat"
+                                searchPlaceholder="Cari pejabat..."
+                                widthClass="w-full h-11"
+                            />
                         </div>
 
                         <!-- Print Button -->
