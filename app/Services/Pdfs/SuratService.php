@@ -51,7 +51,7 @@ class SuratService extends BasePdfService
 
         // Title
         $this->SetFont('Arial', '', 11);
-        $this->SetY(48); // Dinaikkan kembali agar tidak terlalu jauh
+        $this->SetY(38); // Dinaikkan kembali agar tidak terlalu jauh
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
 
         // Kembalikan font ke normal (tidak tebal) agar isi surat dan tanda tangan tidak ikut tebal
@@ -208,7 +208,7 @@ class SuratService extends BasePdfService
         $this->SetFont('Arial', 'B', 14);
         $this->Cell(25);
         $this->Cell(0, 7, 'STIKES HANG TUAH TANJUNGPINANG', 0, 1, 'C');
-        
+
         $this->Cell(25);
         $this->Cell(0, 7, 'KEPULAUAN RIAU', 0, 1, 'C');
 
