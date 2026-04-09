@@ -51,8 +51,11 @@ class SuratService extends BasePdfService
 
         // Title
         $this->SetFont('Arial', 'B', 12);
-        $this->SetY(52); // Dikembalikan ke posisi 52 agar ada spasi yang cukup dengan garis kop surat
+        $this->SetY(60); // Diturunkan lagi ke posisi 60 agar memiliki jarak aman dari kop surat (template)
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
+
+        // Kembalikan font ke normal (tidak tebal) agar isi surat dan tanda tangan tidak ikut tebal
+        $this->SetFont('Arial', '', 11);
 
         $romanMonth = $this->getRomanMonth((int) date('n'));
         $defaultNomor = 'SKet /             / ' . $romanMonth . ' / ' . date('Y') . ' / STIKes';
@@ -60,9 +63,12 @@ class SuratService extends BasePdfService
         $displayNomor = $nomorSurat;
         if (empty($displayNomor)) {
             $displayNomor = $defaultNomor;
-        } elseif (str_starts_with($displayNomor, '/')) {
+        } elseif (preg_match('/^S[Kk]et\s*\/\s*\/\s*([IVX]+)\s*\/\s*(\d{4})$/', trim($displayNomor), $matches)) {
+            // Konversi format lama (Sket /     /IV/2026) menjadi format baru
+            $displayNomor = 'SKet /             / ' . $matches[1] . ' / ' . $matches[2] . ' / STIKes';
+        } elseif (str_starts_with(trim($displayNomor), '/')) {
             // If nomor is just suffix, prepend SKet
-            $displayNomor = 'SKet /             ' . $displayNomor;
+            $displayNomor = 'SKet /             ' . trim($displayNomor);
         }
 
         $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
