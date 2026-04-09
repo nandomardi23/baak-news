@@ -55,14 +55,14 @@ class SuratService extends BasePdfService
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
 
         $romanMonth = $this->getRomanMonth((int) date('n'));
-        $defaultNomor = 'Sket /       /' . $romanMonth . '/' . date('Y');
+        $defaultNomor = 'SKet /             / ' . $romanMonth . ' / ' . date('Y') . ' / STIKes';
 
         $displayNomor = $nomorSurat;
         if (empty($displayNomor)) {
             $displayNomor = $defaultNomor;
         } elseif (str_starts_with($displayNomor, '/')) {
-            // If nomor is just suffix like /II/2026, prepend Sket
-            $displayNomor = 'Sket /       ' . $displayNomor;
+            // If nomor is just suffix, prepend SKet
+            $displayNomor = 'SKet /             ' . $displayNomor;
         }
 
         $this->Cell(0, 5, 'Nomor : ' . $displayNomor, 0, 1, 'C');
@@ -151,7 +151,7 @@ class SuratService extends BasePdfService
         $this->Cell(60, 5, $kota . ', ' . $tanggalStr, 0, 1, 'C');
 
         $this->SetX(120);
-        $this->Cell(60, 5, Setting::getValue('kop_nama_kampus', 'Stikes Hang Tuah Tanjungpinang'), 0, 1, 'C');
+        $this->Cell(60, 5, 'STIKes Hang Tuah Tanjungpinang', 0, 1, 'C');
 
         $this->SetX(120);
         $jabatan = $customSigner?->jabatan ?? 'Ketua';
