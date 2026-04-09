@@ -131,7 +131,7 @@ class SuratService extends BasePdfService
         $this->Ln(12); // Dibuat lebih renggang dari data ortu ke paragraf penutup (sebelumnya 8)
         $this->SetX($startX); // Align with data ($startX = 30)
         // Match right edge of data: Start 30 + Width 145 = 175 (Data value ends at 75 + 100 = 175)
-        $this->MultiCell(145, 6, "        Adalah benar yang bersangkutan mahasiswa semester " . $this->getSemesterRoman($mahasiswa) . " Program Studi " . ($mahasiswa->programStudi?->nama_cetak ?? '-') . " Stikes Hang Tuah Tanjungpinang.", 0, 'J');
+        $this->MultiCell(145, 6, "        Adalah benar yang bersangkutan mahasiswa semester " . $this->getSemesterRoman($mahasiswa) . " Program Studi " . ($mahasiswa->programStudi?->nama_cetak ?? '-') . " STIKes Hang Tuah Tanjung Pinang.", 0, 'J');
 
         // Signature
         $this->Ln(20); // Dibuat lebih renggang dari paragraf ke tanggal wilayah TTD (sebelumnya 15)
@@ -157,7 +157,7 @@ class SuratService extends BasePdfService
         $this->Cell(60, 5, $kota . ', ' . $tanggalStr, 0, 1, 'C');
 
         $this->SetX(120);
-        $this->Cell(60, 5, 'STIKes Hang Tuah Tanjungpinang', 0, 1, 'C');
+        $this->Cell(60, 5, 'STIKes Hang Tuah Tanjung Pinang', 0, 1, 'C');
 
         $this->SetX(120);
         $jabatan = $customSigner?->jabatan ?? 'Ketua';
