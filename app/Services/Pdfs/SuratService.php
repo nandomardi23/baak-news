@@ -50,8 +50,8 @@ class SuratService extends BasePdfService
         }
 
         // Title
-        $this->SetFont('Arial', 'B', 12);
-        $this->SetY(60); // Diturunkan lagi ke posisi 60 agar memiliki jarak aman dari kop surat (template)
+        $this->SetFont('Arial', '', 11);
+        $this->SetY(48); // Dinaikkan kembali agar tidak terlalu jauh
         $this->Cell(0, 5, 'SURAT KETERANGAN', 0, 1, 'C');
 
         // Kembalikan font ke normal (tidak tebal) agar isi surat dan tanda tangan tidak ikut tebal
