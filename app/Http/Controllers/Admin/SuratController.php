@@ -20,7 +20,8 @@ class SuratController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = SuratPengajuan::with(['mahasiswa.programStudi', 'pejabat', 'processedBy']);
+        $query = SuratPengajuan::with(['mahasiswa.programStudi', 'pejabat', 'processedBy'])
+            ->latest();
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
