@@ -25,19 +25,10 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Pencil, Trash2, Plus, Check } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import Swal from 'sweetalert2';
 
 interface MataKuliah {
     id: number;
@@ -86,7 +77,6 @@ const columns = [
 
 const isCreateOpen = ref(false);
 const isEditOpen = ref(false);
-const isDeleteOpen = ref(false);
 const selectedItem = ref<MataKuliah | null>(null);
 
 const form = useForm({
@@ -135,8 +125,36 @@ const openEdit = (item: MataKuliah) => {
 };
 
 const openDelete = (item: MataKuliah) => {
-    selectedItem.value = item;
-    isDeleteOpen.value = true;
+    if ((item.krs_detail_count || 0) > 0 || (item.nilai_count || 0) > 0) {
+        Swal.fire({
+            title: 'Tidak Dapat Dihapus!',
+            text: `Terdapat ${item.krs_detail_count || 0} KRS Mahasiswa dan ${item.nilai_count || 0} Nilai Ujian yang terkait dengan mata kuliah ini. Data tidak dapat dihapus karena berelasi dengan data lain.`,
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Tutup',
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Tindakan ini tidak dapat dibatalkan. Data mata kuliah ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('admin.akademik.matakuliah.destroy', item.id), {
+                onSuccess: () => {
+                    toast.success('Berhasil', { description: 'Mata Kuliah berhasil dihapus' });
+                },
+            });
+        }
+    });
 };
 
 const submitCreate = () => {
@@ -154,16 +172,6 @@ const submitEdit = () => {
         onSuccess: () => {
             isEditOpen.value = false;
             toast.success('Berhasil', { description: 'Mata Kuliah berhasil diperbarui' });
-        },
-    });
-};
-
-const submitDelete = () => {
-    if (!selectedItem.value) return;
-    router.delete(route('admin.akademik.matakuliah.destroy', selectedItem.value.id), {
-        onSuccess: () => {
-            isDeleteOpen.value = false;
-            toast.success('Berhasil', { description: 'Mata Kuliah berhasil dihapus' });
         },
     });
 };
@@ -294,26 +302,7 @@ const submitDelete = () => {
             </DialogContent>
         </Dialog>
 
-        <!-- Delete Confirmation -->
-        <AlertDialog :open="isDeleteOpen" @update:open="isDeleteOpen = $event">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription v-if="selectedItem?.krs_detail_count || selectedItem?.nilai_count" class="text-red-600 font-medium font-sans">
-                        PERINGATAN: Terdapat {{ selectedItem.krs_detail_count || 0 }} KRS Mahasiswa dan {{ selectedItem.nilai_count || 0 }} Nilai Ujian yang terkait dengan mata kuliah ini. Menghapus akan mereset/menghapus semua data studi mahasiswa tersebut selamanya!
-                    </AlertDialogDescription>
-                    <AlertDialogDescription v-else>
-                        Tindakan ini tidak dapat dibatalkan. Data mata kuliah ini akan dihapus permanen.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="submitDelete">
-                        Hapus
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+
 
     
 </template>

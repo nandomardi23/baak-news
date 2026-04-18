@@ -78,18 +78,21 @@ const columns = [
 const selectedItem = ref<KelasKuliah | null>(null);
 
 const openDelete = (item: KelasKuliah) => {
-    let warningText = `Tindakan ini tidak dapat dibatalkan. Data kelas kuliah "${item.nama_kelas_kuliah}" akan dihapus permanen dari sistem.`;
-    let iconType: 'warning' | 'error' = 'warning';
-
     if ((item.peserta ?? 0) > 0 || (item.dosen_pengajar?.length ?? 0) > 0) {
-        warningText = `PERINGATAN: Kelas ini memiliki ${item.peserta || 0} Peserta Mahasiswa dan ${item.dosen_pengajar?.length || 0} Dosen Pengajar. Menghapus data kelas ini akan mereset KRS/Jadwal secara berantai selamanya!`;
-        iconType = 'error';
+        Swal.fire({
+            title: 'Tidak Dapat Dihapus!',
+            text: `Kelas ini memiliki ${item.peserta || 0} Peserta Mahasiswa dan ${item.dosen_pengajar?.length || 0} Dosen Pengajar. Data tidak dapat dihapus karena berelasi dengan data lain.`,
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Tutup',
+        });
+        return;
     }
 
     Swal.fire({
         title: 'Apakah anda yakin?',
-        text: warningText,
-        icon: iconType,
+        text: `Tindakan ini tidak dapat dibatalkan. Data kelas kuliah "${item.nama_kelas_kuliah}" akan dihapus permanen dari sistem.`,
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#64748b',

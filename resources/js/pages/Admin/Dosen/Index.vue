@@ -136,18 +136,21 @@ const openEdit = (item: Dosen) => {
 };
 
 const openDelete = (item: Dosen) => {
-    let warningText = 'Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.';
-    let iconType: 'warning' | 'error' = 'warning';
-
     if (item.kelas_mengajar_count) {
-        warningText = `PERINGATAN: Dosen ini tercatat mengajar pada ${item.kelas_mengajar_count} Kelas Kuliah. Menghapus data ini akan menghapus data dosen pengajar pada kelas tersebut selamanya!`;
-        iconType = 'error';
+        Swal.fire({
+            title: 'Tidak Dapat Dihapus!',
+            text: `Dosen ini tercatat mengajar pada ${item.kelas_mengajar_count} Kelas Kuliah. Data tidak dapat dihapus karena berelasi dengan data jadwal/kelas lain.`,
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Tutup',
+        });
+        return;
     }
 
     Swal.fire({
         title: 'Apakah anda yakin?',
-        text: warningText,
-        icon: iconType,
+        text: 'Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.',
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#64748b',

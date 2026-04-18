@@ -102,18 +102,21 @@ const openEdit = (item: Prodi) => {
 };
 
 const openDelete = (item: Prodi) => {
-    let warningText = 'Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.';
-    let iconType: 'warning' | 'error' = 'warning';
-    
     if (item.mahasiswa_count || item.mata_kuliah_count) {
-        warningText = `PERINGATAN: Terdapat ${item.mahasiswa_count || 0} Mahasiswa dan ${item.mata_kuliah_count || 0} Mata Kuliah yang terkait dengan program studi ini. Penghapusan ini BERISIKO KEHILANGAN DATA berantai pada tabel-tabel anak selamanya!`;
-        iconType = 'error';
+        Swal.fire({
+            title: 'Tidak Dapat Dihapus!',
+            text: `Terdapat ${item.mahasiswa_count || 0} Mahasiswa dan ${item.mata_kuliah_count || 0} Mata Kuliah yang terkait dengan program studi ini. Data tidak dapat dihapus karena berelasi dengan data lain.`,
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Tutup',
+        });
+        return;
     }
 
     Swal.fire({
         title: 'Apakah anda yakin?',
-        text: warningText,
-        icon: iconType,
+        text: 'Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.',
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#64748b',

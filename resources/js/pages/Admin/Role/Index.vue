@@ -28,10 +28,21 @@ setBreadcrumbs([
     { title: 'Roles', href: '/admin/role' },
 ]);
 
-const deleteRole = (id: number) => {
+const deleteRole = (role: Role) => {
+    if (role.users_count > 0) {
+        Swal.fire({
+            title: 'Tidak Dapat Dihapus!',
+            text: `Role "${formatRoleName(role.name)}" sedang digunakan oleh ${role.users_count} pengguna. Data tidak dapat dihapus karena berelasi dengan data pengguna lain.`,
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Tutup',
+        });
+        return;
+    }
+
     Swal.fire({
         title: 'Apakah anda yakin?',
-        text: 'Tindakan ini tidak dapat dibatalkan. Data role ini akan dihapus permanen.',
+        text: `Tindakan ini tidak dapat dibatalkan. Data role "${formatRoleName(role.name)}" akan dihapus permanen.`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
@@ -41,7 +52,7 @@ const deleteRole = (id: number) => {
         reverseButtons: true,
     }).then((result) => {
         if (result.isConfirmed) {
-            router.delete(`/admin/role/${id}`);
+            router.delete(`/admin/role/${role.id}`);
         }
     });
 };
@@ -129,7 +140,7 @@ const formatRoleName = (name: string) => {
                                     v-if="role.name !== 'admin'"
                                     variant="ghost"
                                     size="icon"
-                                    @click="deleteRole(role.id)"
+                                    @click="deleteRole(role)"
                                     class="text-red-600 hover:text-red-700 hover:bg-red-50 h-8 w-8"
                                     title="Hapus"
                                 >

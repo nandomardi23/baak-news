@@ -118,18 +118,21 @@ const activeFilterChips = computed(() => {
 });
 
 const deleteMahasiswa = (row: Mahasiswa) => {
-    let warningText = `Apakah Anda yakin ingin menghapus data mahasiswa ${row.nama}?`;
-    let iconType: 'warning' | 'error' = 'warning';
-
     if (row.krs_count || row.nilai_count || row.surat_pengajuan_count) {
-        warningText = `PERINGATAN: Mahasiswa ${row.nama} memiliki ${row.krs_count || 0} KRS, ${row.nilai_count || 0} Nilai, dan ${row.surat_pengajuan_count || 0} Riwayat Surat. Menghapus data ini BERISIKO KEHILANGAN semua riwayat akademiknya selamanya!`;
-        iconType = 'error';
+        Swal.fire({
+            title: 'Tidak Dapat Dihapus!',
+            text: `Mahasiswa ${row.nama} memiliki ${row.krs_count || 0} KRS, ${row.nilai_count || 0} Nilai, dan ${row.surat_pengajuan_count || 0} Riwayat Surat. Data tidak dapat dihapus karena berelasi dengan riwayat akademiknya.`,
+            icon: 'error',
+            confirmButtonColor: '#ef4444',
+            confirmButtonText: 'Tutup',
+        });
+        return;
     }
 
     Swal.fire({
         title: 'Konfirmasi Hapus',
-        text: warningText,
-        icon: iconType,
+        text: `Apakah Anda yakin ingin menghapus data mahasiswa ${row.nama}? Data akan dihapus permanen.`,
+        icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#ef4444',
         cancelButtonColor: '#64748b',
