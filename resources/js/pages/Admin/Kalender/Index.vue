@@ -122,23 +122,14 @@ function submitForm() {
     }
 }
 
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
+
 function deleteItem(item: KalenderItem) {
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+    confirmDelete({
+        url: `/admin/kalender/${item.id}`,
+        entityName: 'Event Kalender',
         text: `Hapus event "${item.judul}"? Tindakan ini tidak dapat dibatalkan.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/kalender/${item.id}`, {
-                preserveScroll: true,
-            });
-        }
     });
 }
 

@@ -63,21 +63,14 @@ const openUploadModal = (type: string) => {
     showUploadModal.value = true;
 };
 
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
+
 const deleteTemplate = (id: number) => {
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+    confirmDelete({
+        url: `/admin/templates/${id}`,
+        entityName: 'Template Dokumen',
         text: 'Hapus template ini? Dokumen tidak akan bisa dicetak sampai template baru diupload.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/templates/${id}`);
-        }
     });
 };
 

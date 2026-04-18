@@ -75,38 +75,16 @@ const columns = [
 ];
 
 // -- Dialogs --
-const selectedItem = ref<KelasKuliah | null>(null);
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
 
 const openDelete = (item: KelasKuliah) => {
-    if ((item.peserta ?? 0) > 0 || (item.dosen_pengajar?.length ?? 0) > 0) {
-        Swal.fire({
-            title: 'Tidak Dapat Dihapus!',
-            text: `Kelas ini memiliki ${item.peserta || 0} Peserta Mahasiswa dan ${item.dosen_pengajar?.length || 0} Dosen Pengajar. Data tidak dapat dihapus karena berelasi dengan data lain.`,
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Tutup',
-        });
-        return;
-    }
-
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+    confirmDelete({
+        url: `/admin/kelas-kuliah/${item.id}`,
+        entityName: 'Kelas Kuliah',
         text: `Tindakan ini tidak dapat dibatalkan. Data kelas kuliah "${item.nama_kelas_kuliah}" akan dihapus permanen dari sistem.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/kelas-kuliah/${item.id}`, {
-                onSuccess: () => {
-                    toast.success('Berhasil', { description: 'Data kelas kuliah berhasil dihapus' });
-                },
-            });
-        }
+        isRestricted: (item.peserta ?? 0) > 0 || (item.dosen_pengajar?.length ?? 0) > 0,
+        restrictedMessage: `Kelas ini memiliki ${item.peserta || 0} Peserta Mahasiswa dan ${item.dosen_pengajar?.length || 0} Dosen Pengajar. Data tidak dapat dihapus karena berelasi dengan data lain.`
     });
 };
 

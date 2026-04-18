@@ -90,21 +90,14 @@ const jenisOptions = [
     { label: 'Kartu Ujian', value: 'kartu_ujian' }
 ];
 
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
+
 const deleteSurat = (id: number) => {
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+    confirmDelete({
+        url: `/admin/surat/${id}`,
+        entityName: 'Pengajuan Surat',
         text: 'Hapus pengajuan surat ini? Tindakan ini tidak dapat dibatalkan.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/surat/${id}`);
-        }
     });
 };
 

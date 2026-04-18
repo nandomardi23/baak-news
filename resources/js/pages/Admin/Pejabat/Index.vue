@@ -216,21 +216,14 @@ const submit = () => {
     }
 };
 
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
+
 const deletePejabat = (id: number) => {
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+    confirmDelete({
+        url: `/admin/pejabat/${id}`,
+        entityName: 'Pejabat',
         text: 'Tindakan ini tidak dapat dibatalkan. Data pejabat ini akan dihapus permanen.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/pejabat/${id}`);
-        }
     });
 };
 

@@ -84,21 +84,14 @@ const reject = () => {
     });
 };
 
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
+
 const deleteSurat = () => {
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+    confirmDelete({
+        url: `/admin/surat/${props.surat.id}`,
+        entityName: 'Pengajuan Surat',
         text: 'Hapus pengajuan ini? Tindakan ini tidak dapat dibatalkan.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/surat/${props.surat.id}`);
-        }
     });
 };
 

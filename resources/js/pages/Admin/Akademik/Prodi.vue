@@ -101,36 +101,16 @@ const openEdit = (item: Prodi) => {
     isEditOpen.value = true;
 };
 
-const openDelete = (item: Prodi) => {
-    if (item.mahasiswa_count || item.mata_kuliah_count) {
-        Swal.fire({
-            title: 'Tidak Dapat Dihapus!',
-            text: `Terdapat ${item.mahasiswa_count || 0} Mahasiswa dan ${item.mata_kuliah_count || 0} Mata Kuliah yang terkait dengan program studi ini. Data tidak dapat dihapus karena berelasi dengan data lain.`,
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Tutup',
-        });
-        return;
-    }
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
 
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+const openDelete = (item: Prodi) => {
+    confirmDelete({
+        url: route('admin.akademik.prodi.destroy', item.id),
+        entityName: 'Program Studi',
         text: 'Tindakan ini tidak dapat dibatalkan. Data program studi ini akan dihapus permanen.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(route('admin.akademik.prodi.destroy', item.id), {
-                onSuccess: () => {
-                    toast.success('Berhasil', { description: 'Program Studi berhasil dihapus' });
-                },
-            });
-        }
+        isRestricted: item.mahasiswa_count || item.mata_kuliah_count,
+        restrictedMessage: `Terdapat ${item.mahasiswa_count || 0} Mahasiswa dan ${item.mata_kuliah_count || 0} Mata Kuliah yang terkait dengan program studi ini. Data tidak dapat dihapus karena berelasi dengan data lain.`
     });
 };
 

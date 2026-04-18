@@ -124,36 +124,16 @@ const openEdit = (item: MataKuliah) => {
     isEditOpen.value = true;
 };
 
-const openDelete = (item: MataKuliah) => {
-    if ((item.krs_detail_count || 0) > 0 || (item.nilai_count || 0) > 0) {
-        Swal.fire({
-            title: 'Tidak Dapat Dihapus!',
-            text: `Terdapat ${item.krs_detail_count || 0} KRS Mahasiswa dan ${item.nilai_count || 0} Nilai Ujian yang terkait dengan mata kuliah ini. Data tidak dapat dihapus karena berelasi dengan data lain.`,
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Tutup',
-        });
-        return;
-    }
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
 
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+const openDelete = (item: MataKuliah) => {
+    confirmDelete({
+        url: route('admin.akademik.matakuliah.destroy', item.id),
+        entityName: 'Mata Kuliah',
         text: 'Tindakan ini tidak dapat dibatalkan. Data mata kuliah ini akan dihapus permanen.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(route('admin.akademik.matakuliah.destroy', item.id), {
-                onSuccess: () => {
-                    toast.success('Berhasil', { description: 'Mata Kuliah berhasil dihapus' });
-                },
-            });
-        }
+        isRestricted: (item.krs_detail_count || 0) > 0 || (item.nilai_count || 0) > 0,
+        restrictedMessage: `Terdapat ${item.krs_detail_count || 0} KRS Mahasiswa dan ${item.nilai_count || 0} Nilai Ujian yang terkait dengan mata kuliah ini. Data tidak dapat dihapus karena berelasi dengan data lain.`,
     });
 };
 

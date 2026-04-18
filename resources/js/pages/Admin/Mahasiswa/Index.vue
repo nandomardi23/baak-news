@@ -117,32 +117,16 @@ const activeFilterChips = computed(() => {
     return chips;
 });
 
-const deleteMahasiswa = (row: Mahasiswa) => {
-    if (row.krs_count || row.nilai_count || row.surat_pengajuan_count) {
-        Swal.fire({
-            title: 'Tidak Dapat Dihapus!',
-            text: `Mahasiswa ${row.nama} memiliki ${row.krs_count || 0} KRS, ${row.nilai_count || 0} Nilai, dan ${row.surat_pengajuan_count || 0} Riwayat Surat. Data tidak dapat dihapus karena berelasi dengan riwayat akademiknya.`,
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Tutup',
-        });
-        return;
-    }
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
 
-    Swal.fire({
-        title: 'Konfirmasi Hapus',
+const deleteMahasiswa = (row: Mahasiswa) => {
+    confirmDelete({
+        url: `/admin/mahasiswa/${row.id}`,
+        entityName: 'Mahasiswa',
         text: `Apakah Anda yakin ingin menghapus data mahasiswa ${row.nama}? Data akan dihapus permanen.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/mahasiswa/${row.id}`);
-        }
+        isRestricted: row.krs_count || row.nilai_count || row.surat_pengajuan_count,
+        restrictedMessage: `Mahasiswa ${row.nama} memiliki ${row.krs_count || 0} KRS, ${row.nilai_count || 0} Nilai, dan ${row.surat_pengajuan_count || 0} Riwayat Surat. Data tidak dapat dihapus karena berelasi dengan riwayat akademiknya.`
     });
 };
 </script>

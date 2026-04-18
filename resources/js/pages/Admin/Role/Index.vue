@@ -28,32 +28,16 @@ setBreadcrumbs([
     { title: 'Roles', href: '/admin/role' },
 ]);
 
-const deleteRole = (role: Role) => {
-    if (role.users_count > 0) {
-        Swal.fire({
-            title: 'Tidak Dapat Dihapus!',
-            text: `Role "${formatRoleName(role.name)}" sedang digunakan oleh ${role.users_count} pengguna. Data tidak dapat dihapus karena berelasi dengan data pengguna lain.`,
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Tutup',
-        });
-        return;
-    }
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
 
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+const deleteRole = (role: Role) => {
+    confirmDelete({
+        url: `/admin/role/${role.id}`,
+        entityName: 'Role',
         text: `Tindakan ini tidak dapat dibatalkan. Data role "${formatRoleName(role.name)}" akan dihapus permanen.`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(`/admin/role/${role.id}`);
-        }
+        isRestricted: role.users_count > 0,
+        restrictedMessage: `Role "${formatRoleName(role.name)}" sedang digunakan oleh ${role.users_count} pengguna. Data tidak dapat dihapus karena berelasi dengan data pengguna lain.`
     });
 };
 

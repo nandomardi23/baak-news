@@ -135,36 +135,16 @@ const openEdit = (item: Dosen) => {
     isEditOpen.value = true;
 };
 
-const openDelete = (item: Dosen) => {
-    if (item.kelas_mengajar_count) {
-        Swal.fire({
-            title: 'Tidak Dapat Dihapus!',
-            text: `Dosen ini tercatat mengajar pada ${item.kelas_mengajar_count} Kelas Kuliah. Data tidak dapat dihapus karena berelasi dengan data jadwal/kelas lain.`,
-            icon: 'error',
-            confirmButtonColor: '#ef4444',
-            confirmButtonText: 'Tutup',
-        });
-        return;
-    }
+import { useConfirmDelete } from '@/composables/useConfirmDelete';
+const { confirmDelete } = useConfirmDelete();
 
-    Swal.fire({
-        title: 'Apakah anda yakin?',
+const openDelete = (item: Dosen) => {
+    confirmDelete({
+        url: route('admin.dosen.destroy', item.id),
+        entityName: 'Dosen',
         text: 'Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#ef4444',
-        cancelButtonColor: '#64748b',
-        confirmButtonText: 'Ya, Hapus!',
-        cancelButtonText: 'Batal',
-        reverseButtons: true,
-    }).then((result) => {
-        if (result.isConfirmed) {
-            router.delete(route('admin.dosen.destroy', item.id), {
-                onSuccess: () => {
-                    toast.success('Berhasil', { description: 'Data dosen berhasil dihapus' });
-                },
-            });
-        }
+        isRestricted: item.kelas_mengajar_count,
+        restrictedMessage: `Dosen ini tercatat mengajar pada ${item.kelas_mengajar_count} Kelas Kuliah. Data tidak dapat dihapus karena berelasi dengan data jadwal/kelas lain.`,
     });
 };
 
