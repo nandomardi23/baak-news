@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
 import { computed } from 'vue';
-import { computed } from 'vue';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Trash2, Eye, Users } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
