@@ -233,13 +233,20 @@ class SuratController extends Controller
 
     public function destroy(SuratPengajuan $surat): RedirectResponse
     {
-        $description = "Menghapus pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}";
-        $surat->delete();
+        try {
+            $description = "Menghapus pengajuan surat {$surat->jenis_surat_label} untuk {$surat->mahasiswa->nama}";
+            $surat->delete();
 
-        ActivityLog::log('deleted', $description);
+            ActivityLog::log('deleted', $description);
 
-        return redirect()->route('admin.surat.index')
-            ->with('success', 'Pengajuan surat berhasil dihapus');
+            return redirect()->route('admin.surat.index')
+                ->with('success', 'Pengajuan surat berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->route('admin.surat.index')->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->route('admin.surat.index')->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 
     /**

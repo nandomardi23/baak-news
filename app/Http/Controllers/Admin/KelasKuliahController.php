@@ -37,12 +37,12 @@ class KelasKuliahController extends Controller
             $query->where('tahun_akademik_id', $semesterId);
         }
 
-        $sortField = $request->input('sort_field', 'nama_kelas_kuliah');
-        $sortDirection = $request->input('sort_direction', 'asc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
 
-        $allowedSorts = ['nama_kelas_kuliah', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks'];
+        $allowedSorts = ['nama_kelas_kuliah', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks', 'created_at'];
         if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'nama_kelas_kuliah';
+            $sortField = 'created_at';
         }
 
         $kelasKuliah = $query->orderBy($sortField, $sortDirection)
@@ -163,8 +163,15 @@ class KelasKuliahController extends Controller
 
     public function destroy(KelasKuliah $kelasKuliah)
     {
-        $kelasKuliah->delete();
-        return redirect()->back()->with('success', 'Data kelas kuliah berhasil dihapus');
+        try {
+            $kelasKuliah->delete();
+            return redirect()->back()->with('success', 'Data kelas kuliah berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->back()->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 
     public function updateJadwal(Request $request, KelasKuliah $kelasKuliah)

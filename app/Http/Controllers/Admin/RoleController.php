@@ -14,7 +14,7 @@ class RoleController extends Controller
 {
     public function index(): Response
     {
-        $roles = Role::withCount('users')->orderBy('name')->get();
+        $roles = Role::withCount('users')->latest()->get();
 
         return Inertia::render('Admin/Role/Index', [
             'roles' => $roles,
@@ -85,10 +85,16 @@ class RoleController extends Controller
             return back()->with('error', 'Role masih digunakan oleh user, tidak dapat dihapus');
         }
 
-        $role->delete();
-
-        return redirect()->route('admin.role.index')
-            ->with('success', 'Role berhasil dihapus');
+        try {
+            $role->delete();
+            return redirect()->route('admin.role.index')
+                ->with('success', 'Role berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->route('admin.role.index')->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->route('admin.role.index')->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 
     public function importNeo(): RedirectResponse

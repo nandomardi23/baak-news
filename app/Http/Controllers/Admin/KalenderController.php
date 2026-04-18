@@ -25,7 +25,7 @@ class KalenderController extends Controller
         $kalender = KalenderAkademik::with('tahunAkademik')
             ->when($activeTahun, fn($q) => $q->where('tahun_akademik_id', $activeTahun->id))
             ->jenis($jenis)
-            ->orderBy('tanggal_mulai')
+            ->latest()
             ->get()
             ->map(fn($item) => [
                 'id' => $item->id,
@@ -92,8 +92,14 @@ class KalenderController extends Controller
 
     public function destroy(KalenderAkademik $kalender): RedirectResponse
     {
-        $kalender->delete();
-
-        return back()->with('success', 'Event kalender berhasil dihapus');
+        try {
+            $kalender->delete();
+            return back()->with('success', 'Event kalender berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return back()->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 }

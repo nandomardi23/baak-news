@@ -11,19 +11,11 @@ import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
 import { computed } from 'vue';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+import { computed } from 'vue';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Trash2, Eye, Users } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
+import Swal from 'sweetalert2';
 
 interface KelasKuliah {
     id: number;
@@ -84,21 +76,35 @@ const columns = [
 ];
 
 // -- Dialogs --
-const isDeleteOpen = ref(false);
 const selectedItem = ref<KelasKuliah | null>(null);
 
 const openDelete = (item: KelasKuliah) => {
-    selectedItem.value = item;
-    isDeleteOpen.value = true;
-};
+    let warningText = `Tindakan ini tidak dapat dibatalkan. Data kelas kuliah "${item.nama_kelas_kuliah}" akan dihapus permanen dari sistem.`;
+    let iconType: 'warning' | 'error' = 'warning';
 
-const submitDelete = () => {
-    if (!selectedItem.value) return;
-    router.delete(`/admin/kelas-kuliah/${selectedItem.value.id}`, {
-        onSuccess: () => {
-            isDeleteOpen.value = false;
-            toast.success('Berhasil', { description: 'Data kelas kuliah berhasil dihapus' });
-        },
+    if ((item.peserta ?? 0) > 0 || (item.dosen_pengajar?.length ?? 0) > 0) {
+        warningText = `PERINGATAN: Kelas ini memiliki ${item.peserta || 0} Peserta Mahasiswa dan ${item.dosen_pengajar?.length || 0} Dosen Pengajar. Menghapus data kelas ini akan mereset KRS/Jadwal secara berantai selamanya!`;
+        iconType = 'error';
+    }
+
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: warningText,
+        icon: iconType,
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/kelas-kuliah/${item.id}`, {
+                onSuccess: () => {
+                    toast.success('Berhasil', { description: 'Data kelas kuliah berhasil dihapus' });
+                },
+            });
+        }
     });
 };
 
@@ -209,26 +215,7 @@ const activeFilterChips = computed(() => {
             </SmartTable>
         </div>
 
-        <!-- Delete Confirmation -->
-        <AlertDialog :open="isDeleteOpen" @update:open="isDeleteOpen = $event">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription v-if="(selectedItem?.peserta ?? 0) > 0 || (selectedItem?.dosen_pengajar?.length ?? 0) > 0" class="text-red-600 font-medium font-sans">
-                        PERINGATAN: Kelas ini memiliki {{ selectedItem?.peserta || 0 }} Peserta Mahasiswa dan {{ selectedItem?.dosen_pengajar?.length || 0 }} Dosen Pengajar. Menghapus data kelas ini akan mereset KRS/Jadwal secara berantai selamanya!
-                    </AlertDialogDescription>
-                    <AlertDialogDescription v-else>
-                        Tindakan ini tidak dapat dibatalkan. Data kelas kuliah "{{ selectedItem?.nama_kelas_kuliah }}" akan dihapus permanen dari sistem.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="submitDelete">
-                        Hapus
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+
 
     
 </template>

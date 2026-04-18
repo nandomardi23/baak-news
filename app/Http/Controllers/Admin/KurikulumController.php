@@ -28,12 +28,12 @@ class KurikulumController extends Controller
             });
         }
 
-        $sortField = $request->input('sort_field', 'nama_kurikulum');
-        $sortDirection = $request->input('sort_direction', 'asc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
 
-        $allowedSorts = ['nama_kurikulum', 'id_semester', 'jumlah_sks_lulus'];
+        $allowedSorts = ['nama_kurikulum', 'id_semester', 'jumlah_sks_lulus', 'created_at'];
         if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'nama_kurikulum';
+            $sortField = 'created_at';
         }
 
         $kurikulum = $query->orderBy($sortField, $sortDirection)

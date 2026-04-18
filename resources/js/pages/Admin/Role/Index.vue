@@ -10,6 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Pencil, Trash2, Plus, ShieldCheck, Upload, Users } from 'lucide-vue-next';
 import { Badge } from '@/components/ui/badge';
+import Swal from 'sweetalert2';
 
 interface Role {
     id: number;
@@ -28,9 +29,21 @@ setBreadcrumbs([
 ]);
 
 const deleteRole = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus role ini?')) {
-        router.delete(`/admin/role/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Tindakan ini tidak dapat dibatalkan. Data role ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/role/${id}`);
+        }
+    });
 };
 
 const formatRoleName = (name: string) => {

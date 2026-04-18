@@ -44,6 +44,7 @@ import {
     UserCircle,
     CheckCircle2
 } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
 
 interface Pejabat {
     id: number;
@@ -216,9 +217,21 @@ const submit = () => {
 };
 
 const deletePejabat = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus data pejabat ini?')) {
-        router.delete(`/admin/pejabat/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Tindakan ini tidak dapat dibatalkan. Data pejabat ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/pejabat/${id}`);
+        }
+    });
 };
 
 const handleFileChange = (event: Event) => {

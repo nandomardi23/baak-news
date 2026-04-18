@@ -30,12 +30,12 @@ class DosenController extends Controller
             $query->active();
         }
 
-        $sortField = $request->input('sort_field', 'nama');
-        $sortDirection = $request->input('sort_direction', 'asc');
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
 
-        $allowedSorts = ['nidn', 'nip', 'nama', 'jabatan_fungsional', 'status_aktif'];
+        $allowedSorts = ['nidn', 'nip', 'nama', 'jabatan_fungsional', 'status_aktif', 'created_at'];
         if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'nama';
+            $sortField = 'created_at';
         }
 
         $dosen = $query->orderBy($sortField, $sortDirection)
@@ -112,8 +112,15 @@ class DosenController extends Controller
 
     public function destroy(Dosen $dosen)
     {
-        $dosen->delete();
-        return redirect()->back()->with('success', 'Data dosen berhasil dihapus');
+        try {
+            $dosen->delete();
+            return redirect()->back()->with('success', 'Data dosen berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->back()->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 }
 

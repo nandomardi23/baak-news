@@ -19,7 +19,7 @@ class UserController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = User::with('roles');
+        $query = User::with('roles')->latest();
 
         if ($request->filled('role')) {
             $query->role($request->role);
@@ -128,9 +128,15 @@ class UserController extends Controller
             return back()->with('error', 'Tidak dapat menghapus akun sendiri');
         }
 
-        $user->delete();
-
-        return redirect()->route('admin.user.index')
-            ->with('success', 'User berhasil dihapus');
+        try {
+            $user->delete();
+            return redirect()->route('admin.user.index')
+                ->with('success', 'User berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->route('admin.user.index')->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->route('admin.user.index')->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 }

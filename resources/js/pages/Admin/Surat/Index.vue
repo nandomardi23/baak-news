@@ -13,6 +13,7 @@ import { Eye, Printer, Trash2, X } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
+import Swal from 'sweetalert2';
 
 interface Surat {
     id: number;
@@ -90,9 +91,21 @@ const jenisOptions = [
 ];
 
 const deleteSurat = (id: number) => {
-    if (confirm('Hapus pengajuan surat ini?')) {
-        router.delete(`/admin/surat/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Hapus pengajuan surat ini? Tindakan ini tidak dapat dibatalkan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/surat/${id}`);
+        }
+    });
 };
 
 const openPrintModal = (row: Surat) => {

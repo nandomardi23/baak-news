@@ -17,7 +17,7 @@ class TemplateDesignerController extends Controller
      */
     public function index(): Response
     {
-        $templates = LetterTemplate::orderBy('name')->get();
+        $templates = LetterTemplate::latest()->get();
 
         return Inertia::render('Admin/Templates/Index', [
             'templates' => $templates,
@@ -29,15 +29,22 @@ class TemplateDesignerController extends Controller
      */
     public function destroy(LetterTemplate $template): RedirectResponse
     {
-        // Delete file
-        if ($template->file_path) {
-            Storage::disk('public')->delete($template->file_path);
+        try {
+            // Delete file
+            if ($template->file_path) {
+                Storage::disk('public')->delete($template->file_path);
+            }
+
+            $template->delete();
+
+            return redirect()->route('admin.templates.index')
+                ->with('success', 'Template berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->route('admin.templates.index')->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->route('admin.templates.index')->with('error', 'Terjadi kesalahan saat menghapus data.');
         }
-
-        $template->delete();
-
-        return redirect()->route('admin.templates.index')
-            ->with('success', 'Template berhasil dihapus');
     }
 
     /**

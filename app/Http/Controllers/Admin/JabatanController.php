@@ -15,7 +15,7 @@ class JabatanController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = Jabatan::query();
+        $query = Jabatan::query()->latest();
 
         // Specific filter (Active) if needed, unrelated to global search
         if ($request->has('is_active')) {
@@ -58,8 +58,14 @@ class JabatanController extends Controller
 
     public function destroy(Jabatan $jabatan): RedirectResponse
     {
-        $jabatan->delete();
-
-        return redirect()->back()->with('success', 'Jabatan berhasil dihapus');
+        try {
+            $jabatan->delete();
+            return redirect()->back()->with('success', 'Jabatan berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->back()->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 }

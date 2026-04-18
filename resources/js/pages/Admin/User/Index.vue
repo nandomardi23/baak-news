@@ -17,6 +17,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import Swal from 'sweetalert2';
 
 interface User {
     id: number;
@@ -56,9 +57,21 @@ const updateFilter = () => {
 };
 
 const deleteUser = (id: number) => {
-    if (confirm('Hapus user ini?')) {
-        router.delete(`/admin/user/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Hapus user ini? Tindakan ini tidak dapat dibatalkan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/user/${id}`);
+        }
+    });
 };
 
 const getRoleBadgeClass = (role: string) => {

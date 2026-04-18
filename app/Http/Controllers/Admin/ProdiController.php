@@ -18,7 +18,7 @@ class ProdiController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = ProgramStudi::with('pejabat')->withCount(['mahasiswa', 'mataKuliah']);
+        $query = ProgramStudi::with('pejabat')->withCount(['mahasiswa', 'mataKuliah'])->latest();
 
         $prodiList = $this->applyDataTable($query, $request, [
             'kode_prodi',
@@ -70,8 +70,14 @@ class ProdiController extends Controller
      */
     public function destroy(ProgramStudi $prodi)
     {
-        $prodi->delete();
-
-        return redirect()->back()->with('success', 'Program Studi berhasil dihapus');
+        try {
+            $prodi->delete();
+            return redirect()->back()->with('success', 'Program Studi berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->back()->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 }

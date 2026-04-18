@@ -8,6 +8,7 @@ const { setBreadcrumbs } = useBreadcrumbs();
 import { Head, useForm, router } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
 import DatePicker from 'primevue/datepicker';
+import Swal from 'sweetalert2';
 
 interface KalenderItem {
     id: number;
@@ -122,11 +123,23 @@ function submitForm() {
 }
 
 function deleteItem(item: KalenderItem) {
-    if (confirm(`Hapus event "${item.judul}"?`)) {
-        router.delete(`/admin/kalender/${item.id}`, {
-            preserveScroll: true,
-        });
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: `Hapus event "${item.judul}"? Tindakan ini tidak dapat dibatalkan.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/kalender/${item.id}`, {
+                preserveScroll: true,
+            });
+        }
+    });
 }
 
 function filterByTahun(tahunId: number | string) {

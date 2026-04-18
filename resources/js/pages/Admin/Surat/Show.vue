@@ -7,6 +7,7 @@ import AppLayout from '@/layouts/AppLayout.vue';
 
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ref, computed } from 'vue';
+import Swal from 'sweetalert2';
 
 interface Surat {
     id: number;
@@ -58,9 +59,21 @@ const rejectForm = useForm({
 const showRejectModal = ref(false);
 
 const approve = () => {
-    if (confirm('Setujui pengajuan surat ini?')) {
-        router.post(`/admin/surat/${props.surat.id}/approve`);
-    }
+    Swal.fire({
+        title: 'Konfirmasi Persetujuan',
+        text: 'Setujui pengajuan surat ini?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#10b981',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Setujui!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.post(`/admin/surat/${props.surat.id}/approve`);
+        }
+    });
 };
 
 const reject = () => {
@@ -72,9 +85,21 @@ const reject = () => {
 };
 
 const deleteSurat = () => {
-    if (confirm('Hapus pengajuan ini?')) {
-        router.delete(`/admin/surat/${props.surat.id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Hapus pengajuan ini? Tindakan ini tidak dapat dibatalkan.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/surat/${props.surat.id}`);
+        }
+    });
 };
 
 const statusConfig = computed(() => {

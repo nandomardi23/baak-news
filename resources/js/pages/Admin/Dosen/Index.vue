@@ -27,20 +27,11 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
-import {
-    AlertDialog,
-    AlertDialogAction,
-    AlertDialogCancel,
-    AlertDialogContent,
-    AlertDialogDescription,
-    AlertDialogFooter,
-    AlertDialogHeader,
-    AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Pencil, Trash2, Plus, Eye } from 'lucide-vue-next';
 import { toast } from 'vue-sonner';
 import ComboboxFilter from '@/components/ui/datatable/ComboboxFilter.vue';
+import Swal from 'sweetalert2';
 
 interface Dosen {
     id: number;
@@ -86,7 +77,6 @@ const columns = [
 
 const isCreateOpen = ref(false);
 const isEditOpen = ref(false);
-const isDeleteOpen = ref(false);
 const selectedItem = ref<Dosen | null>(null);
 
 const form = useForm({
@@ -146,8 +136,33 @@ const openEdit = (item: Dosen) => {
 };
 
 const openDelete = (item: Dosen) => {
-    selectedItem.value = item;
-    isDeleteOpen.value = true;
+    let warningText = 'Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.';
+    let iconType: 'warning' | 'error' = 'warning';
+
+    if (item.kelas_mengajar_count) {
+        warningText = `PERINGATAN: Dosen ini tercatat mengajar pada ${item.kelas_mengajar_count} Kelas Kuliah. Menghapus data ini akan menghapus data dosen pengajar pada kelas tersebut selamanya!`;
+        iconType = 'error';
+    }
+
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: warningText,
+        icon: iconType,
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(route('admin.dosen.destroy', item.id), {
+                onSuccess: () => {
+                    toast.success('Berhasil', { description: 'Data dosen berhasil dihapus' });
+                },
+            });
+        }
+    });
 };
 
 const submitCreate = () => {
@@ -169,15 +184,7 @@ const submitEdit = () => {
     });
 };
 
-const submitDelete = () => {
-    if (!selectedItem.value) return;
-    router.delete(route('admin.dosen.destroy', selectedItem.value.id), {
-        onSuccess: () => {
-            isDeleteOpen.value = false;
-            toast.success('Berhasil', { description: 'Data dosen berhasil dihapus' });
-        },
-    });
-};
+
 
 const { getStatusBadge } = useStatusBadge();
 
@@ -395,26 +402,7 @@ const activeFilterChips = computed(() => {
             </DialogContent>
         </Dialog>
 
-        <!-- Delete Confirmation -->
-        <AlertDialog :open="isDeleteOpen" @update:open="isDeleteOpen = $event">
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>Apakah anda yakin?</AlertDialogTitle>
-                    <AlertDialogDescription v-if="selectedItem?.kelas_mengajar_count" class="text-red-600 font-medium font-sans">
-                        PERINGATAN: Dosen ini tercatat mengajar pada {{ selectedItem.kelas_mengajar_count }} Kelas Kuliah. Menghapus data ini akan me-*reset* (menghapus) data dosen pengajar pada kelas tersebut selamanya!
-                    </AlertDialogDescription>
-                    <AlertDialogDescription v-else>
-                        Tindakan ini tidak dapat dibatalkan. Data dosen ini akan dihapus permanen dari sistem.
-                    </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>Batal</AlertDialogCancel>
-                    <AlertDialogAction class="bg-red-600 hover:bg-red-700" @click="submitDelete">
-                        Hapus
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
+
 
     
 </template>

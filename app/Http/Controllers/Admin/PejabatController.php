@@ -16,7 +16,7 @@ class PejabatController extends Controller
     public function index(): Response
     {
         $pejabat = Pejabat::orderBy('is_active', 'desc')
-            ->orderBy('jabatan')
+            ->latest()
             ->get()
             ->map(fn($item) => [
                 'id' => $item->id,
@@ -146,18 +146,25 @@ class PejabatController extends Controller
 
     public function destroy(Pejabat $pejabat): RedirectResponse
     {
-        $description = "Menghapus pejabat: {$pejabat->nama_lengkap} ({$pejabat->jabatan})";
+        try {
+            $description = "Menghapus pejabat: {$pejabat->nama_lengkap} ({$pejabat->jabatan})";
 
-        if ($pejabat->tandatangan_path) {
-            Storage::disk('public')->delete($pejabat->tandatangan_path);
+            if ($pejabat->tandatangan_path) {
+                Storage::disk('public')->delete($pejabat->tandatangan_path);
+            }
+
+            $pejabat->delete();
+
+            ActivityLog::log('deleted', $description);
+
+            return redirect()->route('admin.pejabat.index')
+                ->with('success', 'Pejabat berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->route('admin.pejabat.index')->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->route('admin.pejabat.index')->with('error', 'Terjadi kesalahan saat menghapus data.');
         }
-
-        $pejabat->delete();
-
-        ActivityLog::log('deleted', $description);
-
-        return redirect()->route('admin.pejabat.index')
-            ->with('success', 'Pejabat berhasil dihapus');
     }
 
     private function getJabatanOptions(): array

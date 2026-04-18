@@ -49,7 +49,7 @@ class MahasiswaController extends Controller
 
         // Apply default sort if no sorting is specified
         if (!$request->filled('sort_field')) {
-            $query->orderBy('mahasiswa.nim', 'asc');
+            $query->orderBy('mahasiswa.created_at', 'desc');
         }
 
         // Apply standardized Search and Sort
@@ -261,8 +261,15 @@ class MahasiswaController extends Controller
 
     public function destroy(Mahasiswa $mahasiswa): \Illuminate\Http\RedirectResponse
     {
-        $mahasiswa->delete();
-        return redirect()->route('admin.mahasiswa.index')->with('success', 'Berhasil menghapus data mahasiswa.');
+        try {
+            $mahasiswa->delete();
+            return redirect()->route('admin.mahasiswa.index')->with('success', 'Berhasil menghapus data mahasiswa.');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->route('admin.mahasiswa.index')->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->route('admin.mahasiswa.index')->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 
     public function printKrs(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response

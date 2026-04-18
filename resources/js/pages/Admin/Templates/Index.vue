@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Award, GraduationCap, FileCheck, Upload, Trash2, Clock, Replace, Loader2 } from 'lucide-vue-next';
+import Swal from 'sweetalert2';
 
 interface Template {
     id: number;
@@ -63,9 +64,21 @@ const openUploadModal = (type: string) => {
 };
 
 const deleteTemplate = (id: number) => {
-    if (confirm('Hapus template ini? Dokumen tidak akan bisa dicetak sampai template baru diupload.')) {
-        router.delete(`/admin/templates/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Hapus template ini? Dokumen tidak akan bisa dicetak sampai template baru diupload.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/templates/${id}`);
+        }
+    });
 };
 
 const handleDrop = (e: DragEvent) => {

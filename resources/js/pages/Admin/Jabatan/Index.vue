@@ -10,6 +10,7 @@ import { ref } from 'vue';
 import SmartTable from '@/components/ui/datatable/SmartTable.vue'; // Updated import
 import { Pencil, Trash2, Plus } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
+import Swal from 'sweetalert2';
 
 interface Jabatan {
     id: number;
@@ -93,9 +94,21 @@ const submit = () => {
 };
 
 const deleteJabatan = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus jabatan ini?')) {
-        router.delete(`/admin/jabatan/${id}`);
-    }
+    Swal.fire({
+        title: 'Apakah anda yakin?',
+        text: 'Tindakan ini tidak dapat dibatalkan. Data jabatan ini akan dihapus permanen.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Hapus!',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            router.delete(`/admin/jabatan/${id}`);
+        }
+    });
 };
 </script>
 

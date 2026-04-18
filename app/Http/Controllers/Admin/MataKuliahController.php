@@ -29,12 +29,12 @@ class MataKuliahController extends Controller
             });
         }
 
-        $sortField = $request->input('sort_field', 'kode_matkul');
-        $sortDirection = $request->input('sort_direction', 'asc');
-        $allowedSorts = ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'sks_teori', 'sks_praktek'];
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+        $allowedSorts = ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'sks_teori', 'sks_praktek', 'created_at'];
 
         if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'kode_matkul';
+            $sortField = 'created_at';
         }
 
         $mataKuliah = $query->orderBy($sortField, $sortDirection)
@@ -108,7 +108,14 @@ class MataKuliahController extends Controller
      */
     public function destroy(MataKuliah $matakuliah)
     {
-        $matakuliah->delete();
-        return redirect()->back()->with('success', 'Mata Kuliah berhasil dihapus');
+        try {
+            $matakuliah->delete();
+            return redirect()->back()->with('success', 'Mata Kuliah berhasil dihapus');
+        } catch (\Illuminate\Database\QueryException $e) {
+            if ($e->getCode() == 23000) {
+                return redirect()->back()->with('error', 'Data tidak bisa dihapus karena sedang berelasi dengan data lain.');
+            }
+            return redirect()->back()->with('error', 'Terjadi kesalahan saat menghapus data.');
+        }
     }
 }
