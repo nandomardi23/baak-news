@@ -167,7 +167,7 @@ const initials = computed(() => {
                 <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
                     <!-- Student Info -->
                     <div class="flex items-center gap-4">
-                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/20 shrink-0">
+                        <div class="w-14 h-14 rounded-2xl bg-linear-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white text-lg font-bold shadow-lg shadow-indigo-500/20 shrink-0">
                             {{ initials }}
                         </div>
                         <div>
