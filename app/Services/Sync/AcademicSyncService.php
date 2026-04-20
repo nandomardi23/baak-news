@@ -1650,7 +1650,7 @@ class AcademicSyncService extends BaseSyncService
         $response = $this->neoFeeder->getKrsMahasiswa("id_registrasi_mahasiswa = '{$idRegistrasi}'");
 
         if (!$response || !isset($response['data']) || !is_array($response['data'])) {
-            \Illuminate\Support\Facades\Log::info("SyncKRS [{$idRegistrasi}]: No data from API", [
+            Log::info("SyncKRS [{$idRegistrasi}]: No data from API", [
                 'response_keys' => $response ? array_keys($response) : null,
                 'error_code' => $response['error_code'] ?? null,
                 'error_desc' => $response['error_desc'] ?? null,
@@ -1659,7 +1659,7 @@ class AcademicSyncService extends BaseSyncService
         }
 
         $data = $response['data'];
-        \Illuminate\Support\Facades\Log::info("SyncKRS [{$idRegistrasi}]: API returned " . count($data) . " records");
+        Log::info("SyncKRS [{$idRegistrasi}]: API returned " . count($data) . " records");
 
         $synced = 0;
         $inserted = 0;
@@ -1676,7 +1676,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        \Illuminate\Support\Facades\Log::info("SyncKRS [{$idRegistrasi}]: Found semesters: " . implode(', ', array_keys($grouped)));
+        Log::info("SyncKRS [{$idRegistrasi}]: Found semesters: " . implode(', ', array_keys($grouped)));
 
         $mahasiswa = Mahasiswa::where('id_registrasi_mahasiswa', $idRegistrasi)->first();
         if (!$mahasiswa) {
@@ -1687,7 +1687,7 @@ class AcademicSyncService extends BaseSyncService
             try {
                 $ta = \App\Models\TahunAkademik::where('id_semester', $idSemester)->first();
                 if (!$ta) {
-                    \Illuminate\Support\Facades\Log::warning("SyncKRS [{$idRegistrasi}]: Semester {$idSemester} not found in TahunAkademik table - SKIPPED");
+                    Log::warning("SyncKRS [{$idRegistrasi}]: Semester {$idSemester} not found in TahunAkademik table - SKIPPED");
                     $skipped++;
                     continue;
                 }
