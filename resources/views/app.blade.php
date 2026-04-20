@@ -42,7 +42,7 @@
         {{-- Structured Data (JSON-LD) --}}
         <script type="application/ld+json">
         {
-            "@context": "https://schema.org",
+            "@@context": "https://schema.org",
             "@type": "EducationalOrganization",
             "name": "BAAK STIKES Hang Tuah Tanjungpinang",
             "alternateName": "Biro Administrasi Akademik Kemahasiswaan STIKES Hang Tuah",
@@ -63,7 +63,7 @@
         </script>
         <script type="application/ld+json">
         {
-            "@context": "https://schema.org",
+            "@@context": "https://schema.org",
             "@type": "WebSite",
             "name": "BAAK STIKES Hang Tuah Tanjungpinang",
             "url": "{{ config('app.url') }}",
