@@ -39,7 +39,7 @@ defineProps<{
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
                     </div>
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900">Hasil Pencarian</h2>
+                        <h1 class="text-2xl font-bold text-slate-900">Hasil Pencarian</h1>
                         <p class="text-slate-500 text-sm">Kata kunci: "<span class="font-medium text-blue-600">{{ search }}</span>"</p>
                     </div>
                 </div>

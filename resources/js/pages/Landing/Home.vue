@@ -230,6 +230,59 @@ const handleFilterTemplates = () => {
             </div>
         </section>
 
+        <!-- Quick Links Section -->
+        <section class="py-16 px-4">
+            <div class="w-full mx-auto max-w-5xl">
+                <div class="text-center mb-10">
+                    <span class="text-blue-600 font-semibold tracking-wider text-sm uppercase">Navigasi</span>
+                    <h2 class="text-3xl font-bold text-slate-900 mt-2">Tautan Cepat</h2>
+                    <p class="text-slate-500 mt-2">Akses cepat ke halaman-halaman penting</p>
+                </div>
+
+                <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <Link href="/profil" class="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-blue-400 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center group-hover:bg-blue-600 group-hover:text-white transition-colors duration-300 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 group-hover:text-blue-600 transition">Profil BAAK</h3>
+                            <p class="text-xs text-slate-500">Visi, misi & struktur</p>
+                        </div>
+                    </Link>
+
+                    <Link href="/kalender-akademik" class="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-emerald-400 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:bg-emerald-600 group-hover:text-white transition-colors duration-300 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 group-hover:text-emerald-600 transition">Kalender Akademik</h3>
+                            <p class="text-xs text-slate-500">Jadwal kegiatan kampus</p>
+                        </div>
+                    </Link>
+
+                    <a href="#alur" class="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-violet-400 hover:shadow-lg hover:shadow-violet-500/10 transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-violet-50 text-violet-600 flex items-center justify-center group-hover:bg-violet-600 group-hover:text-white transition-colors duration-300 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 group-hover:text-violet-600 transition">Panduan Pengajuan</h3>
+                            <p class="text-xs text-slate-500">Alur pengajuan surat</p>
+                        </div>
+                    </a>
+
+                    <Link href="/login" class="group flex items-center gap-4 p-5 bg-white rounded-2xl border border-slate-200 hover:border-amber-400 hover:shadow-lg hover:shadow-amber-500/10 transition-all duration-300">
+                        <div class="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center group-hover:bg-amber-600 group-hover:text-white transition-colors duration-300 shrink-0">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1"></path></svg>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-slate-900 group-hover:text-amber-600 transition">Login Admin</h3>
+                            <p class="text-xs text-slate-500">Akses panel admin</p>
+                        </div>
+                    </Link>
+                </div>
+            </div>
+        </section>
+
         <!-- Template Dokumen Section -->
         <section id="templates" class="py-24 px-4 bg-slate-50/80 border-t border-slate-100">
             <div class="w-full mx-auto max-w-7xl">

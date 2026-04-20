@@ -31,8 +31,11 @@
         </style>
 
         <meta name="csrf-token" content="{{ csrf_token() }}">
+        <meta name="description" content="Biro Administrasi Akademik - Layanan pengajuan surat dan dokumen akademik secara digital untuk mahasiswa STIKES Hang Tuah Tanjungpinang.">
+        <meta name="robots" content="index, follow">
+        <link rel="canonical" href="{{ url()->current() }}">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'SHT-BAAK | STIKES Hang Tuah Tanjungpinang') }}</title>
 
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">

@@ -36,11 +36,11 @@ const isMobileMenuOpen = ref(false);
                             :class="variant === 'simple' ? 'rounded-xl group-hover:shadow-blue-500/40 transition' : ''">
                             <img src="/images/logo.gif" alt="Logo" class="w-full h-full object-contain" />
                         </div>
-                        <component :is="variant === 'simple' ? 'span' : 'h1'"
+                        <span
                             class="font-bold bg-clip-text text-transparent bg-linear-to-r"
                             :class="variant === 'simple' ? 'text-xl from-blue-700 to-indigo-600' : 'text-2xl from-blue-700 to-blue-500'">
                             SHT-BAAK
-                        </component>
+                        </span>
                     </component>
 
                     <!-- Desktop Menu (full variant) -->
@@ -51,6 +51,7 @@ const isMobileMenuOpen = ref(false);
                             <a href="/#alur" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Alur Sistem</a>
                             <a href="/#layanan" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Layanan</a>
                             <a href="/#templates" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Unduhan</a>
+                            <Link href="/kalender-akademik" class="text-sm font-medium text-slate-600 hover:text-blue-600 transition">Kalender</Link>
                         </slot>
                         <Link href="/login" class="px-5 py-2.5 rounded-full bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-lg shadow-blue-500/30 transition-all hover:-translate-y-0.5">
                             Login Admin
@@ -61,6 +62,7 @@ const isMobileMenuOpen = ref(false);
                     <div v-else class="hidden md:flex items-center gap-4">
                         <Link href="/" class="text-slate-600 hover:text-blue-600 font-medium transition">Beranda</Link>
                         <Link href="/profil" class="text-slate-600 hover:text-blue-600 font-medium transition">Profil</Link>
+                        <Link href="/kalender-akademik" class="text-slate-600 hover:text-blue-600 font-medium transition">Kalender</Link>
                         <Link href="/login" class="px-4 py-2 bg-blue-600 text-white font-medium rounded-lg hover:bg-blue-700 transition shadow-sm">Login Admin</Link>
                     </div>
 
@@ -100,6 +102,7 @@ const isMobileMenuOpen = ref(false);
                             <a href="/#alur" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Alur Sistem</a>
                             <a href="/#layanan" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Layanan</a>
                             <a href="/#templates" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Unduhan</a>
+                            <Link href="/kalender-akademik" @click="isMobileMenuOpen = false" class="block px-3 py-3 rounded-xl text-base font-medium text-slate-600 hover:text-blue-600 hover:bg-blue-50 transition">Kalender</Link>
                         </slot>
                         <div class="pt-4 mt-4 border-t border-slate-100">
                             <Link href="/login" class="block w-full text-center px-5 py-3 rounded-xl bg-blue-600 text-white font-semibold shadow-lg shadow-blue-500/30 active:scale-95 transition">
@@ -115,6 +118,7 @@ const isMobileMenuOpen = ref(false);
                 <div class="px-4 py-3 space-y-2">
                     <Link href="/" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Beranda</Link>
                     <Link href="/profil" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Profil</Link>
+                    <Link href="/kalender-akademik" class="block px-4 py-2 rounded-lg hover:bg-slate-100 font-medium">Kalender</Link>
                     <Link href="/login" class="block px-4 py-2 bg-blue-600 text-white font-medium rounded-lg text-center">Login Admin</Link>
                 </div>
             </div>
@@ -137,6 +141,15 @@ const isMobileMenuOpen = ref(false);
                         <p class="leading-relaxed mb-6">
                             Biro Administrasi Akademik Kemahasiswaan STIKES Hang Tuah Tanjungpinang berkomitmen memberikan pelayanan akademik terbaik secara efisien dan transparan.
                         </p>
+                    </div>
+                    <div>
+                        <h3 class="text-white font-bold mb-6">Tautan</h3>
+                        <ul class="space-y-3 text-sm">
+                            <li><Link href="/" class="hover:text-blue-400 transition">Beranda</Link></li>
+                            <li><Link href="/profil" class="hover:text-blue-400 transition">Profil BAAK</Link></li>
+                            <li><Link href="/kalender-akademik" class="hover:text-blue-400 transition">Kalender Akademik</Link></li>
+                            <li><Link href="/login" class="hover:text-blue-400 transition">Login Admin</Link></li>
+                        </ul>
                     </div>
                     <div>
                         <h3 class="text-white font-bold mb-6">Kontak Kami</h3>

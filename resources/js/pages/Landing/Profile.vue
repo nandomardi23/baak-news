@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Link } from '@inertiajs/vue3';
 import LandingLayout from '@/layouts/LandingLayout.vue';
+import SeoHead from '@/components/SeoHead.vue';
 
 interface Pejabat {
     id: number;
@@ -15,7 +16,11 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Profil BAAK - STIKES Hang Tuah Tanjungpinang" />
+    <SeoHead 
+        title="Profil BAAK - STIKES Hang Tuah Tanjungpinang" 
+        description="Profil Biro Administrasi Akademik dan Kemahasiswaan (BAAK) STIKES Hang Tuah Tanjungpinang. Visi, misi, dan struktur organisasi."
+        type="profile"
+    />
 
     <LandingLayout variant="full" :show-background="true" :show-footer="true">
         <!-- Hero Section -->
