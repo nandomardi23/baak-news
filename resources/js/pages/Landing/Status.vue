@@ -49,7 +49,7 @@ const { getBadgeClass } = useStatusBadge();
             <div class="bg-white rounded-2xl p-8 border border-slate-200 shadow-xl">
                 <div class="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-900 mb-2">Status Pengajuan Surat</h2>
+                        <h1 class="text-2xl font-bold text-slate-900 mb-2">Status Pengajuan Surat</h1>
                         <p class="text-slate-500">
                              Mahasiswa: <span class="font-semibold text-slate-700">{{ mahasiswa.nama }}</span> <span class="text-slate-300">|</span> NIM: <span class="font-semibold text-slate-700">{{ mahasiswa.nim }}</span>
                         </p>

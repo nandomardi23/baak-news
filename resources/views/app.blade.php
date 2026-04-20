@@ -31,11 +31,60 @@
         </style>
 
         <meta name="csrf-token" content="{{ csrf_token() }}">
-        <meta name="description" content="Biro Administrasi Akademik - Layanan pengajuan surat dan dokumen akademik secara digital untuk mahasiswa STIKES Hang Tuah Tanjungpinang.">
+        <meta name="description" content="BAAK STIKES Hang Tuah Tanjungpinang - Layanan administrasi akademik dan pengajuan surat serta dokumen akademik secara digital untuk mahasiswa.">
+        <meta name="keywords" content="BAAK, STIKES Hang Tuah, Tanjungpinang, administrasi akademik, pengajuan surat, dokumen akademik, KRS, KHS, transkrip nilai">
         <meta name="robots" content="index, follow">
+        <meta name="author" content="BAAK STIKES Hang Tuah Tanjungpinang">
         <link rel="canonical" href="{{ url()->current() }}">
 
-        <title inertia>{{ config('app.name', 'SHT-BAAK | STIKES Hang Tuah Tanjungpinang') }}</title>
+        <title inertia>{{ config('app.name', 'BAAK STIKES Hang Tuah Tanjungpinang - Layanan Administrasi Akademik') }}</title>
+
+        {{-- Structured Data (JSON-LD) --}}
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "EducationalOrganization",
+            "name": "BAAK STIKES Hang Tuah Tanjungpinang",
+            "alternateName": "Biro Administrasi Akademik Kemahasiswaan STIKES Hang Tuah",
+            "url": "{{ config('app.url') }}",
+            "logo": "{{ asset('images/logo.gif') }}",
+            "description": "Biro Administrasi Akademik dan Kemahasiswaan STIKES Hang Tuah Tanjungpinang menyediakan layanan pengajuan surat dan dokumen akademik secara digital.",
+            "address": {
+                "@type": "PostalAddress",
+                "streetAddress": "Jl. WR Supratman",
+                "addressLocality": "Tanjungpinang Timur",
+                "addressRegion": "Kepulauan Riau",
+                "addressCountry": "ID"
+            },
+            "telephone": "(0771) 4440071",
+            "email": "stikestpi@gmail.com",
+            "sameAs": []
+        }
+        </script>
+        <script type="application/ld+json">
+        {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            "name": "BAAK STIKES Hang Tuah Tanjungpinang",
+            "url": "{{ config('app.url') }}",
+            "potentialAction": {
+                "@type": "SearchAction",
+                "target": "{{ config('app.url') }}/search?search={search_term_string}",
+                "query-input": "required name=search_term_string"
+            }
+        }
+        </script>
+
+        {{-- Google Analytics - Ganti UA-XXXXXXXXX dengan ID tracking Anda --}}
+        {{-- 
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-XXXXXXXXXX');
+        </script>
+        --}}
 
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">

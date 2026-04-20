@@ -44,8 +44,9 @@ const handleFilterTemplates = () => {
 
 <template>
     <SeoHead 
-        title="BAAK - STIKES Hang Tuah Tanjungpinang" 
-        description="Layanan pengajuan surat dan dokumen akademik secara digital untuk mempermudah kebutuhan administrasi mahasiswa STIKES Hang Tuah Tanjungpinang."
+        title="BAAK STIKES Hang Tuah Tanjungpinang - Layanan Administrasi Akademik" 
+        description="BAAK STIKES Hang Tuah Tanjungpinang menyediakan layanan administrasi akademik, pengajuan surat, dan dokumen akademik secara digital untuk mahasiswa."
+        keywords="BAAK, STIKES Hang Tuah, Tanjungpinang, administrasi akademik, pengajuan surat, dokumen akademik, KRS, KHS, transkrip nilai, surat aktif kuliah"
     />
 
     <LandingLayout variant="full" :show-background="true" :show-footer="true">
