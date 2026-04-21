@@ -5,6 +5,10 @@
 
     RewriteEngine On
 
+    # Redirect www to non-www for Canonicalization (SEO)
+    RewriteCond %{HTTP_HOST} ^www\.baak\.stikesht-tpi\.ac\.id [NC]
+    RewriteRule ^(.*)$ https://baak.stikesht-tpi.ac.id/$1 [L,R=301]
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

@@ -32,12 +32,24 @@
 
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <meta name="description" content="BAAK STIKES Hang Tuah Tanjungpinang - Layanan administrasi akademik dan pengajuan surat serta dokumen akademik secara digital untuk mahasiswa.">
-        <meta name="keywords" content="BAAK, STIKES Hang Tuah, Tanjungpinang, administrasi akademik, pengajuan surat, dokumen akademik, KRS, KHS, transkrip nilai">
+        <meta name="keywords" content="BAAK, STIKES Hang Tuah, Tanjungpinang, administrasi akademik, pengajuan surat, dokumen akademik, KRS, KHS, transkrip nilai, biro administrasi">
         <meta name="robots" content="index, follow">
         <meta name="author" content="BAAK STIKES Hang Tuah Tanjungpinang">
+        
+        {{-- OpenGraph Meta Tags --}}
+        <meta property="og:title" content="BAAK STIKES Hang Tuah Tanjungpinang - Layanan Administrasi Akademik" />
+        <meta property="og:description" content="Layanan administrasi akademik dan pengajuan surat serta dokumen akademik secara digital untuk mahasiswa STIKES Hang Tuah Tanjungpinang." />
+        <meta property="og:url" content="{{ url()->current() }}" />
+        <meta property="og:site_name" content="BAAK STIKES Hang Tuah" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="{{ asset('images/logo.gif') }}" />
+        <meta property="og:updated_time" content="{{ date('c') }}" />
+        
+        {{-- Sitemap --}}
+        <link rel="sitemap" type="application/xml" title="Sitemap" href="{{ url('/sitemap.xml') }}" />
         <link rel="canonical" href="{{ url()->current() }}">
 
-        <title inertia>{{ config('app.name', 'BAAK STIKES Hang Tuah Tanjungpinang - Layanan Administrasi Akademik') }}</title>
+        <title inertia>BAAK STIKES Hang Tuah Tanjungpinang - Layanan Administrasi Akademik</title>
 
         {{-- Structured Data (JSON-LD) --}}
         <script type="application/ld+json">
@@ -98,6 +110,19 @@
         @inertiaHead
     </head>
     <body class="font-sans antialiased">
+        {{-- Static SEO & Accessibility Block for Non-JS Crawlers --}}
+        <div class="sr-only">
+            <h1>BAAK STIKES Hang Tuah Tanjungpinang</h1>
+            <h2>Layanan Administrasi Akademik dan Kemahasiswaan</h2>
+            <p>Biro administrasi akademik, pengajuan surat aktif kuliah, KRS, KHS, dan dokumen tingkat akhir secara digital untuk seluruh mahasiswa STIKES Hang Tuah Tanjungpinang.</p>
+            <nav>
+                <a href="{{ url('/') }}">Beranda</a>
+                <a href="{{ url('/profil') }}">Profil BAAK</a>
+                <a href="{{ url('/kalender-akademik') }}">Kalender Akademik</a>
+                <a href="{{ url('/login') }}">Login Admin</a>
+            </nav>
+        </div>
+
         @inertia
     </body>
 </html>
