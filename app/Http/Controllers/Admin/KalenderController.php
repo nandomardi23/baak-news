@@ -22,12 +22,16 @@ class KalenderController extends Controller
             ? TahunAkademik::find($tahunAkademikId)
             : TahunAkademik::where('is_active', true)->first();
 
-        $kalender = KalenderAkademik::with('tahunAkademik')
-            ->when($activeTahun, fn($q) => $q->where('tahun_akademik_id', $activeTahun->id))
-            ->jenis($jenis)
+        $query = KalenderAkademik::with('tahunAkademik');
+        
+        if ($activeTahun) {
+            $query->where('tahun_akademik_id', $activeTahun->id);
+        }
+
+        $kalender = $query->jenis($jenis)
             ->latest()
             ->get()
-            ->map(fn($item) => [
+            ->map(fn(KalenderAkademik $item) => [
                 'id' => $item->id,
                 'judul' => $item->judul,
                 'deskripsi' => $item->deskripsi,
@@ -41,6 +45,12 @@ class KalenderController extends Controller
                 'duration_days' => $item->duration_days,
             ]);
 
+        $jenisOptions = collect(KalenderAkademik::JENIS_OPTIONS)->map(fn($opt, $key) => [
+            'value' => $key,
+            'label' => $opt['label'],
+            'color' => $opt['color'],
+        ])->values();
+
         return Inertia::render('Admin/Kalender/Index', [
             'kalender' => $kalender,
             'filters' => [
@@ -48,11 +58,7 @@ class KalenderController extends Controller
                 'jenis' => $jenis,
             ],
             'tahunAkademikOptions' => TahunAkademik::orderByDesc('id')->get(['id', 'nama']),
-            'jenisOptions' => collect(KalenderAkademik::JENIS_OPTIONS)->map(fn($opt, $key) => [
-                'value' => $key,
-                'label' => $opt['label'],
-                'color' => $opt['color'],
-            ])->values(),
+            'jenisOptions' => $jenisOptions,
         ]);
     }
 
