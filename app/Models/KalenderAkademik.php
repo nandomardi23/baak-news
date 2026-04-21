@@ -5,6 +5,21 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * @property int $id
+ * @property string $judul
+ * @property string|null $deskripsi
+ * @property \Illuminate\Support\Carbon $tanggal_mulai
+ * @property \Illuminate\Support\Carbon|null $tanggal_selesai
+ * @property string $jenis
+ * @property int $tahun_akademik_id
+ * @property string|null $warna
+ * @property-read string $jenis_label
+ * @property-read string $default_color
+ * @property-read string $tanggal_format
+ * @property-read int $duration_days
+ * @property \App\Models\TahunAkademik|null $tahunAkademik
+ */
 class KalenderAkademik extends Model
 {
     protected $table = 'kalender_akademik';
