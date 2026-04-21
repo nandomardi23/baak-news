@@ -22,6 +22,7 @@
         "setasign/fpdf": "^1.8",
         "setasign/fpdi": "^2.6",
         "spatie/laravel-permission": "^6.24",
+        "spatie/laravel-sitemap": "*",
         "tightenco/ziggy": "^2.6"
     },
     "require-dev": {
