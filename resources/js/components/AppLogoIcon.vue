@@ -14,7 +14,7 @@ defineProps<Props>();
 
 <template>
     <img
-        src="/images/logo.gif"
+        src="/images/logo-sm.webp"
         alt="Logo STIKES Hang Tuah"
         :class="className"
         v-bind="$attrs"

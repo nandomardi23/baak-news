@@ -34,7 +34,7 @@ const isMobileMenuOpen = ref(false);
                         class="flex items-center gap-3" :class="variant === 'simple' ? 'group' : ''">
                         <div class="w-10 h-10 rounded-lg flex items-center justify-center overflow-hidden bg-white shadow-lg shadow-blue-500/20"
                             :class="variant === 'simple' ? 'rounded-xl group-hover:shadow-blue-500/40 transition' : ''">
-                            <img src="/images/logo.gif" alt="Logo STIKES Hang Tuah Tanjungpinang" class="w-full h-full object-contain" width="40" height="40" />
+                            <img src="/images/logo-sm.webp" alt="Logo STIKES Hang Tuah Tanjungpinang" class="w-full h-full object-contain" width="40" height="40" />
                         </div>
                         <span
                             class="font-bold bg-clip-text text-transparent bg-linear-to-r"
@@ -125,16 +125,18 @@ const isMobileMenuOpen = ref(false);
         </nav>
 
         <!-- Page Content -->
-        <slot />
+        <main>
+            <slot />
+        </main>
 
         <!-- Footer -->
-        <footer v-if="showFooter" class="bg-slate-900 text-slate-400 py-16">
+        <footer v-if="showFooter" class="bg-slate-900 text-slate-300 py-16">
             <div class="w-full mx-auto px-4">
                 <div class="grid md:grid-cols-4 gap-12 mb-12">
                     <div class="col-span-2">
                         <div class="flex items-center gap-3 mb-6">
                             <div class="w-8 h-8 rounded-md flex items-center justify-center overflow-hidden">
-                                <img src="/images/logo.gif" alt="Logo STIKES Hang Tuah Tanjungpinang" class="w-full h-full object-contain" width="32" height="32" loading="lazy" />
+                                <img src="/images/logo-sm.webp" alt="Logo STIKES Hang Tuah Tanjungpinang" class="w-full h-full object-contain" width="32" height="32" loading="lazy" />
                             </div>
                             <h2 class="text-xl font-bold text-white">SHT-BAAK</h2>
                         </div>
@@ -171,7 +173,7 @@ const isMobileMenuOpen = ref(false);
                 </div>
                 <div class="border-t border-slate-800 pt-8 text-center text-sm">
                     <p>&copy; {{ new Date().getFullYear() }} STIKES Hang Tuah Tanjungpinang. All Rights Reserved.</p>
-                    <p class="mt-2 text-slate-500 text-xs">Present by <a href="https://www.linkedin.com/in/fernandomardinurzaman/" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition">Fernando Mardi Nurzaman</a></p>
+                    <p class="mt-2 text-slate-400 text-xs">Present by <a href="https://www.linkedin.com/in/fernandomardinurzaman/" target="_blank" rel="noopener noreferrer" class="text-blue-400 hover:text-blue-300 transition">Fernando Mardi Nurzaman</a></p>
                 </div>
             </div>
         </footer>

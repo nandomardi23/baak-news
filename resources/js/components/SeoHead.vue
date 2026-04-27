@@ -13,7 +13,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
     description: 'BAAK STIKES Hang Tuah Tanjungpinang - Layanan administrasi akademik dan pengajuan surat serta dokumen akademik secara digital untuk mahasiswa.',
-    image: '/images/logo.gif',
+    image: '/images/logo-sm.png',
     url: '',
     type: 'website',
     keywords: 'BAAK, STIKES Hang Tuah, Tanjungpinang, administrasi akademik, pengajuan surat, dokumen akademik',

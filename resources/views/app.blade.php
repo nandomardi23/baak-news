@@ -42,7 +42,7 @@
         <meta property="og:url" content="{{ url()->current() }}" />
         <meta property="og:site_name" content="BAAK STIKES Hang Tuah" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="{{ url('/images/logo.gif') }}" />
+        <meta property="og:image" content="{{ url('/images/logo-sm.png') }}" />
         <meta property="og:updated_time" content="{{ date('c') }}" />
         
         {{-- Sitemap --}}
@@ -59,7 +59,7 @@
             "name": "BAAK STIKES Hang Tuah Tanjungpinang",
             "alternateName": "Biro Administrasi Akademik Kemahasiswaan STIKES Hang Tuah",
             "url": "{{ config('app.url') }}",
-            "logo": "{{ url('/images/logo.gif') }}",
+            "logo": "{{ url('/images/logo-sm.png') }}",
             "description": "Biro Administrasi Akademik dan Kemahasiswaan STIKES Hang Tuah Tanjungpinang menyediakan layanan pengajuan surat dan dokumen akademik secara digital.",
             "address": {
                 "@type": "PostalAddress",

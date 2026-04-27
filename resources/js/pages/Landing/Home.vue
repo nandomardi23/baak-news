@@ -71,7 +71,7 @@ const handleFilterTemplates = () => {
                     <div class="bg-slate-50/50 rounded-[1.25rem] p-6 border border-slate-100">
                         <div class="mb-6 text-left">
                             <h2 class="text-xl font-bold text-slate-800 mb-1">Cari Data Mahasiswa</h2>
-                            <p class="text-slate-500 text-sm">Masukkan Nama atau NIM untuk memulai pengajuan surat</p>
+                            <p class="text-slate-600 text-sm">Masukkan Nama atau NIM untuk memulai pengajuan surat</p>
                         </div>
                         
                         <form @submit.prevent="handleSearch" class="flex flex-col md:flex-row gap-3">
@@ -96,7 +96,7 @@ const handleFilterTemplates = () => {
                                 <svg class="w-5 h-5 group-hover:translate-x-1 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
                             </button>
                         </form>
-                        <div class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                        <div class="mt-4 flex items-center gap-2 text-xs text-slate-500">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             Minimal 3 karakter untuk melakukan pencarian
                         </div>
