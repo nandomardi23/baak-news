@@ -42,7 +42,7 @@
         <meta property="og:url" content="{{ url()->current() }}" />
         <meta property="og:site_name" content="BAAK STIKES Hang Tuah" />
         <meta property="og:type" content="website" />
-        <meta property="og:image" content="{{ asset('images/logo.gif') }}" />
+        <meta property="og:image" content="{{ url('/images/logo.gif') }}" />
         <meta property="og:updated_time" content="{{ date('c') }}" />
         
         {{-- Sitemap --}}
@@ -59,7 +59,7 @@
             "name": "BAAK STIKES Hang Tuah Tanjungpinang",
             "alternateName": "Biro Administrasi Akademik Kemahasiswaan STIKES Hang Tuah",
             "url": "{{ config('app.url') }}",
-            "logo": "{{ asset('images/logo.gif') }}",
+            "logo": "{{ url('/images/logo.gif') }}",
             "description": "Biro Administrasi Akademik dan Kemahasiswaan STIKES Hang Tuah Tanjungpinang menyediakan layanan pengajuan surat dan dokumen akademik secara digital.",
             "address": {
                 "@type": "PostalAddress",
@@ -102,8 +102,9 @@
         <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
         <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
 
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap" rel="stylesheet" />
+        <link rel="preconnect" href="https://fonts.bunny.net" crossorigin>
+        <link rel="preload" as="style" href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap" onload="this.onload=null;this.rel='stylesheet'" />
+        <noscript><link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600&display=swap" rel="stylesheet" /></noscript>
         
         @routes
         @vite(['resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])

@@ -20,6 +20,11 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const currentUrl = computed(() => props.url || (typeof window !== 'undefined' ? window.location.href : ''));
+const absoluteImage = computed(() => {
+    if (props.image.startsWith('http')) return props.image;
+    const origin = typeof window !== 'undefined' ? window.location.origin : '';
+    return origin + props.image;
+});
 </script>
 
 <template>
@@ -35,7 +40,7 @@ const currentUrl = computed(() => props.url || (typeof window !== 'undefined' ? 
         <meta property="og:url" :content="currentUrl" />
         <meta property="og:title" :content="title" />
         <meta property="og:description" :content="description" />
-        <meta property="og:image" :content="image" />
+        <meta property="og:image" :content="absoluteImage" />
         <meta property="og:locale" content="id_ID" />
         <meta property="og:site_name" content="BAAK STIKES Hang Tuah Tanjungpinang" />
 
@@ -44,7 +49,7 @@ const currentUrl = computed(() => props.url || (typeof window !== 'undefined' ? 
         <meta property="twitter:url" :content="currentUrl" />
         <meta property="twitter:title" :content="title" />
         <meta property="twitter:description" :content="description" />
-        <meta property="twitter:image" :content="image" />
+        <meta property="twitter:image" :content="absoluteImage" />
         
         <slot />
     </Head>
