@@ -222,9 +222,17 @@ const saveDosenWali = () => {
                         </div>
                     </div>
 
-                    <!-- Transkrip -->
-                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
-                        <div class="flex items-center gap-3 mb-5">
+                    <!-- Transkrip - Coming Soon -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg relative overflow-hidden">
+                        <!-- Coming Soon Badge -->
+                        <div class="absolute top-4 right-4 z-10">
+                            <span class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-100 text-amber-700 text-xs font-bold rounded-full border border-amber-200 animate-pulse">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                Segera Hadir
+                            </span>
+                        </div>
+
+                        <div class="flex items-center gap-3 mb-5 opacity-50">
                             <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
                             </div>
@@ -234,11 +242,12 @@ const saveDosenWali = () => {
                             </div>
                         </div>
                         <div class="flex gap-3">
-                            <a :href="`/dokumen/${mahasiswa.id}/transkrip/reguler`" target="_blank" class="flex-1 py-3.5 bg-linear-to-r from-purple-600 to-indigo-600 text-white font-bold rounded-xl hover:from-purple-700 hover:to-indigo-700 transition shadow-lg shadow-purple-500/30 text-center flex items-center justify-center gap-2">
+                            <button disabled class="flex-1 py-3.5 bg-slate-300 text-slate-500 font-bold rounded-xl cursor-not-allowed text-center flex items-center justify-center gap-2">
                                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                                 Cetak Transkrip Nilai
-                            </a>
+                            </button>
                         </div>
+                        <p class="text-xs text-slate-400 mt-3 text-center">Fitur ini sedang dalam tahap pengembangan</p>
                     </div>
                 </div>
 
