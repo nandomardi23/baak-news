@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import LandingLayout from '@/layouts/LandingLayout.vue';
 import SeoHead from '@/components/SeoHead.vue';
 
@@ -27,6 +27,52 @@ const props = defineProps<{
 const search = ref('');
 const searchTemplate = ref(props.filters?.search_template || '');
 const filterKategori = ref(props.filters?.kategori || 'all');
+const isDropdownOpen = ref(false);
+const dropdownRef = ref<HTMLElement | null>(null);
+
+const kategoriOptions = [
+    { value: 'all', label: 'Semua Kategori', icon: '📋' },
+    { value: 'Skripsi', label: 'Skripsi', icon: '📖' },
+    { value: 'Tugas', label: 'Tugas', icon: '📝' },
+    { value: 'Absen Praktek', label: 'Absen Praktek', icon: '✅' },
+    { value: 'Laporan', label: 'Laporan', icon: '📊' },
+    { value: 'Administrasi', label: 'Administrasi', icon: '🏛️' },
+    { value: 'Lainnya', label: 'Lainnya', icon: '📁' },
+];
+
+const selectedLabel = computed(() => {
+    const found = kategoriOptions.find(opt => opt.value === filterKategori.value);
+    return found ? found.label : 'Semua Kategori';
+});
+
+const selectedIcon = computed(() => {
+    const found = kategoriOptions.find(opt => opt.value === filterKategori.value);
+    return found ? found.icon : '📋';
+});
+
+const toggleDropdown = () => {
+    isDropdownOpen.value = !isDropdownOpen.value;
+};
+
+const selectOption = (value: string) => {
+    filterKategori.value = value;
+    isDropdownOpen.value = false;
+    handleFilterTemplates();
+};
+
+const handleClickOutside = (event: MouseEvent) => {
+    if (dropdownRef.value && !dropdownRef.value.contains(event.target as Node)) {
+        isDropdownOpen.value = false;
+    }
+};
+
+onMounted(() => {
+    document.addEventListener('click', handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+    document.removeEventListener('click', handleClickOutside);
+});
 
 const handleSearch = () => {
     if (search.value.length >= 3) {
@@ -36,10 +82,19 @@ const handleSearch = () => {
 
 const handleFilterTemplates = () => {
     router.get('/', {
-        search_template: searchTemplate.value,
+        search_template: searchTemplate.value || null,
         kategori: filterKategori.value === 'all' ? null : filterKategori.value
     }, { preserveState: true, preserveScroll: true });
 };
+
+// Debounced watcher — auto-filter saat user mengetik
+let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+watch(searchTemplate, () => {
+    if (debounceTimer) clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+        handleFilterTemplates();
+    }, 400);
+});
 </script>
 
 <template>
@@ -301,18 +356,72 @@ const handleFilterTemplates = () => {
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                             </div>
-                            <input type="text" v-model="searchTemplate" @keyup.enter="handleFilterTemplates" placeholder="Cari dokumen..." class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white" />
+                            <input type="text" v-model="searchTemplate" placeholder="Cari dokumen..." class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white" />
                         </div>
                         <div class="w-full sm:w-auto flex gap-2">
-                            <select v-model="filterKategori" @change="handleFilterTemplates" class="block w-full sm:w-48 pl-3 pr-10 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white appearance-none h-[38px] cursor-pointer">
-                                <option value="all">Semua Kategori</option>
-                                <option value="Skripsi">Skripsi</option>
-                                <option value="Tugas">Tugas</option>
-                                <option value="Absen Praktek">Absen Praktek</option>
-                                <option value="Laporan">Laporan</option>
-                                <option value="Administrasi">Administrasi</option>
-                                <option value="Lainnya">Lainnya</option>
-                            </select>
+                            <!-- Custom Modern Dropdown -->
+                            <div ref="dropdownRef" class="relative w-full sm:w-56">
+                                <button
+                                    @click="toggleDropdown"
+                                    type="button"
+                                    class="group flex items-center justify-between w-full pl-3.5 pr-3 py-2.5 text-sm border rounded-xl transition-all duration-300 bg-white cursor-pointer"
+                                    :class="isDropdownOpen 
+                                        ? 'border-blue-400 ring-2 ring-blue-100 shadow-lg shadow-blue-500/10' 
+                                        : 'border-slate-200 hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/5'"
+                                >
+                                    <span class="flex items-center gap-2.5">
+                                        <span class="text-base leading-none">{{ selectedIcon }}</span>
+                                        <span class="font-medium text-slate-700">{{ selectedLabel }}</span>
+                                    </span>
+                                    <svg 
+                                        class="w-4 h-4 text-slate-400 transition-transform duration-300 ease-out" 
+                                        :class="isDropdownOpen ? 'rotate-180 text-blue-500' : ''"
+                                        fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                    >
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                </button>
+
+                                <!-- Dropdown Menu -->
+                                <Transition
+                                    enter-active-class="transition duration-200 ease-out"
+                                    enter-from-class="opacity-0 scale-95 -translate-y-1"
+                                    enter-to-class="opacity-100 scale-100 translate-y-0"
+                                    leave-active-class="transition duration-150 ease-in"
+                                    leave-from-class="opacity-100 scale-100 translate-y-0"
+                                    leave-to-class="opacity-0 scale-95 -translate-y-1"
+                                >
+                                    <div
+                                        v-if="isDropdownOpen"
+                                        class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl shadow-2xl shadow-slate-900/15 overflow-hidden"
+                                    >
+                                        <div class="py-1.5">
+                                            <button
+                                                v-for="option in kategoriOptions"
+                                                :key="option.value"
+                                                @click="selectOption(option.value)"
+                                                type="button"
+                                                class="flex items-center justify-between w-full px-3.5 py-2.5 text-sm transition-all duration-150 cursor-pointer"
+                                                :class="filterKategori === option.value 
+                                                    ? 'bg-blue-50 text-blue-700' 
+                                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+                                            >
+                                                <span class="flex items-center gap-2.5">
+                                                    <span class="text-base leading-none">{{ option.icon }}</span>
+                                                    <span class="font-medium">{{ option.label }}</span>
+                                                </span>
+                                                <svg
+                                                    v-if="filterKategori === option.value"
+                                                    class="w-4 h-4 text-blue-500"
+                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                                >
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </Transition>
+                            </div>
                         </div>
                     </div>
 
