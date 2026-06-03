@@ -31,23 +31,18 @@ const isDropdownOpen = ref(false);
 const dropdownRef = ref<HTMLElement | null>(null);
 
 const kategoriOptions = [
-    { value: 'all', label: 'Semua Kategori', icon: '📋' },
-    { value: 'Skripsi', label: 'Skripsi', icon: '📖' },
-    { value: 'Tugas', label: 'Tugas', icon: '📝' },
-    { value: 'Absen Praktek', label: 'Absen Praktek', icon: '✅' },
-    { value: 'Laporan', label: 'Laporan', icon: '📊' },
-    { value: 'Administrasi', label: 'Administrasi', icon: '🏛️' },
-    { value: 'Lainnya', label: 'Lainnya', icon: '📁' },
+    { value: 'all', label: 'Semua Kategori' },
+    { value: 'Skripsi', label: 'Skripsi' },
+    { value: 'Tugas', label: 'Tugas' },
+    { value: 'Absen Praktek', label: 'Absen Praktek' },
+    { value: 'Laporan', label: 'Laporan' },
+    { value: 'Administrasi', label: 'Administrasi' },
+    { value: 'Lainnya', label: 'Lainnya' },
 ];
 
 const selectedLabel = computed(() => {
     const found = kategoriOptions.find(opt => opt.value === filterKategori.value);
     return found ? found.label : 'Semua Kategori';
-});
-
-const selectedIcon = computed(() => {
-    const found = kategoriOptions.find(opt => opt.value === filterKategori.value);
-    return found ? found.icon : '📋';
 });
 
 const toggleDropdown = () => {
@@ -359,68 +354,42 @@ watch(searchTemplate, () => {
                             <input type="text" v-model="searchTemplate" placeholder="Cari dokumen..." class="block w-full pl-10 pr-3 py-2 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-shadow bg-white" />
                         </div>
                         <div class="w-full sm:w-auto flex gap-2">
-                            <!-- Custom Modern Dropdown -->
+                            <!-- Custom Modern Dropdown (Simplified) -->
                             <div ref="dropdownRef" class="relative w-full sm:w-56">
                                 <button
                                     @click="toggleDropdown"
                                     type="button"
-                                    class="group flex items-center justify-between w-full pl-3.5 pr-3 py-2.5 text-sm border rounded-xl transition-all duration-300 bg-white cursor-pointer"
-                                    :class="isDropdownOpen 
-                                        ? 'border-blue-400 ring-2 ring-blue-100 shadow-lg shadow-blue-500/10' 
-                                        : 'border-slate-200 hover:border-blue-300 hover:shadow-md hover:shadow-blue-500/5'"
+                                    class="flex items-center justify-between w-full px-3 py-2 text-sm border border-slate-300 rounded-md bg-white cursor-pointer focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                                 >
-                                    <span class="flex items-center gap-2.5">
-                                        <span class="text-base leading-none">{{ selectedIcon }}</span>
-                                        <span class="font-medium text-slate-700">{{ selectedLabel }}</span>
-                                    </span>
+                                    <span class="text-slate-700">{{ selectedLabel }}</span>
                                     <svg 
-                                        class="w-4 h-4 text-slate-400 transition-transform duration-300 ease-out" 
-                                        :class="isDropdownOpen ? 'rotate-180 text-blue-500' : ''"
+                                        class="w-4 h-4 text-slate-500" 
                                         fill="none" stroke="currentColor" viewBox="0 0 24 24"
                                     >
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 9l4-4 4 4m0 6l-4 4-4-4" />
                                     </svg>
                                 </button>
 
                                 <!-- Dropdown Menu -->
-                                <Transition
-                                    enter-active-class="transition duration-200 ease-out"
-                                    enter-from-class="opacity-0 scale-95 -translate-y-1"
-                                    enter-to-class="opacity-100 scale-100 translate-y-0"
-                                    leave-active-class="transition duration-150 ease-in"
-                                    leave-from-class="opacity-100 scale-100 translate-y-0"
-                                    leave-to-class="opacity-0 scale-95 -translate-y-1"
+                                <div
+                                    v-if="isDropdownOpen"
+                                    class="absolute z-50 mt-1 w-full bg-white border border-slate-300 rounded-md shadow-lg overflow-hidden"
                                 >
-                                    <div
-                                        v-if="isDropdownOpen"
-                                        class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl shadow-2xl shadow-slate-900/15"
-                                    >
-                                        <div class="py-1.5">
-                                            <button
-                                                v-for="option in kategoriOptions"
-                                                :key="option.value"
-                                                @click="selectOption(option.value)"
-                                                type="button"
-                                                class="flex items-center justify-between w-full px-3.5 py-2.5 text-sm transition-all duration-150 cursor-pointer"
-                                                :class="filterKategori === option.value 
-                                                    ? 'bg-blue-50 text-blue-700' 
-                                                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-                                            >
-                                                <span class="flex items-center gap-2.5">
-                                                    <span class="text-base leading-none">{{ option.icon }}</span>
-                                                    <span class="font-medium">{{ option.label }}</span>
-                                                </span>
-                                                <svg
-                                                    v-if="filterKategori === option.value"
-                                                    class="w-4 h-4 text-blue-500"
-                                                    fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                                >
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
-                                                </svg>
-                                            </button>
-                                        </div>
+                                    <div class="py-1">
+                                        <button
+                                            v-for="option in kategoriOptions"
+                                            :key="option.value"
+                                            @click="selectOption(option.value)"
+                                            type="button"
+                                            class="w-full text-left px-3 py-2 text-sm transition-colors cursor-pointer"
+                                            :class="filterKategori === option.value 
+                                                ? 'bg-blue-600 text-white' 
+                                                : 'text-slate-700 hover:bg-blue-600 hover:text-white'"
+                                        >
+                                            {{ option.label }}
+                                        </button>
                                     </div>
-                                </Transition>
+                                </div>
                             </div>
                         </div>
                     </div>
