@@ -393,7 +393,7 @@ watch(searchTemplate, () => {
                                 >
                                     <div
                                         v-if="isDropdownOpen"
-                                        class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl shadow-2xl shadow-slate-900/15 overflow-hidden"
+                                        class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl shadow-2xl shadow-slate-900/15 max-h-64 overflow-y-auto"
                                     >
                                         <div class="py-1.5">
                                             <button
