@@ -106,18 +106,18 @@ watch(searchTemplate, () => {
 
     <LandingLayout variant="full" :show-background="true" :show-footer="true">
         <!-- Hero Section -->
-        <section id="home" class="py-24 px-4 relative">
+        <section id="home" class="py-12 sm:py-24 px-4 relative">
             <div class="w-full mx-auto text-center">
                 <span class="inline-block py-1 px-3 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-semibold mb-6">
                     Sistem Pelayanan Akademik Online
                 </span>
-                <h1 class="text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
+                <h1 class="text-3xl sm:text-5xl md:text-6xl font-bold text-slate-900 mb-6 leading-tight">
                     Selamat Datang di<br />
                     <span class="bg-clip-text text-transparent bg-linear-to-r from-blue-600 to-cyan-500">
                         Biro Administrasi Akademik
                     </span>
                 </h1>
-                <p class="text-lg text-slate-600 mb-12 max-w-2xl mx-auto leading-relaxed">
+                <p class="text-base sm:text-lg text-slate-600 mb-8 sm:mb-12 max-w-2xl mx-auto leading-relaxed">
                     Kami menyediakan layanan pengajuan surat dan dokumen akademik secara digital untuk mempermudah kebutuhan administrasi mahasiswa STIKES Hang Tuah Tanjungpinang.
                 </p>
 
@@ -161,7 +161,7 @@ watch(searchTemplate, () => {
         </section>
 
         <!-- Alur Section -->
-        <section id="alur" class="py-24 px-4 bg-slate-50/80 border-y border-slate-100">
+        <section id="alur" class="py-12 sm:py-24 px-4 bg-slate-50/80 border-y border-slate-100">
             <div class="w-full mx-auto">
                 <div class="text-center mb-16">
                     <span class="text-blue-600 font-semibold tracking-wider text-sm uppercase">Panduan</span>
@@ -393,7 +393,7 @@ watch(searchTemplate, () => {
                                 >
                                     <div
                                         v-if="isDropdownOpen"
-                                        class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl shadow-2xl shadow-slate-900/15 max-h-64 overflow-y-auto"
+                                        class="absolute z-50 mt-2 w-full bg-white/95 backdrop-blur-xl border border-slate-200/80 rounded-xl shadow-2xl shadow-slate-900/15"
                                     >
                                         <div class="py-1.5">
                                             <button
@@ -425,8 +425,31 @@ watch(searchTemplate, () => {
                         </div>
                     </div>
 
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse min-w-[800px]">
+                    <!-- Mobile Card Layout -->
+                    <div class="md:hidden divide-y divide-slate-100">
+                        <div v-for="template in templates.data" :key="'mobile-' + template.id" class="p-4 hover:bg-slate-50/50 transition-colors">
+                            <div class="flex items-start justify-between gap-3 mb-2">
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap shrink-0">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                                    {{ template.kategori }}
+                                </span>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] font-bold uppercase tracking-widest bg-slate-100 text-slate-600 px-2 py-0.5 rounded">{{ template.file_type }}</span>
+                                    <span class="text-xs text-slate-500 font-medium">{{ template.ukuran_format }}</span>
+                                </div>
+                            </div>
+                            <div class="font-bold text-slate-900 mb-1 text-sm">{{ template.nama }}</div>
+                            <div class="text-xs text-slate-500 leading-relaxed mb-3" v-if="template.deskripsi">{{ template.deskripsi }}</div>
+                            <a :href="`/dokumen-template/${template.id}/download`" target="_blank" class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold shadow-sm shadow-blue-500/20 active:scale-95 transition-all">
+                                Unduh
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Desktop Table Layout -->
+                    <div class="hidden md:block overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
                             <thead>
                                 <tr class="bg-slate-50 border-b border-slate-200 text-slate-500 text-sm">
                                     <th class="px-6 py-4 font-semibold w-[15%]">Kategori</th>
@@ -436,7 +459,7 @@ watch(searchTemplate, () => {
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-slate-100">
-                                <tr v-for="template in templates.data" :key="template.id" class="hover:bg-slate-50/50 transition-colors group">
+                                <tr v-for="template in templates.data" :key="'desktop-' + template.id" class="hover:bg-slate-50/50 transition-colors group">
                                     <td class="px-6 py-5 align-top">
                                         <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-[11px] font-semibold uppercase tracking-wide whitespace-nowrap">
                                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
@@ -467,11 +490,11 @@ watch(searchTemplate, () => {
                     </div>
 
                     <!-- Pagination -->
-                    <div class="px-6 py-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between" v-if="templates.links && templates.links.length > 3">
+                    <div class="px-4 sm:px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3" v-if="templates.links && templates.links.length > 3">
                          <div class="text-sm text-slate-500 hidden sm:block">
                             Menampilkan <span class="font-semibold text-slate-800">{{ templates.from }}</span> - <span class="font-semibold text-slate-800">{{ templates.to }}</span> dari <span class="font-semibold text-slate-800">{{ templates.total }}</span>
                         </div>
-                        <div class="flex items-center gap-1">
+                        <div class="flex items-center gap-1 flex-wrap justify-center">
                             <Link v-for="(link, index) in templates.links" :key="index" :href="link.url || '#'" :class="[
                                 'inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium rounded-lg transition-colors',
                                 link.active ? 'bg-blue-600 text-white' : 'text-slate-600 hover:bg-slate-200',

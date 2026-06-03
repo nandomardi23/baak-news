@@ -132,8 +132,8 @@ const isMobileMenuOpen = ref(false);
         <!-- Footer -->
         <footer v-if="showFooter" class="bg-slate-900 text-slate-300 py-16">
             <div class="w-full mx-auto px-4">
-                <div class="grid md:grid-cols-4 gap-12 mb-12">
-                    <div class="col-span-2">
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12 mb-12">
+                    <div class="sm:col-span-2">
                         <div class="flex items-center gap-3 mb-6">
                             <div class="w-8 h-8 rounded-md flex items-center justify-center overflow-hidden">
                                 <img src="/images/logo-sm.webp" alt="Logo STIKES Hang Tuah Tanjungpinang" class="w-full h-full object-contain" width="32" height="32" loading="lazy" />
