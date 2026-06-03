@@ -344,9 +344,9 @@ watch(searchTemplate, () => {
                 </div>
 
                 <!-- Ada Template -->
-                <div v-if="templates && templates.data && templates.data.length > 0" class="overflow-hidden bg-white rounded-2xl border border-slate-200 shadow-sm">
+                <div v-if="templates && templates.data && templates.data.length > 0" class="bg-white rounded-2xl border border-slate-200 shadow-sm">
                     <!-- Filters -->
-                    <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 flex flex-col sm:flex-row gap-4 justify-between items-center">
+                    <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/50 rounded-t-2xl flex flex-col sm:flex-row gap-4 justify-between items-center">
                         <div class="relative w-full sm:max-w-xs">
                             <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -459,7 +459,7 @@ watch(searchTemplate, () => {
                     </div>
 
                     <!-- Pagination -->
-                    <div class="px-4 sm:px-6 py-4 border-t border-slate-200 bg-slate-50 flex flex-col sm:flex-row items-center justify-between gap-3" v-if="templates.links && templates.links.length > 3">
+                    <div class="px-4 sm:px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-2xl flex flex-col sm:flex-row items-center justify-between gap-3" v-if="templates.links && templates.links.length > 3">
                          <div class="text-sm text-slate-500 hidden sm:block">
                             Menampilkan <span class="font-semibold text-slate-800">{{ templates.from }}</span> - <span class="font-semibold text-slate-800">{{ templates.to }}</span> dari <span class="font-semibold text-slate-800">{{ templates.total }}</span>
                         </div>
