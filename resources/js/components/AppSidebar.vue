@@ -53,6 +53,7 @@ const navGroups = [
             { title: 'Semester', href: '/admin/akademik/semester', icon: Calendar },
             { title: 'Program Studi', href: '/admin/akademik/prodi', icon: School },
             { title: 'Aktivitas Kuliah', href: '/admin/akademik/aktivitas-kuliah', icon: ClipboardList },
+            { title: 'Kalender Akademik', href: '/admin/kalender', icon: Calendar },
         ],
     },
     {
