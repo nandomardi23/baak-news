@@ -86,6 +86,10 @@ class KalenderController extends Controller
             'warna' => 'nullable|string|max:7',
         ]);
 
+        if (empty($validated['warna'])) {
+            $validated['warna'] = KalenderAkademik::JENIS_OPTIONS[$validated['jenis']]['color'] ?? '#6B7280';
+        }
+
         KalenderAkademik::create($validated);
 
         return back()->with('success', 'Event kalender berhasil ditambahkan');
@@ -102,6 +106,10 @@ class KalenderController extends Controller
             'tahun_akademik_id' => 'required|exists:tahun_akademik,id',
             'warna' => 'nullable|string|max:7',
         ]);
+
+        if (empty($validated['warna'])) {
+            $validated['warna'] = KalenderAkademik::JENIS_OPTIONS[$validated['jenis']]['color'] ?? '#6B7280';
+        }
 
         $kalender->update($validated);
 
