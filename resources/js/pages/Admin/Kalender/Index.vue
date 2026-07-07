@@ -372,23 +372,26 @@ const selectedJenisColor = computed(() => {
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Jenis *</label>
-                                    <select
+                                    <input
                                         v-model="form.jenis"
+                                        list="jenis-options-list"
                                         class="w-full px-4 py-2 rounded-lg border bg-card focus:ring-2 focus:ring-blue-500 outline-none"
-                                    >
+                                        placeholder="Pilih atau ketik jenis kegiatan..."
+                                    />
+                                    <datalist id="jenis-options-list">
                                         <option v-for="opt in jenisOptions" :key="opt.value" :value="opt.value">
                                             {{ opt.label }}
                                         </option>
-                                    </select>
+                                    </datalist>
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium mb-1">Warna</label>
                                     <div class="flex items-center gap-2">
                                         <input
-                                            v-model="form.warna"
                                             type="color"
                                             class="w-12 h-10 rounded-lg border cursor-pointer"
                                             :value="form.warna || selectedJenisColor"
+                                            @input="form.warna = ($event.target as HTMLInputElement).value"
                                         />
                                         <span class="text-sm text-muted-foreground">{{ form.warna || 'Default' }}</span>
                                     </div>

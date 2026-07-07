@@ -47,11 +47,21 @@ class KalenderController extends Controller
                 'duration_days' => $item->duration_days,
             ]);
 
+        $dynamicJenis = KalenderAkademik::select('jenis')
+            ->distinct()
+            ->pluck('jenis')
+            ->filter(fn($j) => !array_key_exists($j, KalenderAkademik::JENIS_OPTIONS))
+            ->map(fn($j) => [
+                'value' => $j,
+                'label' => ucfirst($j),
+                'color' => '#6B7280',
+            ])->values();
+
         $jenisOptions = collect(KalenderAkademik::JENIS_OPTIONS)->map(fn($opt, $key) => [
             'value' => $key,
             'label' => $opt['label'],
             'color' => $opt['color'],
-        ])->values();
+        ])->values()->concat($dynamicJenis);
 
         return Inertia::render('Admin/Kalender/Index', [
             'kalender' => $kalender,
@@ -71,7 +81,7 @@ class KalenderController extends Controller
             'deskripsi' => 'nullable|string',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
-            'jenis' => 'required|in:pendaftaran,perkuliahan,ujian,libur,lainnya',
+            'jenis' => 'required|string|max:50',
             'tahun_akademik_id' => 'required|exists:tahun_akademik,id',
             'warna' => 'nullable|string|max:7',
         ]);
@@ -88,7 +98,7 @@ class KalenderController extends Controller
             'deskripsi' => 'nullable|string',
             'tanggal_mulai' => 'required|date',
             'tanggal_selesai' => 'nullable|date|after_or_equal:tanggal_mulai',
-            'jenis' => 'required|in:pendaftaran,perkuliahan,ujian,libur,lainnya',
+            'jenis' => 'required|string|max:50',
             'tahun_akademik_id' => 'required|exists:tahun_akademik,id',
             'warna' => 'nullable|string|max:7',
         ]);
