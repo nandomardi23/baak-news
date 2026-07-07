@@ -43,7 +43,7 @@ class KalenderController extends Controller
                 'jenis' => $item->jenis,
                 'jenis_label' => $item->jenis_label,
                 'warna' => $item->warna ?: $item->default_color,
-                'tahun_akademik' => $item->tahunAkademik?->nama,
+                'tahun_akademik' => $item->tahunAkademik?->nama_semester,
                 'duration_days' => $item->duration_days,
             ]);
 
@@ -59,7 +59,7 @@ class KalenderController extends Controller
                 'tahun_akademik_id' => $activeTahun?->id,
                 'jenis' => $jenis,
             ],
-            'tahunAkademikOptions' => TahunAkademik::orderByDesc('id')->get(['id', 'nama']),
+            'tahunAkademikOptions' => TahunAkademik::orderByDesc('id')->get(['id', 'nama_semester as nama']),
             'jenisOptions' => $jenisOptions,
         ]);
     }
