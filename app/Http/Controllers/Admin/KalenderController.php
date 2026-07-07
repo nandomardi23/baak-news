@@ -12,13 +12,7 @@ use Inertia\Response;
 
 class KalenderController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('permission:view kalender')->only('index');
-        $this->middleware('permission:create kalender')->only('store');
-        $this->middleware('permission:edit kalender')->only('update');
-        $this->middleware('permission:delete kalender')->only('destroy');
-    }
+
 
     public function index(Request $request): Response
     {
