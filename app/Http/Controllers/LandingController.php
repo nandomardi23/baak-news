@@ -60,6 +60,11 @@ class LandingController extends Controller
                 'nama' => $p->nama_lengkap,
                 'jabatan' => $p->jabatan,
                 'nip' => $p->nip,
+                'nidn' => $p->nidn,
+                'pangkat_golongan' => $p->pangkat_golongan,
+                'foto_path' => $p->foto_path,
+                'periode_awal' => $p->periode_awal?->format('Y'),
+                'periode_akhir' => $p->periode_akhir?->format('Y'),
             ]);
 
         return Inertia::render('Landing/Profile', [

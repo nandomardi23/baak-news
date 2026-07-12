@@ -26,6 +26,7 @@ class Pejabat extends Model
         'periode_awal',
         'periode_akhir',
         'tandatangan_path',
+        'foto_path',
         'is_active',
         'dosen_id',
     ];

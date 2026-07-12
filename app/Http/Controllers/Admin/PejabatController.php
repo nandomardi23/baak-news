@@ -32,6 +32,7 @@ class PejabatController extends Controller
                 'periode_awal' => $item->periode_awal?->format('d M Y'),
                 'periode_akhir' => $item->periode_akhir?->format('d M Y'),
                 'tandatangan_path' => $item->tandatangan_path,
+                'foto_path' => $item->foto_path,
                 'is_active' => $item->is_active,
             ]);
 
@@ -64,6 +65,7 @@ class PejabatController extends Controller
             'periode_awal' => 'nullable|date',
             'periode_akhir' => 'nullable|date|after:periode_awal',
             'tandatangan' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
+            'foto' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
             'is_active' => 'boolean',
             'dosen_id' => 'nullable|exists:dosen,id',
         ]);
@@ -73,7 +75,13 @@ class PejabatController extends Controller
                 ->store('tandatangan', 'public');
         }
 
+        if ($request->hasFile('foto')) {
+            $validated['foto_path'] = $request->file('foto')
+                ->store('foto_pejabat', 'public');
+        }
+
         unset($validated['tandatangan']);
+        unset($validated['foto']);
 
         $pejabat = Pejabat::create($validated);
 
@@ -99,6 +107,7 @@ class PejabatController extends Controller
                 'periode_awal' => $pejabat->periode_awal?->format('Y-m-d'),
                 'periode_akhir' => $pejabat->periode_akhir?->format('Y-m-d'),
                 'tandatangan_path' => $pejabat->tandatangan_path,
+                'foto_path' => $pejabat->foto_path,
                 'is_active' => $pejabat->is_active,
                 'dosen_id' => $pejabat->dosen_id,
             ],
@@ -121,6 +130,7 @@ class PejabatController extends Controller
             'periode_awal' => 'nullable|date',
             'periode_akhir' => 'nullable|date|after:periode_awal',
             'tandatangan' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
+            'foto' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
             'is_active' => 'boolean',
             'dosen_id' => 'nullable|exists:dosen,id',
         ]);
@@ -134,7 +144,17 @@ class PejabatController extends Controller
                 ->store('tandatangan', 'public');
         }
 
+        if ($request->hasFile('foto')) {
+            // Delete old file
+            if ($pejabat->foto_path) {
+                Storage::disk('public')->delete($pejabat->foto_path);
+            }
+            $validated['foto_path'] = $request->file('foto')
+                ->store('foto_pejabat', 'public');
+        }
+
         unset($validated['tandatangan']);
+        unset($validated['foto']);
 
         $pejabat->update($validated);
 
@@ -151,6 +171,10 @@ class PejabatController extends Controller
 
             if ($pejabat->tandatangan_path) {
                 Storage::disk('public')->delete($pejabat->tandatangan_path);
+            }
+
+            if ($pejabat->foto_path) {
+                Storage::disk('public')->delete($pejabat->foto_path);
             }
 
             $pejabat->delete();

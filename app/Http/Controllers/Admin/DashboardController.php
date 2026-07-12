@@ -27,6 +27,7 @@ class DashboardController extends Controller
             'mahasiswaPerAngkatan' => $this->getMahasiswaPerAngkatan(),
             'ipkDistribution' => $this->getIpkDistribution(),
             'monthlyPengajuan' => $this->getMonthlyPengajuan(),
+            'timBaak' => $this->getTimBaak(),
         ]);
     }
 
@@ -159,6 +160,24 @@ class DashboardController extends Controller
             ]);
         }
         return $monthlyPengajuan;
+    }
+
+    private function getTimBaak()
+    {
+        return Pejabat::active()
+            ->where('jabatan', 'not like', '%Kaprodi%')
+            ->where('jabatan', 'not like', '%Program Studi%')
+            ->where('jabatan', 'not like', '%Ketua%') // Exclude Ketua Stikes
+            ->orderBy('id')
+            ->get()
+            ->map(fn($p) => [
+                'id' => $p->id,
+                'nama' => $p->nama_lengkap,
+                'jabatan' => $p->jabatan,
+                'nip' => $p->nip,
+                'nidn' => $p->nidn,
+                'foto_path' => $p->foto_path,
+            ]);
     }
 }
 

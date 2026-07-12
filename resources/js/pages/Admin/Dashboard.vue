@@ -55,6 +55,15 @@ interface MonthlyPengajuan {
     total: number;
 }
 
+interface TimBaak {
+    id: number;
+    nama: string;
+    jabatan: string;
+    nip: string;
+    nidn: string;
+    foto_path: string;
+}
+
 const props = defineProps<{
     stats: Stats;
     mahasiswaPerProdi: ProdiStat[];
@@ -64,6 +73,7 @@ const props = defineProps<{
     mahasiswaPerAngkatan: AngkatanStat[];
     ipkDistribution: IpkStat[];
     monthlyPengajuan: MonthlyPengajuan[];
+    timBaak: TimBaak[];
 }>();
 
 setBreadcrumbs([
@@ -212,6 +222,38 @@ const ipkColors: Record<string, string> = {
                             <span class="text-xs font-medium text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full flex items-center gap-1">
                                 Action Needed
                             </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tim BAAK Section -->
+                <div class="mt-8 mb-8" v-if="timBaak && timBaak.length > 0">
+                    <div class="flex items-center justify-between mb-6">
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-900">Tim BAAK</h2>
+                            <p class="text-sm text-slate-500">Struktur pejabat aktif BAAK</p>
+                        </div>
+                        <Link href="/admin/pejabat" class="text-sm font-medium text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                            Kelola Pejabat <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </Link>
+                    </div>
+                    
+                    <div class="grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                        <div v-for="p in timBaak" :key="p.id" class="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow group flex items-start gap-4">
+                            <div class="shrink-0">
+                                <img v-if="p.foto_path" :src="`/storage/${p.foto_path}`" :alt="p.nama" class="w-14 h-14 rounded-xl object-cover shadow-sm group-hover:scale-105 transition-transform" />
+                                <div v-else class="w-14 h-14 rounded-xl bg-linear-to-br from-blue-100 to-indigo-100 flex items-center justify-center text-blue-600 font-bold text-lg shadow-sm group-hover:scale-105 transition-transform">
+                                    {{ p.nama.substring(0, 1).toUpperCase() }}
+                                </div>
+                            </div>
+                            <div class="min-w-0">
+                                <h3 class="text-sm font-bold text-slate-900 truncate" :title="p.nama">{{ p.nama }}</h3>
+                                <p class="text-xs font-medium text-blue-600 truncate mt-0.5" :title="p.jabatan">{{ p.jabatan }}</p>
+                                <div class="mt-2 text-[10px] text-slate-500 font-mono space-y-0.5">
+                                    <div class="truncate" v-if="p.nip">NIP: {{ p.nip }}</div>
+                                    <div class="truncate" v-if="p.nidn">NIDN: {{ p.nidn }}</div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

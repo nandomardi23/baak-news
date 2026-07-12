@@ -32,6 +32,7 @@ interface Pejabat {
     periode_awal: string | null;
     periode_akhir: string | null;
     tandatangan_path: string | null;
+    foto_path: string | null;
     is_active: boolean;
     dosen_id: number | null;
 }
@@ -56,6 +57,7 @@ const form = useForm({
     periode_awal: props.pejabat?.periode_awal || '',
     periode_akhir: props.pejabat?.periode_akhir || '',
     tandatangan: null as File | null,
+    foto: null as File | null,
     is_active: props.pejabat?.is_active ?? true,
     dosen_id: props.pejabat?.dosen_id || null,
 });
@@ -97,6 +99,13 @@ const handleFileChange = (event: Event) => {
     const target = event.target as HTMLInputElement;
     if (target.files && target.files[0]) {
         form.tandatangan = target.files[0];
+    }
+};
+
+const handleFotoChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    if (target.files && target.files[0]) {
+        form.foto = target.files[0];
     }
 };
 </script>
@@ -265,6 +274,19 @@ const handleFileChange = (event: Event) => {
                             />
                             <p v-if="pejabat?.tandatangan_path" class="text-sm text-muted-foreground mt-1">
                                 File saat ini: {{ pejabat.tandatangan_path }}
+                            </p>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium mb-2">Foto Profil (PNG/JPG)</label>
+                            <input
+                                type="file"
+                                accept="image/png,image/jpeg"
+                                @change="handleFotoChange"
+                                class="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary"
+                            />
+                            <p v-if="pejabat?.foto_path" class="text-sm text-muted-foreground mt-1">
+                                File saat ini: {{ pejabat.foto_path }}
                             </p>
                         </div>
 
