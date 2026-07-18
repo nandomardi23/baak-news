@@ -7,40 +7,42 @@ use App\Http\Controllers\Admin\NeoFeederSettingsController;
 use App\Http\Controllers\Admin\PejabatController;
 use App\Http\Controllers\Admin\SuratController;
 use App\Http\Controllers\Admin\UserController;
-use App\Http\Controllers\LandingController;
+use App\Http\Controllers\PortalController;
+use App\Http\Controllers\StudentPortalController;
+use App\Http\Controllers\StudentDocumentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 // Landing Pages (Public)
-Route::get('/', [LandingController::class, 'index'])->name('landing.home');
-Route::get('/profil', [LandingController::class, 'profile'])->name('landing.profile');
-Route::get('/search', [LandingController::class, 'search'])->name('landing.search');
-Route::get('/pengajuan/{mahasiswa}', [LandingController::class, 'form'])->name('landing.form');
-Route::post('/pengajuan/{mahasiswa}', [LandingController::class, 'submit'])->name('landing.submit')->middleware('throttle:5,1');
-Route::get('/status/{mahasiswa}', [LandingController::class, 'status'])->name('landing.status');
+Route::get('/', [PortalController::class, 'index'])->name('landing.home');
+Route::get('/profil', [PortalController::class, 'profile'])->name('landing.profile');
+Route::get('/search', [PortalController::class, 'search'])->name('landing.search');
+Route::get('/pengajuan/{mahasiswa}', [StudentPortalController::class, 'form'])->name('landing.form');
+Route::post('/pengajuan/{mahasiswa}', [StudentPortalController::class, 'submit'])->name('landing.submit')->middleware('throttle:5,1');
+Route::get('/status/{mahasiswa}', [StudentPortalController::class, 'status'])->name('landing.status');
 
 // Download Dokumen Template (Public)
-Route::get('/dokumen-template/{dokumen_template}/download', [LandingController::class, 'downloadDokumenTemplate'])->name('landing.dokumen-template.download');
+Route::get('/dokumen-template/{dokumen_template}/download', [PortalController::class, 'downloadDokumenTemplate'])->name('landing.dokumen-template.download');
 
 // Identity Verification for Documents (Public)
-Route::get('/dokumen/{mahasiswa}/verify', [LandingController::class, 'showVerify'])->name('landing.verify');
-Route::post('/dokumen/{mahasiswa}/verify', [LandingController::class, 'processVerify'])->name('landing.verify.process')->middleware('throttle:5,1');
+Route::get('/dokumen/{mahasiswa}/verify', [StudentPortalController::class, 'showVerify'])->name('landing.verify');
+Route::post('/dokumen/{mahasiswa}/verify', [StudentPortalController::class, 'processVerify'])->name('landing.verify.process')->middleware('throttle:5,1');
 
 // Self-Service Documents (Public, Rate Limited + Identity Verified)
 Route::middleware(['verify.mahasiswa'])->group(function () {
-    Route::get('/dokumen/{mahasiswa}', [LandingController::class, 'dokumen'])->name('landing.dokumen');
-    Route::post('/dokumen/{mahasiswa}/dosen-wali', [LandingController::class, 'updateDosenWali'])->name('landing.dosen_wali.update');
+    Route::get('/dokumen/{mahasiswa}', [StudentPortalController::class, 'dokumen'])->name('landing.dokumen');
+    Route::post('/dokumen/{mahasiswa}/dosen-wali', [StudentPortalController::class, 'updateDosenWali'])->name('landing.dosen_wali.update');
     Route::middleware('throttle:10,1')->group(function () {
-        Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [LandingController::class, 'printKrs'])->name('landing.krs.print');
-        Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [LandingController::class, 'printKhs'])->name('landing.khs.print');
-        Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [LandingController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
-        Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [LandingController::class, 'printTranskrip'])->name('landing.transkrip.print');
+        Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [StudentDocumentController::class, 'printKrs'])->name('landing.krs.print');
+        Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [StudentDocumentController::class, 'printKhs'])->name('landing.khs.print');
+        Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [StudentDocumentController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
+        Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [StudentDocumentController::class, 'printTranskrip'])->name('landing.transkrip.print');
     });
 });
 
 // Kalender Akademik (Public)
-Route::get('/kalender-akademik', [LandingController::class, 'kalender'])->name('landing.kalender');
+Route::get('/kalender-akademik', [PortalController::class, 'kalender'])->name('landing.kalender');
 
 // Sitemap (Public)
 Route::get('/sitemap.xml', function () {
