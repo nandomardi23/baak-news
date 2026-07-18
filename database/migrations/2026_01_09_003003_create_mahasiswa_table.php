@@ -130,6 +130,7 @@ return new class extends Migration {
             $table->index('nama');
             $table->index('program_studi_id');
             $table->index('id_mahasiswa');
+            $table->unique('id_registrasi_mahasiswa', 'mahasiswa_id_reg_unique');
         });
     }
 

@@ -31,6 +31,8 @@ return new class extends Migration {
             $table->foreignId('dosen_id')->nullable()->constrained('dosen')->nullOnDelete();
             $table->string('id_dosen')->nullable()->index();
             $table->string('nama_dosen')->nullable();
+            $table->date('tanggal_uts')->nullable();
+            $table->date('tanggal_uas')->nullable();
 
             $table->timestamps();
 

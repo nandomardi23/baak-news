@@ -17,7 +17,7 @@ return new class extends Migration
             $table->text('deskripsi')->nullable();
             $table->date('tanggal_mulai');
             $table->date('tanggal_selesai')->nullable();
-            $table->enum('jenis', ['pendaftaran', 'perkuliahan', 'ujian', 'libur', 'lainnya'])->default('lainnya');
+            $table->string('jenis', 50)->default('lainnya');
             $table->foreignId('tahun_akademik_id')->constrained('tahun_akademik')->onDelete('cascade');
             $table->string('warna', 7)->default('#3B82F6');
             $table->timestamps();

@@ -13,6 +13,7 @@ return new class extends Migration
             $table->string('id_prodi')->unique()->comment('ID dari Neo Feeder');
             $table->string('kode_prodi');
             $table->string('nama_prodi');
+            $table->string('nama_alias')->nullable();
             $table->string('jenjang'); // D3, D4, S1, Profesi
             $table->string('akreditasi')->nullable();
             $table->date('tanggal_akreditasi')->nullable();
@@ -20,6 +21,7 @@ return new class extends Migration
             $table->string('sk_akreditasi')->nullable();
             $table->enum('jenis_program', ['reguler', 'rpl'])->default('reguler');
             $table->boolean('is_active')->default(true);
+            $table->foreignId('pejabat_id')->nullable();
             $table->timestamps();
         });
     }

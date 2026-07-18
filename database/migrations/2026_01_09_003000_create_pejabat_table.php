@@ -21,14 +21,24 @@ return new class extends Migration
             $table->date('periode_awal')->nullable();
             $table->date('periode_akhir')->nullable();
             $table->string('tandatangan_path')->nullable();
+            $table->string('foto_path')->nullable();
             $table->foreignId('dosen_id')->nullable()->constrained('dosen')->nullOnDelete();
             $table->boolean('is_active')->default(true);
             $table->timestamps();
+        });
+
+        // Add the foreign key constraint for program_studi -> pejabat to avoid circular dependency
+        Schema::table('program_studi', function (Blueprint $table) {
+            $table->foreign('pejabat_id')->references('id')->on('pejabat')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
+        Schema::table('program_studi', function (Blueprint $table) {
+            $table->dropForeign(['pejabat_id']);
+        });
+
         Schema::dropIfExists('pejabat');
     }
 };
