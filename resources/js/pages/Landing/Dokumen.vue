@@ -267,6 +267,20 @@ const saveDosenWali = () => {
                         <p class="text-xs text-slate-400 mt-3 text-center">Untuk surat yang memerlukan tanda tangan resmi</p>
                     </div>
 
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
+                        <div class="flex items-center gap-3 mb-5">
+                            <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center text-emerald-600">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                            </div>
+                            <div>
+                                <h2 class="text-lg font-bold text-slate-900">Yudisium</h2>
+                                <p class="text-sm text-slate-500">Persyaratan Kelulusan</p>
+                            </div>
+                        </div>
+                        <Link :href="`/yudisium/${mahasiswa.id}`" class="block w-full py-3 bg-linear-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-xl hover:from-emerald-600 hover:to-teal-600 transition text-center shadow-lg shadow-emerald-500/20">Cek Status Yudisium</Link>
+                        <p class="text-xs text-slate-400 mt-3 text-center">Lengkapi syarat yudisium Anda</p>
+                    </div>
+
                     <div v-if="recentPengajuan.length > 0" class="bg-white rounded-2xl p-6 border border-slate-200/60 shadow-lg">
                         <h3 class="font-bold text-slate-900 mb-4">Pengajuan Terakhir</h3>
                         <div class="space-y-3">

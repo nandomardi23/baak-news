@@ -60,6 +60,8 @@ const navGroups = [
         label: 'Surat & Dokumen',
         items: [
             { title: 'Pengajuan Surat', href: '/admin/surat', icon: FileText },
+            { title: 'Checklist Yudisium', href: '/admin/yudisium/submissions', icon: FileText },
+            { title: 'Master Syarat Yudisium', href: '/admin/yudisium/requirements', icon: Settings },
             { title: 'Batch Kartu Ujian', href: '/admin/mahasiswa/kartu-ujian/batch', icon: IdCard },
             { title: 'Template Designer', href: '/admin/templates', icon: Palette },
             { title: 'Template Dokumen', href: '/admin/dokumen-template', icon: FileDown },

@@ -134,6 +134,11 @@ class Mahasiswa extends Model
         return $this->hasMany(SuratPengajuan::class, 'mahasiswa_id');
     }
 
+    public function yudisiumChecklists(): HasMany
+    {
+        return $this->hasMany(MahasiswaYudisiumChecklist::class, 'mahasiswa_id');
+    }
+
     public function krs(): HasMany
     {
         return $this->hasMany(Krs::class, 'mahasiswa_id');

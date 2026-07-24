@@ -39,6 +39,10 @@ Route::middleware(['verify.mahasiswa'])->group(function () {
         Route::get('/dokumen/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [StudentDocumentController::class, 'printKartuUjian'])->name('landing.kartu_ujian.print');
         Route::get('/dokumen/{mahasiswa}/transkrip/{jenis?}', [StudentDocumentController::class, 'printTranskrip'])->name('landing.transkrip.print');
     });
+
+    // Yudisium (Student)
+    Route::get('/yudisium/{mahasiswa}', [StudentPortalController::class, 'yudisium'])->name('landing.yudisium');
+    Route::post('/yudisium/{mahasiswa}/submit', [StudentPortalController::class, 'submitYudisium'])->name('landing.yudisium.submit');
 });
 
 // Kalender Akademik (Public)
@@ -106,6 +110,13 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     Route::delete('surat/{surat}', [SuratController::class, 'destroy'])->name('surat.destroy');
     Route::post('surat/bulk-approve', [SuratController::class, 'bulkApprove'])->name('surat.bulk-approve');
     Route::post('surat/bulk-reject', [SuratController::class, 'bulkReject'])->name('surat.bulk-reject');
+
+    // Yudisium
+    Route::resource('yudisium/requirements', \App\Http\Controllers\Admin\YudisiumRequirementController::class)->except(['create', 'show', 'edit']);
+    Route::get('yudisium/submissions', [\App\Http\Controllers\Admin\YudisiumChecklistController::class, 'index'])->name('yudisium.submissions.index');
+    Route::get('yudisium/submissions/{mahasiswa}', [\App\Http\Controllers\Admin\YudisiumChecklistController::class, 'show'])->name('yudisium.submissions.show');
+    Route::post('yudisium/submissions/{checklist}/approve', [\App\Http\Controllers\Admin\YudisiumChecklistController::class, 'approve'])->name('yudisium.submissions.approve');
+    Route::post('yudisium/submissions/{checklist}/reject', [\App\Http\Controllers\Admin\YudisiumChecklistController::class, 'reject'])->name('yudisium.submissions.reject');
 
     // User Management (Admin only)
     Route::resource('user', UserController::class)->middleware('role:admin');

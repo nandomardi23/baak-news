@@ -16,6 +16,7 @@ class DatabaseSeeder extends Seeder
             RolePermissionSeeder::class,
             MasterDataSeeder::class,
             NeoFeederSeeder::class,
+            YudisiumRequirementSeeder::class,
         ]);
     }
 }

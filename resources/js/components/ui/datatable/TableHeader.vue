@@ -16,8 +16,6 @@ const props = defineProps<Props>();
             props.class
         )"
     >
-        <div class="flex items-center gap-2">
-            <slot />
-        </div>
+        <slot />
     </th>
 </template>
