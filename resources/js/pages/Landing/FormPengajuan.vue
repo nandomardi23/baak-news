@@ -34,6 +34,7 @@ interface Mahasiswa {
     kecamatan_ortu: string | null;
     kota_kabupaten_ortu: string | null;
     provinsi_ortu: string | null;
+    status: string;
 }
 
 interface Semester {
@@ -303,9 +304,28 @@ const onParentKecamatanChange = async () => {
     }
 };
 
-const jenisSuratOptions = [
+const isLulus = computed(() => props.mahasiswa.status === 'Lulus');
+
+const allJenisSuratOptions = [
     { value: 'aktif_kuliah', label: 'Surat Keterangan Aktif Kuliah', icon: '📄' },
 ];
+
+const jenisSuratOptions = computed(() => {
+    if (isLulus.value) {
+        return allJenisSuratOptions.filter(o => o.value !== 'aktif_kuliah');
+    }
+    return allJenisSuratOptions;
+});
+
+// Reset jenis_surat if current selection is not available
+watch(isLulus, (lulus) => {
+    if (lulus && form.jenis_surat === 'aktif_kuliah') {
+        const available = jenisSuratOptions.value;
+        if (available.length > 0) {
+            form.jenis_surat = available[0].value as any;
+        }
+    }
+}, { immediate: true });
 
 const keperluanOptions = [
     'Beasiswa', 'Magang / PKL', 'KIP Kuliah', 'BPJS', 'Rekening Bank', 'Keperluan Lainnya',
@@ -358,6 +378,19 @@ const submit = () => {
                     <div>
                         <h4 class="text-amber-900 font-bold">Pengajuan Masih Diproses</h4>
                         <p class="text-amber-700 text-sm mt-1">Anda sudah memiliki pengajuan yang sedang diproses. Silakan tunggu hingga selesai.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Warning if student is Lulus -->
+            <div v-if="isLulus" class="bg-linear-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-5 mb-6 shadow-sm">
+                <div class="flex items-start gap-4">
+                    <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"/></svg>
+                    </div>
+                    <div>
+                        <h4 class="text-blue-900 font-bold">Status Anda: Lulus 🎓</h4>
+                        <p class="text-blue-700 text-sm mt-1">Selamat! Anda telah dinyatakan lulus. Mahasiswa berstatus <strong>Lulus</strong> tidak dapat mengajukan Surat Keterangan Aktif Kuliah karena sudah tidak aktif sebagai mahasiswa.</p>
                     </div>
                 </div>
             </div>
@@ -428,8 +461,17 @@ const submit = () => {
 
                 <!-- Form -->
                 <form @submit.prevent="submit" class="space-y-6">
-                    <!-- Jenis Surat Card Selection -->
-                    <div>
+                    <!-- No available letter types (Lulus with only aktif_kuliah) -->
+                    <div v-if="jenisSuratOptions.length === 0" class="bg-slate-50 border border-slate-200 rounded-2xl p-8 text-center">
+                        <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636"/></svg>
+                        </div>
+                        <h3 class="text-lg font-bold text-slate-700 mb-2">Tidak Ada Jenis Surat Tersedia</h3>
+                        <p class="text-slate-500 text-sm max-w-md mx-auto">Saat ini tidak ada jenis surat yang dapat diajukan untuk status Anda. Mahasiswa berstatus <strong>Lulus</strong> tidak dapat mengajukan Surat Keterangan Aktif Kuliah.</p>
+                    </div>
+
+                    <!-- Jenis Surat Card Selection (only show when options available) -->
+                    <div v-else>
                         <label class="block text-slate-700 font-bold mb-3">Jenis Surat <span class="text-red-500">*</span></label>
                         <div class="flex flex-wrap gap-3">
                             <label v-for="opt in jenisSuratOptions" :key="opt.value"
@@ -647,7 +689,7 @@ const submit = () => {
                     </div>
 
                     <!-- Submit -->
-                    <div class="pt-4">
+                    <div class="pt-4" v-if="jenisSuratOptions.length > 0">
                         <button type="submit" :disabled="form.processing || existingPending"
                             class="w-full py-4 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition shadow-xl shadow-blue-500/30 disabled:opacity-50 disabled:cursor-not-allowed transform hover:-translate-y-0.5 active:translate-y-0 flex items-center justify-center gap-2">
                             <svg v-if="form.processing" class="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg>

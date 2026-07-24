@@ -156,6 +156,7 @@ class StudentPortalController extends Controller
                 'prodi' => $mahasiswa->programStudi?->nama_prodi,
                 'jenis_program' => $mahasiswa->programStudi?->jenis_program ?? 'reguler',
                 'angkatan' => $mahasiswa->angkatan,
+                'status' => $mahasiswa->status_text,
                 // Parent data
                 'nama_ayah' => $mahasiswa->nama_ayah,
                 'pekerjaan_ayah' => $mahasiswa->pekerjaan_ayah,
@@ -177,6 +178,11 @@ class StudentPortalController extends Controller
     public function submit(StoreSuratPengajuanRequest $request, Mahasiswa $mahasiswa): RedirectResponse
     {
         $validated = $request->validated();
+
+        // Mahasiswa berstatus Lulus tidak boleh mengajukan surat aktif kuliah
+        if ($validated['jenis_surat'] === 'aktif_kuliah' && $mahasiswa->status_text === 'Lulus') {
+            return back()->withErrors(['jenis_surat' => 'Mahasiswa berstatus Lulus tidak dapat mengajukan Surat Keterangan Aktif Kuliah.']);
+        }
 
         // Update mahasiswa data if provided
         $mahasiswaData = collect($validated)
