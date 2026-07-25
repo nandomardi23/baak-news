@@ -1137,7 +1137,7 @@ class AcademicSyncService extends BaseSyncService
                     'keterangan' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
                     'lokasi' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
                     'sk_tugas' => $item['sk_tugas'] ?? null,
-                    'tanggal_sk_tugas' => $item['tanggal_sk_tugas'] ?? null,
+                    'tanggal_sk_tugas' => $this->parseDate($item['tanggal_sk_tugas'] ?? null),
                     'updated_at' => now(),
                     'created_at' => now(),
                 ];
