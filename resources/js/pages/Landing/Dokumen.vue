@@ -117,7 +117,7 @@ const saveDosenWali = () => {
                         </div>
                         
                         <div class="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-                            <div class="w-full sm:w-[300px]">
+                            <div class="w-full sm:w-75">
                                 <Popover v-model:open="dosenOpen">
                                     <PopoverTrigger as-child>
                                         <Button
@@ -159,7 +159,7 @@ const saveDosenWali = () => {
                                 v-if="form.isDirty" 
                                 @click="saveDosenWali" 
                                 :disabled="form.processing"
-                                class="bg-blue-600 hover:bg-blue-700 text-white min-w-[100px]"
+                                class="bg-blue-600 hover:bg-blue-700 text-white min-w-25"
                             >
                                 <span v-if="form.processing">Menyimpan...</span>
                                 <span v-else>Simpan</span>

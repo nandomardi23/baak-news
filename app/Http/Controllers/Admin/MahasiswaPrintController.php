@@ -24,11 +24,11 @@ class MahasiswaPrintController extends Controller
 
     public function printKartuUjian(Request $request, Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->pdfDownloadResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
+        return $this->pdfDownloadResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->input('jenis', 'uts'));
     }
 
     public function printTranskrip(Mahasiswa $mahasiswa, Request $request): BinaryFileResponse|\Illuminate\Http\Response
     {
-        return $this->pdfDownloadResponse('transkrip', $mahasiswa, null, $request->get('jenis', 'reguler'));
+        return $this->pdfDownloadResponse('transkrip', $mahasiswa, null, $request->input('jenis', 'reguler'));
     }
 }

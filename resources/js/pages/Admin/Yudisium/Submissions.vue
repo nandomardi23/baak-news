@@ -172,7 +172,7 @@ const submitReject = async () => {
             </template>
 
             <template #cell-progress="{ row }">
-                <div class="flex flex-col gap-1 w-full max-w-[200px] py-1">
+                <div class="flex flex-col gap-1 w-full max-w-50 py-1">
                     <div class="flex items-center justify-between text-xs">
                         <span class="text-slate-500">{{ row.approved_count }} / {{ row.total_requirements }} Disetujui</span>
                         <span class="font-bold" :class="row.progress === 100 ? 'text-emerald-600' : 'text-blue-600'">{{ row.progress }}%</span>
@@ -245,7 +245,7 @@ const submitReject = async () => {
                             </div>
                         </div>
                         
-                        <div class="text-left md:text-right flex flex-col md:items-end min-w-[200px]">
+                        <div class="text-left md:text-right flex flex-col md:items-end min-w-50">
                             <p class="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">Status Keseluruhan</p>
                             <span 
                                 :class="[
@@ -281,10 +281,10 @@ const submitReject = async () => {
                         <thead class="bg-slate-50/80">
                             <tr>
                                 <TableHeader>Nama Syarat</TableHeader>
-                                <TableHeader class="w-[120px] text-center">Wajib Upload</TableHeader>
-                                <TableHeader class="w-[150px] text-center">Status</TableHeader>
-                                <TableHeader class="w-[180px] text-center">Dokumen</TableHeader>
-                                <TableHeader class="w-[200px] text-center">Aksi</TableHeader>
+                                <TableHeader class="w-30 text-center">Wajib Upload</TableHeader>
+                                <TableHeader class="w-37.5 text-center">Status</TableHeader>
+                                <TableHeader class="w-45 text-center">Dokumen</TableHeader>
+                                <TableHeader class="w-50 text-center">Aksi</TableHeader>
                             </tr>
                         </thead>
                         <tbody>
