@@ -11,6 +11,8 @@ use Inertia\Response;
 
 class DosenController extends Controller
 {
+    use \App\Traits\HasDataTable;
+
     public function index(Request $request): Response
     {
         $query = Dosen::with('programStudi')->withCount(['kelasMengajar']);
@@ -30,17 +32,9 @@ class DosenController extends Controller
             $query->active();
         }
 
-        $sortField = $request->input('sort_field', 'created_at');
-        $sortDirection = $request->input('sort_direction', 'desc');
-
         $allowedSorts = ['nidn', 'nip', 'nama', 'jabatan_fungsional', 'status_aktif', 'created_at'];
-        if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'created_at';
-        }
 
-        $dosen = $query->orderBy($sortField, $sortDirection)
-            ->paginate(20)
-            ->withQueryString()
+        $dosen = $this->dataTableQuery($query, $request, $allowedSorts, 'created_at', 'desc')
             ->through(fn($item) => [
                 'id' => $item->id,
                 'id_dosen' => $item->id_dosen,

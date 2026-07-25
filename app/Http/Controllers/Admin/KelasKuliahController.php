@@ -13,6 +13,8 @@ use Inertia\Response;
 
 class KelasKuliahController extends Controller
 {
+    use \App\Traits\HasDataTable;
+
     public function index(Request $request): Response
     {
         $query = KelasKuliah::with(['programStudi', 'mataKuliah', 'tahunAkademik', 'dosenPengajar'])
@@ -37,17 +39,9 @@ class KelasKuliahController extends Controller
             $query->where('tahun_akademik_id', $semesterId);
         }
 
-        $sortField = $request->input('sort_field', 'created_at');
-        $sortDirection = $request->input('sort_direction', 'desc');
-
         $allowedSorts = ['nama_kelas_kuliah', 'kode_mata_kuliah', 'nama_mata_kuliah', 'sks', 'created_at'];
-        if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'created_at';
-        }
 
-        $kelasKuliah = $query->orderBy($sortField, $sortDirection)
-            ->paginate($request->input('per_page', 20))
-            ->withQueryString()
+        $kelasKuliah = $this->dataTableQuery($query, $request, $allowedSorts, 'created_at', 'desc')
             ->through(fn($item) => [
                 'id' => $item->id,
                 'id_kelas_kuliah' => $item->id_kelas_kuliah,

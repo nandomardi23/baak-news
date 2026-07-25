@@ -220,6 +220,29 @@ class SyncController extends Controller
         }, 'Sync KRS berhasil');
     }
 
+    public function syncKrsMahasiswa(Mahasiswa $mahasiswa, AcademicSyncService $syncService): \Illuminate\Http\RedirectResponse
+    {
+        try {
+            if (!$mahasiswa->id_registrasi_mahasiswa) {
+                throw new \Exception("Mahasiswa belum memiliki ID Registrasi");
+            }
+
+            $result = $syncService->syncKrsMahasiswa($mahasiswa->id_registrasi_mahasiswa);
+
+            $msg = "Berhasil sync KRS: {$result['synced']} semester synced, {$result['total']} total dari API.";
+            if (($result['skipped'] ?? 0) > 0) {
+                $msg .= " {$result['skipped']} semester dilewati (belum ada di data semester lokal).";
+            }
+            if (!empty($result['errors'])) {
+                $msg .= " Errors: " . count($result['errors']);
+            }
+
+            return redirect()->back()->with('success', $msg);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Gagal sync KRS: ' . $e->getMessage());
+        }
+    }
+
     public function syncNilai(Request $request, AcademicSyncService $syncService): JsonResponse
     {
         if ($request->boolean('only_count')) {

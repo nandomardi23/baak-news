@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\Admin\AkademikController;
+use App\Http\Controllers\Admin\SemesterController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\MahasiswaController;
 use App\Http\Controllers\Admin\NeoFeederSettingsController;
@@ -10,17 +10,21 @@ use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\StudentPortalController;
 use App\Http\Controllers\StudentDocumentController;
+use App\Http\Controllers\StudentPengajuanController;
+use App\Http\Controllers\StudentYudisiumController;
+use App\Http\Controllers\Admin\MahasiswaExportController;
+use App\Http\Controllers\Admin\MahasiswaPrintController;
+use App\Http\Controllers\Admin\BatchKartuUjianController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 use Laravel\Fortify\Features;
 
 // Landing Pages (Public)
 Route::get('/', [PortalController::class, 'index'])->name('landing.home');
 Route::get('/profil', [PortalController::class, 'profile'])->name('landing.profile');
 Route::get('/search', [PortalController::class, 'search'])->name('landing.search');
-Route::get('/pengajuan/{mahasiswa}', [StudentPortalController::class, 'form'])->name('landing.form');
-Route::post('/pengajuan/{mahasiswa}', [StudentPortalController::class, 'submit'])->name('landing.submit')->middleware('throttle:5,1');
-Route::get('/status/{mahasiswa}', [StudentPortalController::class, 'status'])->name('landing.status');
+Route::get('/pengajuan/{mahasiswa}', [StudentPengajuanController::class, 'form'])->name('landing.form');
+Route::post('/pengajuan/{mahasiswa}', [StudentPengajuanController::class, 'submit'])->name('landing.submit')->middleware('throttle:5,1');
+Route::get('/status/{mahasiswa}', [StudentPengajuanController::class, 'status'])->name('landing.status');
 
 // Download Dokumen Template (Public)
 Route::get('/dokumen-template/{dokumen_template}/download', [PortalController::class, 'downloadDokumenTemplate'])->name('landing.dokumen-template.download');
@@ -31,8 +35,8 @@ Route::post('/dokumen/{mahasiswa}/verify', [StudentPortalController::class, 'pro
 
 // Self-Service Documents (Public, Rate Limited + Identity Verified)
 Route::middleware(['verify.mahasiswa'])->group(function () {
-    Route::get('/dokumen/{mahasiswa}', [StudentPortalController::class, 'dokumen'])->name('landing.dokumen');
-    Route::post('/dokumen/{mahasiswa}/dosen-wali', [StudentPortalController::class, 'updateDosenWali'])->name('landing.dosen_wali.update');
+    Route::get('/dokumen/{mahasiswa}', [StudentDocumentController::class, 'dokumen'])->name('landing.dokumen');
+    Route::post('/dokumen/{mahasiswa}/dosen-wali', [StudentDocumentController::class, 'updateDosenWali'])->name('landing.dosen_wali.update');
     Route::middleware('throttle:10,1')->group(function () {
         Route::get('/dokumen/{mahasiswa}/krs/{tahunAkademik}/print', [StudentDocumentController::class, 'printKrs'])->name('landing.krs.print');
         Route::get('/dokumen/{mahasiswa}/khs/{tahunAkademik}/print', [StudentDocumentController::class, 'printKhs'])->name('landing.khs.print');
@@ -41,8 +45,8 @@ Route::middleware(['verify.mahasiswa'])->group(function () {
     });
 
     // Yudisium (Student)
-    Route::get('/yudisium/{mahasiswa}', [StudentPortalController::class, 'yudisium'])->name('landing.yudisium');
-    Route::post('/yudisium/{mahasiswa}/submit', [StudentPortalController::class, 'submitYudisium'])->name('landing.yudisium.submit');
+    Route::get('/yudisium/{mahasiswa}', [StudentYudisiumController::class, 'yudisium'])->name('landing.yudisium');
+    Route::post('/yudisium/{mahasiswa}/submit', [StudentYudisiumController::class, 'submitYudisium'])->name('landing.yudisium.submit');
 });
 
 // Kalender Akademik (Public)
@@ -82,19 +86,18 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     Route::get('mahasiswa', [MahasiswaController::class, 'index'])->name('mahasiswa.index');
     Route::get('mahasiswa/create', [MahasiswaController::class, 'create'])->name('mahasiswa.create');
     Route::post('mahasiswa', [MahasiswaController::class, 'store'])->name('mahasiswa.store');
-    Route::get('mahasiswa/sync', [MahasiswaController::class, 'sync'])->name('mahasiswa.sync');
-    Route::get('mahasiswa/export', [MahasiswaController::class, 'export'])->name('mahasiswa.export');
-    Route::get('mahasiswa/kartu-ujian/batch', [MahasiswaController::class, 'batchKartuUjian'])->name('mahasiswa.kartu_ujian.index');
-    Route::get('mahasiswa/kartu-ujian/batch/print', [MahasiswaController::class, 'printBatchKartuUjian'])->name('mahasiswa.kartu_ujian.batch');
+    Route::get('mahasiswa/export', [MahasiswaExportController::class, 'export'])->name('mahasiswa.export');
+    Route::get('mahasiswa/kartu-ujian/batch', [BatchKartuUjianController::class, 'index'])->name('mahasiswa.kartu_ujian.index');
+    Route::get('mahasiswa/kartu-ujian/batch/print', [BatchKartuUjianController::class, 'print'])->name('mahasiswa.kartu_ujian.batch');
     Route::get('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'show'])->name('mahasiswa.show');
     Route::get('mahasiswa/{mahasiswa}/edit', [MahasiswaController::class, 'edit'])->name('mahasiswa.edit');
-    Route::post('mahasiswa/{mahasiswa}/sync-krs', [MahasiswaController::class, 'syncKrs'])->name('mahasiswa.sync.krs');
+    Route::post('mahasiswa/{mahasiswa}/sync-krs', [\App\Http\Controllers\Admin\SyncController::class, 'syncKrsMahasiswa'])->name('mahasiswa.sync.krs');
     Route::patch('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'update'])->name('mahasiswa.update');
     Route::delete('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'destroy'])->name('mahasiswa.destroy');
-    Route::get('mahasiswa/{mahasiswa}/krs/{tahunAkademik}/print', [MahasiswaController::class, 'printKrs'])->name('mahasiswa.krs.print');
-    Route::get('mahasiswa/{mahasiswa}/khs/{tahunAkademik}/print', [MahasiswaController::class, 'printKhs'])->name('mahasiswa.khs.print');
-    Route::get('mahasiswa/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [MahasiswaController::class, 'printKartuUjian'])->name('mahasiswa.kartu_ujian.print');
-    Route::get('mahasiswa/{mahasiswa}/transkrip/print', [MahasiswaController::class, 'printTranskrip'])->name('mahasiswa.transkrip.print');
+    Route::get('mahasiswa/{mahasiswa}/krs/{tahunAkademik}/print', [MahasiswaPrintController::class, 'printKrs'])->name('mahasiswa.krs.print');
+    Route::get('mahasiswa/{mahasiswa}/khs/{tahunAkademik}/print', [MahasiswaPrintController::class, 'printKhs'])->name('mahasiswa.khs.print');
+    Route::get('mahasiswa/{mahasiswa}/kartu-ujian/{tahunAkademik}/print', [MahasiswaPrintController::class, 'printKartuUjian'])->name('mahasiswa.kartu_ujian.print');
+    Route::get('mahasiswa/{mahasiswa}/transkrip/print', [MahasiswaPrintController::class, 'printTranskrip'])->name('mahasiswa.transkrip.print');
 
     // Dosen & Kelas Kuliah
     Route::resource('dosen', \App\Http\Controllers\Admin\DosenController::class)->except(['create', 'show', 'edit']);
@@ -138,7 +141,7 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     Route::prefix('akademik')->name('akademik.')->group(function () {
         Route::resource('matakuliah', \App\Http\Controllers\Admin\MataKuliahController::class)->except(['create', 'edit', 'show']);
         Route::resource('kurikulum', \App\Http\Controllers\Admin\KurikulumController::class)->only(['index', 'show']);
-        Route::get('semester', [AkademikController::class, 'semester'])->name('semester');
+        Route::get('semester', [SemesterController::class, 'semester'])->name('semester');
         Route::resource('prodi', \App\Http\Controllers\Admin\ProdiController::class)->except(['create', 'edit']);
         Route::get('aktivitas-kuliah', [\App\Http\Controllers\Admin\AktivitasKuliahController::class, 'index'])->name('aktivitas-kuliah');
     });

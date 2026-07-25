@@ -271,14 +271,19 @@ class Mahasiswa extends Model
     {
         $status = strtoupper((string) $this->status_mahasiswa);
 
-        // Map of standard PDDIKTI codes (both letters and numbers)
+        // Map of standard PDDIKTI codes (both letters and numbers and full words)
         $map = [
             'A' => 'Aktif',
+            'AKTIF' => 'Aktif',
             'C' => 'Cuti',
+            'CUTI' => 'Cuti',
             'D' => 'Drop Out',
             'K' => 'Keluar',
             'L' => 'Lulus',
+            'LULUS' => 'Lulus',
             'N' => 'Non-Aktif',
+            'NON-AKTIF' => 'Non-Aktif',
+            'NON AKTIF' => 'Non-Aktif',
             'G' => 'Sedang Double Degree',
             'U' => 'Menunggu Ujian',
             '1' => 'Lulus',
@@ -291,6 +296,6 @@ class Mahasiswa extends Model
             'M' => 'Meninggal Dunia',
         ];
 
-        return $map[$status] ?? $status;
+        return $map[$status] ?? ucfirst(strtolower($status));
     }
 }
