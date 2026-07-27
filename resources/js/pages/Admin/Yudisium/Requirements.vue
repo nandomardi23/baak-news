@@ -11,6 +11,13 @@ import SmartTable from '@/components/ui/datatable/SmartTable.vue';
 import { Pencil, Trash2, Plus } from 'lucide-vue-next';
 import { Button } from '@/components/ui/button';
 import { useConfirmDelete } from '@/composables/useConfirmDelete';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 
 interface Requirement {
     id: number;
@@ -18,11 +25,14 @@ interface Requirement {
     deskripsi: string | null;
     is_upload_required: boolean;
     is_active: boolean;
+    program_studi_id: number | null;
+    prodi: string;
 }
 
 const props = defineProps<{
     requirements: any;
     filters: Record<string, any>;
+    prodiList: Record<string, string>;
 }>();
 
 setBreadcrumbs([
@@ -34,6 +44,7 @@ setBreadcrumbs([
 // Table Columns Configuration
 const columns = [
     { key: 'nama_syarat', label: 'Nama Syarat', sortable: true },
+    { key: 'prodi', label: 'Berlaku Untuk', sortable: true },
     { key: 'is_upload_required', label: 'Wajib Upload', sortable: true, align: 'center' as const },
     { key: 'is_active', label: 'Status', sortable: true, align: 'center' as const },
     { key: 'aksi', label: 'Aksi', align: 'right' as const },
@@ -43,6 +54,7 @@ const showModal = ref(false);
 const editingItem = ref<Requirement | null>(null);
 
 const form = useForm({
+    program_studi_id: null as number | null,
     nama_syarat: '',
     deskripsi: '',
     is_upload_required: false,
@@ -52,12 +64,14 @@ const form = useForm({
 const resetForm = () => {
     form.clearErrors();
     form.defaults({
+        program_studi_id: null,
         nama_syarat: '',
         deskripsi: '',
         is_upload_required: false,
         is_active: true,
     });
     form.reset();
+    form.program_studi_id = null;
     form.nama_syarat = '';
     form.deskripsi = '';
     form.is_upload_required = false;
@@ -73,6 +87,7 @@ const openCreateModal = () => {
 const openEditModal = (item: Requirement) => {
     editingItem.value = item;
     form.clearErrors();
+    form.program_studi_id = item.program_studi_id;
     form.nama_syarat = item.nama_syarat;
     form.deskripsi = item.deskripsi || '';
     form.is_upload_required = item.is_upload_required;
@@ -135,6 +150,12 @@ const deleteItem = (id: number) => {
                 </Button>
             </template>
 
+            <template #cell-prodi="{ value }">
+                <span class="font-medium text-slate-700">
+                    {{ value }}
+                </span>
+            </template>
+
             <template #cell-is_upload_required="{ value }">
                 <span
                     :class="value ? 'bg-blue-100 text-blue-800 border-blue-200' : 'bg-slate-100 text-slate-800 border-slate-200'"
@@ -190,6 +211,24 @@ const deleteItem = (id: number) => {
                 </button>
             </div>
             <form @submit.prevent="submit" class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-1 text-slate-700">Berlaku Untuk</label>
+                    <Select 
+                        :model-value="form.program_studi_id ? String(form.program_studi_id) : 'all'" 
+                        @update:model-value="(v) => form.program_studi_id = v === 'all' ? null : Number(v)"
+                    >
+                        <SelectTrigger class="w-full bg-white border-slate-200">
+                            <SelectValue placeholder="Semua Prodi (Global)" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Semua Prodi (Global)</SelectItem>
+                            <SelectItem v-for="(nama, id) in prodiList" :key="id" :value="String(id)">
+                                {{ nama }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+                
                 <div>
                     <label class="block text-sm font-medium mb-1 text-slate-700">Nama Syarat <span class="text-red-500">*</span></label>
                     <input

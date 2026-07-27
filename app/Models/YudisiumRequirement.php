@@ -12,6 +12,7 @@ class YudisiumRequirement extends Model
     protected $table = 'yudisium_requirements';
 
     protected $fillable = [
+        'program_studi_id',
         'nama_syarat',
         'deskripsi',
         'is_upload_required',
@@ -22,6 +23,11 @@ class YudisiumRequirement extends Model
         'is_upload_required' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    public function programStudi()
+    {
+        return $this->belongsTo(ProgramStudi::class, 'program_studi_id');
+    }
 
     public function scopeActive($query)
     {

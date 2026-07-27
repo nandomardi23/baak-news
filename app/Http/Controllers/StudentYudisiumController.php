@@ -12,7 +12,11 @@ class StudentYudisiumController extends Controller
 {
     public function yudisium(Mahasiswa $mahasiswa): Response
     {
-        $requirements = \App\Models\YudisiumRequirement::active()->get();
+        $requirements = \App\Models\YudisiumRequirement::active()
+            ->where(function ($q) use ($mahasiswa) {
+                $q->whereNull('program_studi_id')
+                  ->orWhere('program_studi_id', $mahasiswa->program_studi_id);
+            })->get();
         $checklists = $mahasiswa->yudisiumChecklists()->get()->keyBy('yudisium_requirement_id');
 
         $data = $requirements->map(function ($req) use ($checklists) {

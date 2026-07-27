@@ -16,7 +16,9 @@ class YudisiumChecklistController extends Controller
 
     public function index(Request $request): Response
     {
-        $totalRequirements = \App\Models\YudisiumRequirement::active()->count();
+        $allRequirements = \App\Models\YudisiumRequirement::active()->get();
+        $globalReqCount = $allRequirements->whereNull('program_studi_id')->count();
+        $prodiReqCount = $allRequirements->whereNotNull('program_studi_id')->groupBy('program_studi_id')->map->count();
 
         // Query Mahasiswa who have at least one checklist
         $query = \App\Models\Mahasiswa::with(['programStudi', 'yudisiumChecklists'])
@@ -32,7 +34,9 @@ class YudisiumChecklistController extends Controller
         // Apply standardized Search and Sort
         $mahasiswa = $this->applyDataTable($query, $request, ['nama', 'nim'], 20);
 
-        $mahasiswa->through(function ($mhs) use ($totalRequirements) {
+        $mahasiswa->through(function ($mhs) use ($globalReqCount, $prodiReqCount) {
+            $totalRequirements = $globalReqCount + ($prodiReqCount->get($mhs->program_studi_id) ?? 0);
+            
             $checklists = $mhs->yudisiumChecklists;
             $approvedCount = $checklists->where('status', 'approved')->count();
             
@@ -70,7 +74,11 @@ class YudisiumChecklistController extends Controller
     public function show(\App\Models\Mahasiswa $mahasiswa)
     {
         $mahasiswa->load('programStudi');
-        $requirements = \App\Models\YudisiumRequirement::active()->get();
+        $requirements = \App\Models\YudisiumRequirement::active()
+            ->where(function ($q) use ($mahasiswa) {
+                $q->whereNull('program_studi_id')
+                  ->orWhere('program_studi_id', $mahasiswa->program_studi_id);
+            })->get();
         $checklists = $mahasiswa->yudisiumChecklists()->with('processedBy')->get()->keyBy('yudisium_requirement_id');
 
         $data = $requirements->map(function ($req) use ($checklists) {
