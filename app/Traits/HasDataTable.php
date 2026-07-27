@@ -70,4 +70,40 @@ trait HasDataTable
         $perPageParam = $request->input('per_page', $perPage);
         return $query->paginate($perPageParam)->withQueryString();
     }
+
+    /**
+     * Apply Data Table with allowed sorts, default sort field, and direction.
+     *
+     * @param Builder $query
+     * @param Request $request
+     * @param array $allowedSorts Columns allowed for sorting
+     * @param string $defaultSortField Default column to sort by
+     * @param string $defaultSortDirection Default sort direction (asc/desc)
+     * @param int $perPage Items per page
+     * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
+     */
+    public function dataTableQuery(Builder $query, Request $request, array $allowedSorts = [], string $defaultSortField = 'created_at', string $defaultSortDirection = 'desc', int $perPage = 15)
+    {
+        // 1. Handling Sorting with allowed sorts whitelist
+        $sortField = $request->input('sort_field', $defaultSortField);
+        $sortDirection = $request->input('sort_direction', $defaultSortDirection);
+
+        if (in_array($sortField, $allowedSorts)) {
+            $tableName = $query->getModel()->getTable();
+            $schema = $query->getModel()->getConnection()->getSchemaBuilder();
+
+            if ($schema->hasColumn($tableName, $sortField)) {
+                $query->orderBy($sortField, $sortDirection);
+            } else {
+                \Illuminate\Support\Facades\Log::warning("HasDataTable: Column '{$sortField}' not found in table '{$tableName}'. Sorting skipped.");
+                $query->orderBy($defaultSortField, $defaultSortDirection);
+            }
+        } else {
+            $query->orderBy($defaultSortField, $defaultSortDirection);
+        }
+
+        // 2. Handling Pagination
+        $perPageParam = $request->input('per_page', $perPage);
+        return $query->paginate($perPageParam)->withQueryString();
+    }
 }
