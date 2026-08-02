@@ -18,13 +18,13 @@ class YudisiumChecklistController extends Controller
     {
         $allRequirements = \App\Models\YudisiumRequirement::active()->get();
         $globalReqCount = $allRequirements->whereNull('program_studi_id')->count();
-        $prodiReqCount = $allRequirements->whereNotNull('program_studi_id')->groupBy('program_studi_id')->map->count();
+        $prodiReqCount = $allRequirements->whereNotNull('program_studi_id')->groupBy('program_studi_id')->map(fn($group) => $group->count());
 
         // Query Mahasiswa who have at least one checklist
         $query = \App\Models\Mahasiswa::with(['programStudi', 'yudisiumChecklists'])
             ->whereHas('yudisiumChecklists')
             ->orderBy(
-                \App\Models\MahasiswaYudisiumChecklist::select('updated_at')
+                MahasiswaYudisiumChecklist::select('updated_at')
                     ->whereColumn('mahasiswa_id', 'mahasiswa.id')
                     ->latest()
                     ->take(1),

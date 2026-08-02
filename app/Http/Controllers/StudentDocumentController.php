@@ -118,6 +118,6 @@ class StudentDocumentController extends Controller
 
     public function printKartuUjian(Request $request, Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik)
     {
-        return $this->pdfInlineResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->get('jenis', 'uts'));
+        return $this->pdfInlineResponse('kartu_ujian', $mahasiswa, $tahunAkademik, $request->input('jenis', 'uts'));
     }
 }

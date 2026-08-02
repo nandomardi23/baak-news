@@ -112,7 +112,7 @@ class BatchKartuUjianController extends Controller
 
         try {
             $pdfService = new \App\Services\Pdfs\KartuUjianService();
-            $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik, $request->get('jenis', 'uts'));
+            $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik, $request->input('jenis', 'uts'));
 
             $path = storage_path('app/public/surat/' . $filename);
 
