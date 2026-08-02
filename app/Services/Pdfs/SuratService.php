@@ -156,12 +156,24 @@ class SuratService extends BasePdfService
         $this->SetX(120);
         $this->Cell(60, 5, $kota . ', ' . $tanggalStr, 0, 1, 'C');
 
-        $this->SetX(120);
-        $this->Cell(60, 5, 'STIKes Hang Tuah Tanjung Pinang', 0, 1, 'C');
-
-        $this->SetX(120);
         $jabatan = $customSigner?->jabatan ?? 'Ketua';
-        $this->Cell(60, 5, $jabatan, 0, 1, 'C');
+        $isKetua = strtolower($jabatan) === 'ketua';
+
+        if ($isKetua) {
+            // Ketua tanda tangan langsung
+            $this->SetX(120);
+            $this->Cell(60, 5, 'STIKes Hang Tuah Tanjung Pinang', 0, 1, 'C');
+
+            $this->SetX(120);
+            $this->Cell(60, 5, $jabatan, 0, 1, 'C');
+        } else {
+            // Bukan Ketua → format "a.n Ketua STIKes Hang Tuah Tanjung Pinang"
+            $this->SetX(120);
+            $this->Cell(60, 5, 'a.n Ketua STIKes Hang Tuah Tanjung Pinang', 0, 1, 'C');
+
+            $this->SetX(120);
+            $this->Cell(60, 5, $jabatan, 0, 1, 'C');
+        }
 
         $this->Ln(25);
 
