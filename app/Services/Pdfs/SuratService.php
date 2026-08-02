@@ -176,12 +176,25 @@ class SuratService extends BasePdfService
             $this->Cell(60, 5, $customSigner->pangkat_golongan, 0, 1, 'C');
         }
 
-        // Signer ID (Always 'NIK' label)
-        // Prioritize NIP (NIK Kepegawaian), then NIDN, then KTP
-        $idNumber = $customSigner?->nip ?? $customSigner?->nidn ?? $customSigner?->nik ?? '12060';
+        // Signer ID — Pilih label dan nomor sesuai data pejabat: NIP untuk PNS, NIDN, atau NIK
+        $idLabel = 'NIK';
+        $idNumber = '12060';
+
+        if ($customSigner) {
+            if ($customSigner->nip) {
+                $idLabel = 'NIP';
+                $idNumber = $customSigner->nip;
+            } elseif ($customSigner->nidn) {
+                $idLabel = 'NIDN';
+                $idNumber = $customSigner->nidn;
+            } elseif ($customSigner->nik) {
+                $idLabel = 'NIK';
+                $idNumber = $customSigner->nik;
+            }
+        }
 
         $this->SetX(120);
-        $this->Cell(60, 5, 'NIK: ' . $idNumber, 0, 1, 'C');
+        $this->Cell(60, 5, $idLabel . ': ' . $idNumber, 0, 1, 'C');
 
         $filename = 'surat_aktif_kuliah_' . $mahasiswa->nim . '_' . date('YmdHis') . '.pdf';
         $path = storage_path('app/public/surat/' . $filename);
