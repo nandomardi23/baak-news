@@ -4,7 +4,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import AppLayout from '@/layouts/AppLayout.vue';
-import { Head, useForm } from '@inertiajs/vue3';
+import { Head, useForm, router } from '@inertiajs/vue3';
+import { ref, computed } from 'vue';
 import { toast } from 'vue-sonner';
 
 defineOptions({ layout: AppLayout });
@@ -18,6 +19,7 @@ const props = defineProps<{
         contact_email: string;
         contact_phone: string;
         contact_address: string;
+        hero_background_image: string | null;
     };
 }>();
 
@@ -29,10 +31,43 @@ const form = useForm({
     contact_email: props.settings.contact_email,
     contact_phone: props.settings.contact_phone,
     contact_address: props.settings.contact_address,
+    hero_background_image: null as File | null,
+    remove_hero_background: false,
 });
+
+const imagePreview = ref<string | null>(props.settings.hero_background_image);
+const fileInputRef = ref<HTMLInputElement | null>(null);
+
+const hasCurrentImage = computed(() => {
+    return imagePreview.value && !form.remove_hero_background;
+});
+
+const handleFileChange = (event: Event) => {
+    const target = event.target as HTMLInputElement;
+    const file = target.files?.[0];
+    if (file) {
+        form.hero_background_image = file;
+        form.remove_hero_background = false;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            imagePreview.value = e.target?.result as string;
+        };
+        reader.readAsDataURL(file);
+    }
+};
+
+const removeImage = () => {
+    form.hero_background_image = null;
+    form.remove_hero_background = true;
+    imagePreview.value = null;
+    if (fileInputRef.value) {
+        fileInputRef.value.value = '';
+    }
+};
 
 const submit = () => {
     form.post(route('admin.settings.general.update'), {
+        forceFormData: true,
         onSuccess: () => {
             toast.success('Settings updated successfully');
         },
@@ -196,6 +231,65 @@ const submit = () => {
                                     />
                                     <span class="text-xs text-red-500 font-medium" v-if="form.errors.contact_address">{{ form.errors.contact_address }}</span>
                                 </div>
+                            </div>
+                        </div>
+
+                        <div class="h-px bg-slate-100"></div>
+
+                        <!-- Section 4: Background Hero Section -->
+                        <div class="grid lg:grid-cols-3 gap-8 sm:gap-12">
+                            <div class="lg:col-span-1">
+                                <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                                    <span class="p-2 rounded-lg bg-emerald-50 text-emerald-600">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>
+                                    </span>
+                                    Background Hero Section
+                                </h3>
+                                <p class="mt-3 text-sm text-slate-500 leading-relaxed">
+                                    Gambar latar belakang untuk bagian atas (Hero Section) di halaman utama. Gunakan gambar landscape beresolusi tinggi (minimal 1920x800px).
+                                </p>
+                            </div>
+
+                            <div class="lg:col-span-2 space-y-4">
+                                <!-- Current Image Preview -->
+                                <div v-if="hasCurrentImage" class="relative group rounded-xl overflow-hidden border border-slate-200 shadow-sm">
+                                    <img :src="imagePreview!" alt="Background Hero Preview" class="w-full h-48 object-cover" />
+                                    <div class="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300 flex items-center justify-center">
+                                        <button
+                                            type="button"
+                                            @click="removeImage"
+                                            class="opacity-0 group-hover:opacity-100 transition-opacity duration-300 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-lg shadow-lg flex items-center gap-2"
+                                        >
+                                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                            Hapus Gambar
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Upload Area -->
+                                <div class="relative">
+                                    <input
+                                        ref="fileInputRef"
+                                        type="file"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        @change="handleFileChange"
+                                        class="hidden"
+                                        id="hero_bg_input"
+                                    />
+                                    <label
+                                        for="hero_bg_input"
+                                        class="flex flex-col items-center justify-center w-full py-8 border-2 border-dashed border-slate-300 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50 transition-colors duration-300 group"
+                                    >
+                                        <div class="w-12 h-12 rounded-full bg-slate-100 group-hover:bg-emerald-100 flex items-center justify-center mb-3 transition-colors">
+                                            <svg class="w-6 h-6 text-slate-400 group-hover:text-emerald-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                                        </div>
+                                        <span class="text-sm font-semibold text-slate-600 group-hover:text-emerald-700 transition-colors">
+                                            {{ hasCurrentImage ? 'Ganti Gambar' : 'Upload Gambar Background' }}
+                                        </span>
+                                        <span class="text-xs text-slate-400 mt-1">JPG, PNG, atau WebP (maks. 2MB)</span>
+                                    </label>
+                                </div>
+                                <span class="text-xs text-red-500 font-medium" v-if="form.errors.hero_background_image">{{ form.errors.hero_background_image }}</span>
                             </div>
                         </div>
 

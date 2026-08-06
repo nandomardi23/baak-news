@@ -23,6 +23,7 @@ const props = defineProps<{
     prodi: Prodi[];
     templates?: any;
     filters?: any;
+    heroBackgroundImage?: string | null;
 }>();
 
 const searchTemplate = ref(props.filters?.search_template || '');
@@ -101,7 +102,7 @@ watch(searchTemplate, () => {
 
     <LandingLayout variant="full" :show-background="true" :show-footer="true">
         <!-- Hero Section -->
-        <HeroSection @search="handleSearch" />
+        <HeroSection @search="handleSearch" :background-image="heroBackgroundImage" />
 
         <!-- Alur Section -->
         <section id="alur" class="py-12 sm:py-24 px-4 bg-slate-50/80 border-y border-slate-100">

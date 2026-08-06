@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 
+const props = defineProps<{
+    backgroundImage?: string | null;
+}>();
+
 const emit = defineEmits(['search']);
 const search = ref('');
 
@@ -10,8 +14,15 @@ const handleSearch = () => {
 </script>
 
 <template>
-    <section id="home" class="py-12 sm:py-24 px-4 relative">
-        <div class="w-full mx-auto text-center">
+    <section id="home" class="py-12 sm:py-24 px-4 relative overflow-hidden isolate">
+        <!-- Background Image -->
+        <div v-if="backgroundImage" class="absolute inset-0 -z-10">
+            <img :src="backgroundImage" alt="Hero Background" class="w-full h-full object-cover" />
+            <!-- Using white overlay with blur to make dark text readable -->
+            <div class="absolute inset-0 bg-white/70 backdrop-blur-sm"></div>
+        </div>
+
+        <div class="w-full mx-auto text-center relative z-10">
             <span class="inline-block py-1 px-3 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-xs font-semibold mb-6">
                 Sistem Pelayanan Akademik Online
             </span>

@@ -7,6 +7,7 @@ use App\Models\KalenderAkademik;
 use App\Models\Mahasiswa;
 use App\Models\Pejabat;
 use App\Models\ProgramStudi;
+use App\Models\Setting;
 use App\Models\TahunAkademik;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -38,10 +39,14 @@ class PortalController extends Controller
 
         $templates = $templatesQuery->orderBy('created_at', 'desc')->paginate(5)->withQueryString();
 
+        // Get hero background image
+        $heroBgPath = Setting::getValue('hero_background_image');
+
         return Inertia::render('Landing/Home', [
             'prodi' => $prodi,
             'templates' => $templates,
             'filters' => $request->only(['search_template', 'kategori']),
+            'heroBackgroundImage' => $heroBgPath ? Storage::url($heroBgPath) : null,
         ]);
     }
 
