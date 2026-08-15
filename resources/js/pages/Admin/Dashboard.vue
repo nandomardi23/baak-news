@@ -281,7 +281,7 @@ const ipkColors: Record<string, string> = {
                                 <div
                                     v-for="item in monthlyPengajuan"
                                     :key="item.bulan"
-                                    class="flex flex-col items-center gap-2 flex-1 group"
+                                    class="flex flex-col items-center gap-2 flex-1 group h-full"
                                 >
                                     <div class="relative w-full flex justify-center h-full items-end">
                                         <!-- Tooltip -->
