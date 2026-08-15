@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\MahasiswaController;
 use App\Http\Controllers\Admin\NeoFeederSettingsController;
 use App\Http\Controllers\Admin\PejabatController;
 use App\Http\Controllers\Admin\SuratController;
+use App\Http\Controllers\Admin\ArsipSuratController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\PortalController;
 use App\Http\Controllers\StudentPortalController;
@@ -113,6 +114,10 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     Route::delete('surat/{surat}', [SuratController::class, 'destroy'])->name('surat.destroy');
     Route::post('surat/bulk-approve', [SuratController::class, 'bulkApprove'])->name('surat.bulk-approve');
     Route::post('surat/bulk-reject', [SuratController::class, 'bulkReject'])->name('surat.bulk-reject');
+
+    // Arsip Surat (Digitalisasi Surat Masuk & Keluar)
+    Route::resource('arsip-surat', ArsipSuratController::class)->except(['create', 'edit']);
+    Route::get('arsip-surat/{arsipSurat}/download', [ArsipSuratController::class, 'download'])->name('arsip-surat.download');
 
     // Yudisium
     Route::resource('yudisium/requirements', \App\Http\Controllers\Admin\YudisiumRequirementController::class)->except(['create', 'show', 'edit']);

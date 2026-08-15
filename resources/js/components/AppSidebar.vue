@@ -32,6 +32,7 @@ import {
     IdCard,
     Building2,
     FileDown,
+    Archive,
 } from 'lucide-vue-next';
 import AppLogo from './AppLogo.vue';
 
@@ -60,6 +61,7 @@ const navGroups = [
         label: 'Surat & Dokumen',
         items: [
             { title: 'Pengajuan Surat', href: '/admin/surat', icon: FileText },
+            { title: 'Arsip Surat', href: '/admin/arsip-surat', icon: Archive },
             { title: 'Checklist Yudisium', href: '/admin/yudisium/submissions', icon: FileText },
             { title: 'Master Syarat Yudisium', href: '/admin/yudisium/requirements', icon: Settings },
             { title: 'Batch Kartu Ujian', href: '/admin/mahasiswa/kartu-ujian/batch', icon: IdCard },
