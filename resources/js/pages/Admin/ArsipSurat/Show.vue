@@ -91,7 +91,7 @@ const getJenisBadgeClass = (jenis: string) => {
             <div class="lg:col-span-1 space-y-6">
                 <!-- Jenis & Nomor Card -->
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-50 bg-gradient-to-r from-slate-50 to-white">
+                    <div class="px-6 py-4 border-b border-slate-50 bg-linear-to-r from-slate-50 to-white">
                         <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Informasi Surat</h3>
                     </div>
                     <div class="p-6 space-y-5">
@@ -188,7 +188,7 @@ const getJenisBadgeClass = (jenis: string) => {
 
                 <!-- Metadata Card -->
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-slate-50 bg-gradient-to-r from-slate-50 to-white">
+                    <div class="px-6 py-4 border-b border-slate-50 bg-linear-to-r from-slate-50 to-white">
                         <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Metadata</h3>
                     </div>
                     <div class="p-6 space-y-4">
@@ -226,7 +226,7 @@ const getJenisBadgeClass = (jenis: string) => {
             <!-- Right: Document Preview -->
             <div class="lg:col-span-2">
                 <div class="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden h-full">
-                    <div class="px-6 py-4 border-b border-slate-50 bg-gradient-to-r from-slate-50 to-white flex items-center justify-between">
+                    <div class="px-6 py-4 border-b border-slate-50 bg-linear-to-r from-slate-50 to-white flex items-center justify-between">
                         <h3 class="text-sm font-bold uppercase tracking-wider text-slate-500">Preview Dokumen</h3>
                         <span class="text-xs font-mono px-2 py-1 rounded-md bg-slate-100 text-slate-500 uppercase">
                             {{ arsip.file_extension }}
@@ -234,7 +234,7 @@ const getJenisBadgeClass = (jenis: string) => {
                     </div>
                     <div class="p-4">
                         <!-- PDF Preview -->
-                        <div v-if="arsip.is_pdf" class="w-full h-[700px] rounded-xl overflow-hidden bg-slate-50">
+                        <div v-if="arsip.is_pdf" class="w-full h-175 rounded-xl overflow-hidden bg-slate-50">
                             <iframe
                                 :src="arsip.file_url"
                                 class="w-full h-full border-0"
@@ -243,16 +243,16 @@ const getJenisBadgeClass = (jenis: string) => {
                         </div>
 
                         <!-- Image Preview -->
-                        <div v-else-if="arsip.is_image" class="w-full flex items-center justify-center bg-slate-50 rounded-xl p-4 min-h-[400px]">
+                        <div v-else-if="arsip.is_image" class="w-full flex items-center justify-center bg-slate-50 rounded-xl p-4 min-h-100">
                             <img
                                 :src="arsip.file_url"
                                 :alt="arsip.perihal"
-                                class="max-w-full max-h-[700px] object-contain rounded-lg shadow-lg"
+                                class="max-w-full max-h-175 object-contain rounded-lg shadow-lg"
                             />
                         </div>
 
                         <!-- Unsupported -->
-                        <div v-else class="w-full h-[400px] flex flex-col items-center justify-center bg-slate-50 rounded-xl">
+                        <div v-else class="w-full h-100 flex flex-col items-center justify-center bg-slate-50 rounded-xl">
                             <div class="w-16 h-16 rounded-2xl bg-slate-100 flex items-center justify-center mb-4">
                                 <FileText class="w-8 h-8 text-slate-400" />
                             </div>

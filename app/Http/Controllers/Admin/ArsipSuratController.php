@@ -122,10 +122,10 @@ class ArsipSuratController extends Controller
                 'jenis_label' => $arsipSurat->jenis_label,
                 'jenis_badge' => $arsipSurat->jenis_badge,
                 'nomor_surat' => $arsipSurat->nomor_surat,
-                'tanggal_surat' => $arsipSurat->tanggal_surat->format('Y-m-d'),
-                'tanggal_surat_formatted' => $arsipSurat->tanggal_surat->format('d M Y'),
-                'tanggal_diterima' => $arsipSurat->tanggal_diterima?->format('Y-m-d'),
-                'tanggal_diterima_formatted' => $arsipSurat->tanggal_diterima?->format('d M Y'),
+                'tanggal_surat' => \Carbon\Carbon::parse($arsipSurat->tanggal_surat)->format('Y-m-d'),
+                'tanggal_surat_formatted' => \Carbon\Carbon::parse($arsipSurat->tanggal_surat)->format('d M Y'),
+                'tanggal_diterima' => $arsipSurat->tanggal_diterima ? \Carbon\Carbon::parse($arsipSurat->tanggal_diterima)->format('Y-m-d') : null,
+                'tanggal_diterima_formatted' => $arsipSurat->tanggal_diterima ? \Carbon\Carbon::parse($arsipSurat->tanggal_diterima)->format('d M Y') : null,
                 'asal_surat' => $arsipSurat->asal_surat,
                 'tujuan_surat' => $arsipSurat->tujuan_surat,
                 'perihal' => $arsipSurat->perihal,
@@ -220,6 +220,8 @@ class ArsipSuratController extends Controller
         $extension = $arsipSurat->file_extension;
         $filename = str_replace(['/', '\\', ' '], '_', $arsipSurat->nomor_surat) . '.' . $extension;
 
-        return Storage::disk('public')->download($filePath, $filename);
+        /** @var \Illuminate\Filesystem\FilesystemAdapter $disk */
+        $disk = Storage::disk('public');
+        return $disk->download($filePath, $filename);
     }
 }

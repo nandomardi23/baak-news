@@ -431,7 +431,7 @@ const getJenisBadgeClass = (jenis: string) => {
                 >
                     <div v-if="showModal" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg overflow-hidden max-h-[90vh] flex flex-col">
                         <!-- Modal Header -->
-                        <div class="px-6 py-4 border-b bg-gradient-to-r from-indigo-50 to-blue-50 flex items-center justify-between shrink-0">
+                        <div class="px-6 py-4 border-b bg-linear-to-r from-indigo-50 to-blue-50 flex items-center justify-between shrink-0">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-xl flex items-center justify-center shadow-sm"
                                     :class="editingItem ? 'bg-amber-100 text-amber-600' : 'bg-indigo-100 text-indigo-600'">
@@ -588,7 +588,7 @@ const getJenisBadgeClass = (jenis: string) => {
                                             <FileText class="w-5 h-5 text-indigo-600" />
                                         </div>
                                         <div class="text-left">
-                                            <p class="text-sm font-semibold text-slate-800 truncate max-w-[200px]">{{ selectedFileName }}</p>
+                                            <p class="text-sm font-semibold text-slate-800 truncate max-w-50">{{ selectedFileName }}</p>
                                             <p class="text-xs text-slate-400">Klik untuk ganti file</p>
                                         </div>
                                         <button type="button" @click.stop="removeFile" class="p-1.5 rounded-lg hover:bg-red-50 text-slate-400 hover:text-red-500 transition">
