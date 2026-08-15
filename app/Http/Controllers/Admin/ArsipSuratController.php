@@ -61,7 +61,7 @@ class ArsipSuratController extends Controller
             'is_pdf' => $item->is_pdf,
             'is_image' => $item->is_image,
             'created_by' => $item->creator?->name,
-            'created_at' => $item->created_at->format('d M Y H:i'),
+            'created_at' => $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d M Y H:i') : null,
         ]);
 
         return Inertia::render('Admin/ArsipSurat/Index', [
@@ -93,8 +93,8 @@ class ArsipSuratController extends Controller
         $arsip = ArsipSurat::create([
             'jenis' => $validated['jenis'],
             'nomor_surat' => $validated['nomor_surat'],
-            'tanggal_surat' => $validated['tanggal_surat'],
-            'tanggal_diterima' => $validated['tanggal_diterima'] ?? null,
+            'tanggal_surat' => \Carbon\Carbon::parse($validated['tanggal_surat'])->format('Y-m-d'),
+            'tanggal_diterima' => !empty($validated['tanggal_diterima']) ? \Carbon\Carbon::parse($validated['tanggal_diterima'])->format('Y-m-d') : null,
             'asal_surat' => $validated['asal_surat'] ?? null,
             'tujuan_surat' => $validated['tujuan_surat'] ?? null,
             'perihal' => $validated['perihal'],
@@ -135,8 +135,8 @@ class ArsipSuratController extends Controller
                 'is_pdf' => $arsipSurat->is_pdf,
                 'is_image' => $arsipSurat->is_image,
                 'created_by' => $arsipSurat->creator?->name,
-                'created_at' => $arsipSurat->created_at->format('d M Y H:i'),
-                'updated_at' => $arsipSurat->updated_at->format('d M Y H:i'),
+                'created_at' => $arsipSurat->created_at ? \Carbon\Carbon::parse($arsipSurat->created_at)->format('d M Y H:i') : null,
+                'updated_at' => $arsipSurat->updated_at ? \Carbon\Carbon::parse($arsipSurat->updated_at)->format('d M Y H:i') : null,
             ],
         ]);
     }
@@ -169,6 +169,11 @@ class ArsipSuratController extends Controller
 
         // Remove 'file' key from validated (it's the UploadedFile, not the path)
         unset($validated['file']);
+
+        $validated['tanggal_surat'] = \Carbon\Carbon::parse($validated['tanggal_surat'])->format('Y-m-d');
+        if (!empty($validated['tanggal_diterima'])) {
+            $validated['tanggal_diterima'] = \Carbon\Carbon::parse($validated['tanggal_diterima'])->format('Y-m-d');
+        }
 
         $arsipSurat->update($validated);
 
