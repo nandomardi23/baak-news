@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, useForm } from '@inertiajs/vue3';
-import { computed, ref, onMounted, watch } from 'vue';
+import { computed, ref, reactive, onMounted, watch } from 'vue';
 import axios from 'axios';
 import LandingLayout from '@/layouts/LandingLayout.vue';
 import SeoHead from '@/components/SeoHead.vue';
@@ -348,7 +348,57 @@ const toTitleCase = (str: string | null) => {
     return str.toLowerCase().replace(/\b\w/g, s => s.toUpperCase());
 };
 
+// Client-side validation for aktif_kuliah
+const validationErrors = reactive<Record<string, string>>({
+    nama_ayah: '',
+    pekerjaan_ayah: '',
+    nama_ibu: '',
+    pekerjaan_ibu: '',
+});
+
+const clearValidationError = (field: string) => {
+    validationErrors[field] = '';
+};
+
+const validateAktifKuliah = (): boolean => {
+    // Reset errors
+    Object.keys(validationErrors).forEach(key => validationErrors[key] = '');
+
+    if (form.jenis_surat !== 'aktif_kuliah') return true;
+
+    let isValid = true;
+
+    if (!form.nama_ayah || !form.nama_ayah.trim()) {
+        validationErrors.nama_ayah = 'Nama Ayah wajib diisi untuk pengajuan Surat Aktif Kuliah.';
+        isValid = false;
+    }
+    if (!form.pekerjaan_ayah || !form.pekerjaan_ayah.trim()) {
+        validationErrors.pekerjaan_ayah = 'Pekerjaan Ayah wajib diisi untuk pengajuan Surat Aktif Kuliah.';
+        isValid = false;
+    }
+    if (!form.nama_ibu || !form.nama_ibu.trim()) {
+        validationErrors.nama_ibu = 'Nama Ibu wajib diisi untuk pengajuan Surat Aktif Kuliah.';
+        isValid = false;
+    }
+    if (!form.pekerjaan_ibu || !form.pekerjaan_ibu.trim()) {
+        validationErrors.pekerjaan_ibu = 'Pekerjaan Ibu wajib diisi untuk pengajuan Surat Aktif Kuliah.';
+        isValid = false;
+    }
+
+    // Scroll to first error
+    if (!isValid) {
+        const firstErrorEl = document.querySelector('.validation-error');
+        if (firstErrorEl) {
+            firstErrorEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+    }
+
+    return isValid;
+};
+
 const submit = () => {
+    if (!validateAktifKuliah()) return;
+
     form.post(`/pengajuan/${props.mahasiswa.id}`, {
         preserveScroll: true,
     });
@@ -610,7 +660,7 @@ const submit = () => {
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
                             </div>
                             <div>
-                                <h3 class="font-bold text-slate-800">Data Orang Tua</h3>
+                                <h3 class="font-bold text-slate-800">Data Orang Tua <span v-if="form.jenis_surat === 'aktif_kuliah'" class="text-red-500 text-xs font-semibold ml-1">*Wajib</span></h3>
                                 <p class="text-slate-500 text-xs">Untuk keperluan surat keterangan</p>
                             </div>
                         </div>
@@ -632,10 +682,58 @@ const submit = () => {
                         </div>
 
                         <div class="grid sm:grid-cols-2 gap-4">
-                            <input v-model="form.nama_ayah" @blur="form.nama_ayah = toTitleCase(form.nama_ayah)" type="text" placeholder="Nama Ayah" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.pekerjaan_ayah" @blur="form.pekerjaan_ayah = toTitleCase(form.pekerjaan_ayah)" type="text" placeholder="Pekerjaan Ayah" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.nama_ibu" @blur="form.nama_ibu = toTitleCase(form.nama_ibu)" type="text" placeholder="Nama Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
-                            <input v-model="form.pekerjaan_ibu" @blur="form.pekerjaan_ibu = toTitleCase(form.pekerjaan_ibu)" type="text" placeholder="Pekerjaan Ibu" class="px-4 py-3 rounded-xl bg-white border border-slate-200 text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                            <div>
+                                <input v-model="form.nama_ayah" 
+                                    @blur="form.nama_ayah = toTitleCase(form.nama_ayah)" 
+                                    @input="clearValidationError('nama_ayah')" 
+                                    type="text" 
+                                    :placeholder="form.jenis_surat === 'aktif_kuliah' ? 'Nama Ayah *' : 'Nama Ayah'" 
+                                    :class="[validationErrors.nama_ayah || form.errors.nama_ayah ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200']"
+                                    class="w-full px-4 py-3 rounded-xl bg-white border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                                <p v-if="validationErrors.nama_ayah || form.errors.nama_ayah" class="validation-error text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    {{ validationErrors.nama_ayah || form.errors.nama_ayah }}
+                                </p>
+                            </div>
+                            <div>
+                                <input v-model="form.pekerjaan_ayah" 
+                                    @blur="form.pekerjaan_ayah = toTitleCase(form.pekerjaan_ayah)" 
+                                    @input="clearValidationError('pekerjaan_ayah')" 
+                                    type="text" 
+                                    :placeholder="form.jenis_surat === 'aktif_kuliah' ? 'Pekerjaan Ayah *' : 'Pekerjaan Ayah'" 
+                                    :class="[validationErrors.pekerjaan_ayah || form.errors.pekerjaan_ayah ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200']"
+                                    class="w-full px-4 py-3 rounded-xl bg-white border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                                <p v-if="validationErrors.pekerjaan_ayah || form.errors.pekerjaan_ayah" class="validation-error text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    {{ validationErrors.pekerjaan_ayah || form.errors.pekerjaan_ayah }}
+                                </p>
+                            </div>
+                            <div>
+                                <input v-model="form.nama_ibu" 
+                                    @blur="form.nama_ibu = toTitleCase(form.nama_ibu)" 
+                                    @input="clearValidationError('nama_ibu')" 
+                                    type="text" 
+                                    :placeholder="form.jenis_surat === 'aktif_kuliah' ? 'Nama Ibu *' : 'Nama Ibu'" 
+                                    :class="[validationErrors.nama_ibu || form.errors.nama_ibu ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200']"
+                                    class="w-full px-4 py-3 rounded-xl bg-white border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                                <p v-if="validationErrors.nama_ibu || form.errors.nama_ibu" class="validation-error text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    {{ validationErrors.nama_ibu || form.errors.nama_ibu }}
+                                </p>
+                            </div>
+                            <div>
+                                <input v-model="form.pekerjaan_ibu" 
+                                    @blur="form.pekerjaan_ibu = toTitleCase(form.pekerjaan_ibu)" 
+                                    @input="clearValidationError('pekerjaan_ibu')" 
+                                    type="text" 
+                                    :placeholder="form.jenis_surat === 'aktif_kuliah' ? 'Pekerjaan Ibu *' : 'Pekerjaan Ibu'" 
+                                    :class="[validationErrors.pekerjaan_ibu || form.errors.pekerjaan_ibu ? 'border-red-400 ring-2 ring-red-100' : 'border-slate-200']"
+                                    class="w-full px-4 py-3 rounded-xl bg-white border text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"/>
+                                <p v-if="validationErrors.pekerjaan_ibu || form.errors.pekerjaan_ibu" class="validation-error text-red-500 text-xs mt-1.5 flex items-center gap-1">
+                                    <svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                    {{ validationErrors.pekerjaan_ibu || form.errors.pekerjaan_ibu }}
+                                </p>
+                            </div>
                         </div>
                         
                         <!-- Toggle Samakan Alamat -->

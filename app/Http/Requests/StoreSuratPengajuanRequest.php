@@ -29,11 +29,11 @@ class StoreSuratPengajuanRequest extends FormRequest
             'kota_kabupaten' => 'nullable|string|max:100',
             'provinsi' => 'nullable|string|max:100',
             'no_hp' => 'nullable|string|max:20',
-            // Parent data
-            'nama_ayah' => 'nullable|string|max:100',
-            'pekerjaan_ayah' => 'nullable|string|max:100',
-            'nama_ibu' => 'nullable|string|max:100',
-            'pekerjaan_ibu' => 'nullable|string|max:100',
+            // Parent data - required for aktif_kuliah
+            'nama_ayah' => 'required_if:jenis_surat,aktif_kuliah|nullable|string|max:100',
+            'pekerjaan_ayah' => 'required_if:jenis_surat,aktif_kuliah|nullable|string|max:100',
+            'nama_ibu' => 'required_if:jenis_surat,aktif_kuliah|nullable|string|max:100',
+            'pekerjaan_ibu' => 'required_if:jenis_surat,aktif_kuliah|nullable|string|max:100',
             'alamat_ortu' => 'nullable|string|max:500',
             'rt_ortu' => 'nullable|string|max:10',
             'rw_ortu' => 'nullable|string|max:10',
@@ -52,6 +52,10 @@ class StoreSuratPengajuanRequest extends FormRequest
             'keperluan.required_if' => 'Keperluan harus diisi untuk surat aktif kuliah.',
             'tahun_akademik_id.required_if' => 'Tahun akademik harus dipilih untuk KRS/KHS.',
             'nama.required' => 'Nama harus diisi.',
+            'nama_ayah.required_if' => 'Nama Ayah wajib diisi untuk pengajuan Surat Aktif Kuliah.',
+            'pekerjaan_ayah.required_if' => 'Pekerjaan Ayah wajib diisi untuk pengajuan Surat Aktif Kuliah.',
+            'nama_ibu.required_if' => 'Nama Ibu wajib diisi untuk pengajuan Surat Aktif Kuliah.',
+            'pekerjaan_ibu.required_if' => 'Pekerjaan Ibu wajib diisi untuk pengajuan Surat Aktif Kuliah.',
         ];
     }
 }
