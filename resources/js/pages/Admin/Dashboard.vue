@@ -291,7 +291,7 @@ const ipkColors: Record<string, string> = {
                                         </div>
                                         <!-- Bar -->
                                         <div
-                                            class="w-full max-w-[40px] bg-linear-to-t from-blue-500 to-indigo-400 rounded-t-lg transition-all duration-300 group-hover:from-blue-600 group-hover:to-indigo-500 group-hover:shadow-lg group-hover:shadow-blue-500/20"
+                                            class="w-full max-w-10 bg-linear-to-t from-blue-500 to-indigo-400 rounded-t-lg transition-all duration-300 group-hover:from-blue-600 group-hover:to-indigo-500 group-hover:shadow-lg group-hover:shadow-blue-500/20"
                                             :style="{ height: `${Math.max((item.total / maxMonthlyTotal) * 100, 4)}%` }"
                                         ></div>
                                     </div>
