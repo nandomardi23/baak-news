@@ -85,7 +85,7 @@ defineProps<{
                                     </span>
                                 </div>
                             </div>
-                            <div class="flex flex-wrap gap-2 shrink-0">
+                            <div class="flex gap-2 shrink-0">
                                 <Link
                                     :href="`/dokumen/${mhs.id}`"
                                     class="inline-flex items-center justify-center px-4 py-3 bg-linear-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-700 hover:to-teal-700 transition shadow-lg shadow-emerald-500/30"
@@ -95,17 +95,10 @@ defineProps<{
                                 </Link>
                                 <Link
                                     :href="`/pengajuan/${mhs.id}?jenis=aktif_kuliah`"
-                                    class="inline-flex items-center justify-center px-4 py-3 bg-linear-to-r from-amber-500 to-orange-500 text-white font-semibold rounded-xl hover:from-amber-600 hover:to-orange-600 transition shadow-lg shadow-amber-500/30"
+                                    class="inline-flex items-center justify-center px-4 py-3 bg-white border-2 border-blue-200 text-blue-700 font-semibold rounded-xl hover:bg-blue-50 hover:border-blue-300 transition shadow-sm"
                                 >
                                     <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                                     Surat Aktif Kuliah
-                                </Link>
-                                <Link
-                                    :href="`/pengajuan/${mhs.id}`"
-                                    class="inline-flex items-center justify-center px-4 py-3 bg-linear-to-r from-blue-600 to-indigo-600 text-white font-semibold rounded-xl hover:from-blue-700 hover:to-indigo-700 transition shadow-lg shadow-blue-500/30"
-                                >
-                                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                                    Ajukan Surat
                                 </Link>
                             </div>
                         </div>
