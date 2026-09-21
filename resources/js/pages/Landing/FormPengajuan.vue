@@ -48,8 +48,14 @@ const props = defineProps<{
     semesters: Semester[];
 }>();
 
+// Read jenis surat from URL query parameter if available
+const urlParams = new URLSearchParams(window.location.search);
+const jenisFromUrl = urlParams.get('jenis');
+const validJenis = ['aktif_kuliah', 'krs', 'khs', 'transkrip'];
+const initialJenis = (jenisFromUrl && validJenis.includes(jenisFromUrl) ? jenisFromUrl : 'aktif_kuliah') as 'aktif_kuliah' | 'krs' | 'khs' | 'transkrip';
+
 const form = useForm({
-    jenis_surat: 'aktif_kuliah' as 'aktif_kuliah' | 'krs' | 'khs' | 'transkrip',
+    jenis_surat: initialJenis,
     keperluan: '',
     tahun_akademik_id: '' as string | number,
     jenis_transkrip: props.mahasiswa.jenis_program === 'rpl' ? 'rpl' : 'reguler',
