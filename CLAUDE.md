@@ -42,87 +42,27 @@ This file provides guidance to Claude Code when working with the **BAAK** codeba
 
 | Class / Method | Cyclomatic | Lines |
 |---------------|-----------|-------|
-| AcademicSyncService@syncKrs | 26 | 238 |
-| KartuUjianService@addDesignCard | 18 | 252 |
 | AcademicSyncService@syncKrsMahasiswa | 18 | 139 |
-| AcademicSyncService@syncDosenPengajar | 15 | 123 |
-| AcademicSyncService@syncNilai | 15 | 167 |
-| StudentSyncService@syncMahasiswa | 14 | 126 |
-| AcademicSyncService@syncAktivitas | 13 | 126 |
-| LecturerSyncService@syncAjarDosen | 10 | 82 |
 | AcademicSyncService@syncAktivitasMahasiswa | 10 | 81 |
 | AcademicSyncService@syncBimbinganMahasiswa | 10 | 76 |
 
 ## Code Smells
 - ⚠️  **N+1 Query** in `baak:sync-dosen-pengajar {--limit=100}`
-- ⚠️  **N+1 Query** in `KartuUjianService@addDesignCard`
 - ⚠️  **N+1 Query** in `DashboardController@getMonthlyPengajuan`
 - ⚠️  **N+1 Query** in `AcademicSyncService@syncKrsMahasiswa`
 - ⚠️  **N+1 Query** in `RoleController@importNeo`
-- ⚠️  **N+1 Query** in `AcademicSyncService@syncAktivitas`
 - ⚠️  **N+1 Query** in `AcademicSyncService@updateMahasiswaAkademik`
-- ⚠️  **N+1 Query** in `StudentSyncService@syncBiodata`
-- ⚠️  **N+1 Query** in `AcademicSyncService@syncDosenPengajar`
-- ⚠️  **N+1 Query** in `AcademicSyncService@syncKrs`
-- ⚠️  **N+1 Query** in `AcademicSyncService@syncNilai`
 - 🧱 **Fat Method** `baak:sync-dosen-pengajar {--limit=100}`
-- 🧱 **Fat Method** `BatchKartuUjianController@print`
-- 🧱 **Fat Method** `KartuUjianService@generateBatch`
-- 🧱 **Fat Method** `KartuUjianService@addDesignCard`
-- 🧱 **Fat Method** `KartuUjianService@getMahasiswaSemester`
-- 🧱 **Fat Method** `KartuUjianService@RoundedRect`
-- 🧱 **Fat Method** `KartuUjianService@formatTanggalLengkap`
-- 🧱 **Fat Method** `BatchKartuUjianController@index`
-- 🧱 **Fat Method** `MahasiswaController@show`
-- 🧱 **Fat Method** `MahasiswaController@index`
-- 🧱 **Fat Method** `SuratController@print`
-- 🧱 **Fat Method** `SuratController@show`
-- 🧱 **Fat Method** `SuratController@index`
-- 🧱 **Fat Method** `YudisiumChecklistController@show`
-- 🧱 **Fat Method** `YudisiumChecklistController@index`
-- 🧱 **Fat Method** `StudentDocumentController@dokumen`
-- 🧱 **Fat Method** `PortalController@kalender`
-- 🧱 **Fat Method** `StudentPengajuanController@form`
-- 🧱 **Fat Method** `StudentYudisiumController@yudisium`
-- 🧱 **Fat Method** `PortalController@index`
-- 🧱 **Fat Method** `DokumenTemplateController@update`
-- 🧱 **Fat Method** `MahasiswaController@update`
-- 🧱 **Fat Method** `PejabatController@update`
 - 🧱 **Fat Method** `AcademicSyncService@syncKrsMahasiswa`
-- 🧱 **Fat Method** `PejabatController@store`
-- 🧱 **Fat Method** `GeneralSettingsController@update`
-- 🧱 **Fat Method** `NeoFeederSettingsController@testConnection`
-- 🧱 **Fat Method** `LecturerSyncService@getFilter`
-- 🧱 **Fat Method** `LecturerSyncService@syncAjarDosen`
 - 🧱 **Fat Method** `AcademicSyncService@getFilter`
 - 🧱 **Fat Method** `AcademicSyncService@syncAktivitasMahasiswa`
-- 🧱 **Fat Method** `AcademicSyncService@syncAktivitas`
 - 🧱 **Fat Method** `AcademicSyncService@syncAktivitasAllSemesters`
 - 🧱 **Fat Method** `AcademicSyncService@syncAnggotaAktivitasMahasiswa`
 - 🧱 **Fat Method** `AcademicSyncService@syncBimbinganMahasiswa`
-- 🧱 **Fat Method** `StudentSyncService@getFilter`
-- 🧱 **Fat Method** `StudentSyncService@syncBiodata`
-- 🧱 **Fat Method** `AcademicSyncService@syncDosenPengajar`
-- 🧱 **Fat Method** `LecturerSyncService@syncDosen`
-- 🧱 **Fat Method** `AcademicSyncService@syncKelasKuliah`
 - 🧱 **Fat Method** `AcademicSyncService@syncKonversiKampusMerdeka`
-- 🧱 **Fat Method** `AcademicSyncService@syncKrs`
 - 🧱 **Fat Method** `AcademicSyncService@syncKrsAllSemesters`
-- 🧱 **Fat Method** `CurriculumSyncService@syncKurikulum`
-- 🧱 **Fat Method** `CurriculumSyncService@getFilter`
-- 🧱 **Fat Method** `StudentSyncService@syncRiwayatPendidikan`
-- 🧱 **Fat Method** `StudentSyncService@syncMahasiswaLulusDO`
-- 🧱 **Fat Method** `StudentSyncService@syncMahasiswa`
-- 🧱 **Fat Method** `CurriculumSyncService@syncMataKuliah`
-- 🧱 **Fat Method** `AcademicSyncService@syncNilai`
 - 🧱 **Fat Method** `AcademicSyncService@syncNilaiAllSemesters`
-- 🧱 **Fat Method** `ReferenceSyncService@getFilter`
-- 🧱 **Fat Method** `ReferenceSyncService@syncProdi`
-- 🧱 **Fat Method** `SyncController@syncReferensi`
-- 🧱 **Fat Method** `ReferenceSyncService@syncWilayah`
-- 🧱 **Fat Method** `ReferenceSyncService@syncSemester`
 - 🧱 **Fat Method** `AcademicSyncService@syncUjiMahasiswa`
-- 🧱 **Fat Method** `TemplateDesignerController@uploadPdf`
 - 🏗️  **Fat Class** `SyncController`
 
 ## Backend Packages
