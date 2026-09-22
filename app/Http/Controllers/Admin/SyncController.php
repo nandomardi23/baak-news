@@ -64,70 +64,71 @@ class SyncController extends Controller
         }
     }
 
-    /**
-     * Sync Referensi (Agama, Wilayah, etc)
-     */
     public function syncReferensi(Request $request, ReferenceSyncService $syncService): JsonResponse
     {
         try {
             $type = $request->input('type');
             $subType = $request->input('sub_type');
             
-            // Handle Wilayah
             if ($type === 'wilayah') {
-                if ($request->boolean('only_count')) {
-                     return $this->successResponse('Count Wilayah', ['total' => $syncService->getCountWilayah()]);
-                }
-                return $this->handleSync($request, function($offset, $limit, $idSemester, $syncSince) use ($syncService) {
-                    return $syncService->syncWilayah($offset, $limit, $syncSince);
-                }, 'Sync Wilayah berhasil');
+                return $this->handleWilayahSync($request, $syncService);
             }
 
-            // Handle Sub-types (Agama, etc.) - simple count is just their total as they are small
             if ($subType) {
-                 if ($request->boolean('only_count')) {
-                    // For small tables, just return a dummy non-zero or quick count if available. 
-                    // Or we can just let the sync flow happen as it's fast. 
-                    // But to keep consistency, let's return 1 (unknown) or actual count if we implemented it.
-                    // Since we didn't implement specialized getCount for Agama etc (they use request quick in sync), 
-                    // we can skip or just return 0 to force sync to start. 
-                    // Actually, let's just use the sync method itself to get count if we want, but they are single-page.
-                    return $this->successResponse('Count Referensi', ['total' => 100]); // Dummy > 0 to start sync
-                }
-
-                $methodName = 'sync' . \Illuminate\Support\Str::studly($subType);
-                if (method_exists($syncService, $methodName)) {
-                    return $this->handleSync($request, function($offset, $limit, $idSemester, $syncSince) use ($syncService, $methodName) {
-                        return $syncService->$methodName($syncSince);
-                    }, "Sync Referensi $subType berhasil");
-                }
-                return $this->errorResponse("Sub-tipe referensi $subType tidak ditemukan", 400);
+                return $this->handleSubTypeSync($request, $syncService, $subType);
             }
 
-            if ($request->boolean('only_count')) {
-                // Referensi Umum is a composite sync. Calculating exact total is slow.
-                // Return a dummy positive number to ensure frontend proceeds to sync.
-                return $this->successResponse('Count Referensi', ['total' => 100]);
-            }
-
-            // Fallback: Sync all simple references
-            $synced = 0;
-            $simpleSyncs = ['Agama', 'JenisTinggal', 'AlatTransportasi', 'Pekerjaan', 'Penghasilan', 'KebutuhanKhusus', 'Pembiayaan'];
-            
-            foreach ($simpleSyncs as $sync) {
-                $method = 'sync' . $sync;
-                $res = $syncService->$method();
-                $synced += $res['synced'] ?? 0;
-            }
-
-            return $this->successResponse('Sync Referensi berhasil', [
-                'synced' => $synced,
-                'total' => $synced,
-                'total_all' => $synced,
-            ]);
+            return $this->handleAllSimpleSyncs($request, $syncService);
         } catch (\Exception $e) {
             return $this->errorResponse($e->getMessage());
         }
+    }
+
+    private function handleWilayahSync(Request $request, ReferenceSyncService $syncService): JsonResponse
+    {
+        if ($request->boolean('only_count')) {
+             return $this->successResponse('Count Wilayah', ['total' => $syncService->getCountWilayah()]);
+        }
+        return $this->handleSync($request, function($offset, $limit, $idSemester, $syncSince) use ($syncService) {
+            return $syncService->syncWilayah($offset, $limit, $syncSince);
+        }, 'Sync Wilayah berhasil');
+    }
+
+    private function handleSubTypeSync(Request $request, ReferenceSyncService $syncService, string $subType): JsonResponse
+    {
+        if ($request->boolean('only_count')) {
+            return $this->successResponse('Count Referensi', ['total' => 100]); // Dummy > 0 to start sync
+        }
+
+        $methodName = 'sync' . \Illuminate\Support\Str::studly($subType);
+        if (method_exists($syncService, $methodName)) {
+            return $this->handleSync($request, function($offset, $limit, $idSemester, $syncSince) use ($syncService, $methodName) {
+                return $syncService->$methodName($syncSince);
+            }, "Sync Referensi $subType berhasil");
+        }
+        return $this->errorResponse("Sub-tipe referensi $subType tidak ditemukan", 400);
+    }
+
+    private function handleAllSimpleSyncs(Request $request, ReferenceSyncService $syncService): JsonResponse
+    {
+        if ($request->boolean('only_count')) {
+            return $this->successResponse('Count Referensi', ['total' => 100]);
+        }
+
+        $synced = 0;
+        $simpleSyncs = ['Agama', 'JenisTinggal', 'AlatTransportasi', 'Pekerjaan', 'Penghasilan', 'KebutuhanKhusus', 'Pembiayaan'];
+        
+        foreach ($simpleSyncs as $sync) {
+            $method = 'sync' . $sync;
+            $res = $syncService->$method();
+            $synced += $res['synced'] ?? 0;
+        }
+
+        return $this->successResponse('Sync Referensi berhasil', [
+            'synced' => $synced,
+            'total' => $synced,
+            'total_all' => $synced,
+        ]);
     }
 
     public function syncProdi(Request $request, ReferenceSyncService $syncService): JsonResponse

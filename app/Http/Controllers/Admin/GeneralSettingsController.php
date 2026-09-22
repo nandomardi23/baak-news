@@ -42,30 +42,37 @@ class GeneralSettingsController extends Controller
             'remove_hero_background' => 'nullable|boolean',
         ]);
 
-        // Handle hero background image upload
-        if ($request->hasFile('hero_background_image')) {
-            // Delete old image if exists
-            $oldPath = Setting::getValue('hero_background_image');
-            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
+        $this->handleHeroBackground($request);
+        $this->saveTextSettings($validated);
 
+        return back()->with('success', 'General settings updated successfully.');
+    }
+
+    private function handleHeroBackground(Request $request): void
+    {
+        if ($request->hasFile('hero_background_image')) {
+            $this->deleteOldHeroBackground();
             $path = $request->file('hero_background_image')->store('settings', 'public');
             Setting::setValue('hero_background_image', $path, false, 'Background image for Hero section on landing page');
         } elseif ($request->boolean('remove_hero_background')) {
-            $oldPath = Setting::getValue('hero_background_image');
-            if ($oldPath && Storage::disk('public')->exists($oldPath)) {
-                Storage::disk('public')->delete($oldPath);
-            }
+            $this->deleteOldHeroBackground();
             Setting::setValue('hero_background_image', null, false, 'Background image for Hero section on landing page');
         }
+    }
 
-        // Save text-based settings
+    private function deleteOldHeroBackground(): void
+    {
+        $oldPath = Setting::getValue('hero_background_image');
+        if ($oldPath && Storage::disk('public')->exists($oldPath)) {
+            Storage::disk('public')->delete($oldPath);
+        }
+    }
+
+    private function saveTextSettings(array $validated): void
+    {
         $textSettings = collect($validated)->except(['hero_background_image', 'remove_hero_background']);
         foreach ($textSettings as $key => $value) {
             Setting::setValue($key, $value);
         }
-
-        return back()->with('success', 'General settings updated successfully.');
     }
 }

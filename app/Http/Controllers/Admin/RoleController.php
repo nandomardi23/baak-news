@@ -107,10 +107,11 @@ class RoleController extends Controller
             'Kaprodi',
         ];
 
+        $existingRoles = Role::whereIn('name', $roles)->pluck('name')->toArray();
         $count = 0;
+
         foreach ($roles as $roleName) {
-            // Using firstOrCreate to avoid duplicates
-            if (Role::where('name', $roleName)->doesntExist()) {
+            if (!in_array($roleName, $existingRoles)) {
                 Role::create(['name' => $roleName]);
                 $count++;
             }

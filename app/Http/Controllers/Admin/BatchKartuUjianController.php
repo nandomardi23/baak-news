@@ -20,42 +20,15 @@ class BatchKartuUjianController extends Controller
     {
         $tahunAkademik = TahunAkademik::orderBy('id_semester', 'desc')->get();
         $prodi = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
-
-        // Get unique angkatan values
-        $angkatanList = Mahasiswa::active()
-            ->whereNotNull('angkatan')
-            ->where('angkatan', '!=', '')
-            ->distinct()
-            ->orderByDesc('angkatan')
-            ->pluck('angkatan');
-
+        $angkatanList = $this->getAngkatanList();
+        
         $mahasiswa = collect();
         $selectedTa = null;
 
         if ($request->filled('tahun_akademik_id')) {
             $selectedTa = TahunAkademik::find($request->tahun_akademik_id);
-
-            $query = Mahasiswa::with(['programStudi'])
-                ->whereHas('krs', function ($q) use ($request) {
-                    $q->where('tahun_akademik_id', $request->tahun_akademik_id);
-                })
-                ->active();
-
-            if ($request->filled('angkatan')) {
-                $query->where('angkatan', $request->angkatan);
-            }
-
-            if ($request->filled('prodi_id')) {
-                $query->where('program_studi_id', $request->prodi_id);
-            }
-
-            $mahasiswa = $query->orderBy('nama')->get()->map(fn($m) => [
-                'id' => $m->id,
-                'nim' => $m->nim,
-                'nama' => $m->nama,
-                'prodi' => $m->programStudi?->nama_prodi,
-                'angkatan' => $m->angkatan,
-            ]);
+            $query = $this->buildIndexQuery($request);
+            $mahasiswa = $query->orderBy('nama')->get()->map(fn($m) => $this->transformMahasiswa($m));
         }
 
         return Inertia::render('Admin/Mahasiswa/BatchKartuUjian', [
@@ -71,20 +44,75 @@ class BatchKartuUjianController extends Controller
         ]);
     }
 
+    private function getAngkatanList()
+    {
+        return Mahasiswa::active()
+            ->whereNotNull('angkatan')
+            ->where('angkatan', '!=', '')
+            ->distinct()
+            ->orderByDesc('angkatan')
+            ->pluck('angkatan');
+    }
+
+    private function buildIndexQuery(Request $request)
+    {
+        $query = Mahasiswa::with(['programStudi'])
+            ->whereHas('krs', function ($q) use ($request) {
+                $q->where('tahun_akademik_id', $request->tahun_akademik_id);
+            })
+            ->active();
+
+        if ($request->filled('angkatan')) {
+            $query->where('angkatan', $request->angkatan);
+        }
+
+        if ($request->filled('prodi_id')) {
+            $query->where('program_studi_id', $request->prodi_id);
+        }
+
+        return $query;
+    }
+
+    private function transformMahasiswa(Mahasiswa $m): array
+    {
+        return [
+            'id' => $m->id,
+            'nim' => $m->nim,
+            'nama' => $m->nama,
+            'prodi' => $m->programStudi?->nama_prodi,
+            'angkatan' => $m->angkatan,
+        ];
+    }
+
     /**
      * Batch print kartu ujian for multiple students (admin only)
      */
     public function print(Request $request): BinaryFileResponse|\Illuminate\Http\Response
     {
-        $request->validate([
+        $validated = $this->validatePrintRequest($request);
+        $tahunAkademik = TahunAkademik::findOrFail($validated['tahun_akademik_id']);
+
+        $query = $this->buildPrintQuery($request, $tahunAkademik);
+        $mahasiswaList = $query->orderBy('nama')->get();
+
+        if ($mahasiswaList->isEmpty()) {
+            return response('Tidak ada mahasiswa yang memenuhi kriteria', 404);
+        }
+
+        return $this->generateBatchPdf($mahasiswaList, $tahunAkademik, $request->input('jenis', 'uts'));
+    }
+
+    private function validatePrintRequest(Request $request): array
+    {
+        return $request->validate([
             'tahun_akademik_id' => 'required|exists:tahun_akademik,id',
             'angkatan' => 'nullable|string',
             'prodi_id' => 'nullable|exists:program_studi,id',
         ]);
+    }
 
-        $tahunAkademik = TahunAkademik::findOrFail($request->tahun_akademik_id);
-
-        // Build query for students who have KRS in this semester
+    private function buildPrintQuery(Request $request, TahunAkademik $tahunAkademik)
+    {
         $query = Mahasiswa::with([
             'programStudi',
             'krs' => function ($q) use ($tahunAkademik) {
@@ -104,15 +132,14 @@ class BatchKartuUjianController extends Controller
             $query->where('program_studi_id', $request->prodi_id);
         }
 
-        $mahasiswaList = $query->orderBy('nama')->get();
+        return $query;
+    }
 
-        if ($mahasiswaList->isEmpty()) {
-            return response('Tidak ada mahasiswa yang memenuhi kriteria', 404);
-        }
-
+    private function generateBatchPdf($mahasiswaList, TahunAkademik $tahunAkademik, string $jenis)
+    {
         try {
             $pdfService = new \App\Services\Pdfs\KartuUjianService();
-            $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik, $request->input('jenis', 'uts'));
+            $filename = $pdfService->generateBatch($mahasiswaList, $tahunAkademik, $jenis);
 
             $path = storage_path('app/public/surat/' . $filename);
 

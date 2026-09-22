@@ -12,35 +12,11 @@ class StudentYudisiumController extends Controller
 {
     public function yudisium(Mahasiswa $mahasiswa): Response
     {
-        $requirements = \App\Models\YudisiumRequirement::active()
-            ->where(function ($q) use ($mahasiswa) {
-                $q->whereNull('program_studi_id')
-                  ->orWhere('program_studi_id', $mahasiswa->program_studi_id);
-            })->get();
+        $requirements = $this->getRequirements($mahasiswa);
         $checklists = $mahasiswa->yudisiumChecklists()->get()->keyBy('yudisium_requirement_id');
 
-        $data = $requirements->map(function ($req) use ($checklists) {
-            $checklist = $checklists->get($req->id);
-            return [
-                'id' => $req->id,
-                'nama_syarat' => $req->nama_syarat,
-                'deskripsi' => $req->deskripsi,
-                'is_upload_required' => $req->is_upload_required,
-                'status' => $checklist ? $checklist->status : 'pending',
-                'status_label' => $checklist ? $checklist->status_label : 'Belum Ada',
-                'status_badge' => $checklist ? $checklist->status_badge : 'pending',
-                'catatan' => $checklist ? $checklist->catatan : null,
-                'file_url' => $checklist && $checklist->file_path ? asset('storage/' . $checklist->file_path) : null,
-            ];
-        });
-
-        // Determine general status
-        // - approved if all required are approved
-        // - pending if any is pending
-        // - rejected if any is rejected
-        $allApproved = $data->every(fn($item) => $item['status'] === 'approved');
-        $anyRejected = $data->contains(fn($item) => $item['status'] === 'rejected');
-        $overallStatus = $allApproved ? 'Memenuhi Syarat' : ($anyRejected ? 'Ada Syarat Ditolak' : 'Belum Memenuhi Syarat');
+        $data = $requirements->map(fn($req) => $this->transformRequirementData($req, $checklists->get($req->id)));
+        $overallStatus = $this->determineOverallStatus($data);
 
         return Inertia::render('Landing/Yudisium', [
             'mahasiswa' => [
@@ -51,6 +27,37 @@ class StudentYudisiumController extends Controller
             'requirements' => $data,
             'overallStatus' => $overallStatus,
         ]);
+    }
+
+    private function getRequirements(Mahasiswa $mahasiswa)
+    {
+        return \App\Models\YudisiumRequirement::active()
+            ->where(function ($q) use ($mahasiswa) {
+                $q->whereNull('program_studi_id')
+                  ->orWhere('program_studi_id', $mahasiswa->program_studi_id);
+            })->get();
+    }
+
+    private function transformRequirementData($req, $checklist): array
+    {
+        return [
+            'id' => $req->id,
+            'nama_syarat' => $req->nama_syarat,
+            'deskripsi' => $req->deskripsi,
+            'is_upload_required' => $req->is_upload_required,
+            'status' => $checklist ? $checklist->status : 'pending',
+            'status_label' => $checklist ? $checklist->status_label : 'Belum Ada',
+            'status_badge' => $checklist ? $checklist->status_badge : 'pending',
+            'catatan' => $checklist ? $checklist->catatan : null,
+            'file_url' => $checklist && $checklist->file_path ? asset('storage/' . $checklist->file_path) : null,
+        ];
+    }
+
+    private function determineOverallStatus($data): string
+    {
+        $allApproved = $data->every(fn($item) => $item['status'] === 'approved');
+        $anyRejected = $data->contains(fn($item) => $item['status'] === 'rejected');
+        return $allApproved ? 'Memenuhi Syarat' : ($anyRejected ? 'Ada Syarat Ditolak' : 'Belum Memenuhi Syarat');
     }
 
     public function submitYudisium(Request $request, Mahasiswa $mahasiswa): RedirectResponse

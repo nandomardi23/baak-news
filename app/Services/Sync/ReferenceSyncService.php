@@ -113,17 +113,7 @@ class ReferenceSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            foreach ($data as $item) {
-                $records[] = [
-                    'id_prodi' => $item['id_prodi'],
-                    'kode_prodi' => $item['kode_program_studi'],
-                    'nama_prodi' => $item['nama_program_studi'],
-                    'jenjang' => $item['nama_jenjang_pendidikan'],
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ];
-            }
+            $records = $this->mapProdiData($data);
 
             try {
                 ProgramStudi::upsert(
@@ -186,20 +176,7 @@ class ReferenceSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            foreach ($data as $item) {
-                $records[] = [
-                    'id_semester' => $item['id_semester'],
-                    'nama_semester' => $item['nama_semester'],
-                    'tahun' => $item['id_tahun_ajaran'],
-                    'semester' => $item['semester'] == 1 ? 'ganjil' : 'genap',
-                    'tanggal_mulai' => isset($item['tanggal_mulai']) ? date('Y-m-d', strtotime($item['tanggal_mulai'])) : null,
-                    'tanggal_selesai' => isset($item['tanggal_selesai']) ? date('Y-m-d', strtotime($item['tanggal_selesai'])) : null,
-                    'is_active' => $item['a_periode_aktif'] == '1',
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ];
-            }
+            $records = $this->mapSemesterData($data);
 
             try {
                 \App\Models\TahunAkademik::upsert(
@@ -249,20 +226,7 @@ class ReferenceSyncService extends BaseSyncService
             if ($response && isset($response['data'])) {
                 $data = $response['data'];
                 $batchCount = count($data);
-                $records = [];
-                $now = now();
-
-                foreach ($data as $item) {
-                    $records[] = [
-                        'id_wilayah' => $item['id_wilayah'],
-                        'id_negara' => $item['id_negara'],
-                        'nama_wilayah' => $item['nama_wilayah'],
-                        'id_induk_wilayah' => $item['id_induk_wilayah'],
-                        'id_level_wilayah' => (int) $item['id_level_wilayah'],
-                        'created_at' => $now,
-                        'updated_at' => $now,
-                    ];
-                }
+                $records = $this->mapWilayahData($data);
 
                 if (!empty($records)) {
                     RefWilayah::upsert($records, ['id_wilayah'], ['id_negara', 'nama_wilayah', 'id_induk_wilayah', 'id_level_wilayah', 'updated_at']);
@@ -407,5 +371,58 @@ class ReferenceSyncService extends BaseSyncService
         } catch (\Exception $e) {
             return 0;
         }
+    }
+
+    private function mapProdiData(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = [
+                'id_prodi' => $item['id_prodi'],
+                'kode_prodi' => $item['kode_program_studi'],
+                'nama_prodi' => $item['nama_program_studi'],
+                'jenjang' => $item['nama_jenjang_pendidikan'],
+                'updated_at' => now(),
+                'created_at' => now(),
+            ];
+        }
+        return $records;
+    }
+
+    private function mapSemesterData(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = [
+                'id_semester' => $item['id_semester'],
+                'nama_semester' => $item['nama_semester'],
+                'tahun' => $item['id_tahun_ajaran'],
+                'semester' => $item['semester'] == 1 ? 'ganjil' : 'genap',
+                'tanggal_mulai' => isset($item['tanggal_mulai']) ? date('Y-m-d', strtotime($item['tanggal_mulai'])) : null,
+                'tanggal_selesai' => isset($item['tanggal_selesai']) ? date('Y-m-d', strtotime($item['tanggal_selesai'])) : null,
+                'is_active' => $item['a_periode_aktif'] == '1',
+                'updated_at' => now(),
+                'created_at' => now(),
+            ];
+        }
+        return $records;
+    }
+
+    private function mapWilayahData(array $data): array
+    {
+        $records = [];
+        $now = now();
+        foreach ($data as $item) {
+            $records[] = [
+                'id_wilayah' => $item['id_wilayah'],
+                'id_negara' => $item['id_negara'],
+                'nama_wilayah' => $item['nama_wilayah'],
+                'id_induk_wilayah' => $item['id_induk_wilayah'],
+                'id_level_wilayah' => (int) $item['id_level_wilayah'],
+                'created_at' => $now,
+                'updated_at' => $now,
+            ];
+        }
+        return $records;
     }
 }

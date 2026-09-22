@@ -53,35 +53,8 @@ class PejabatController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'nama' => 'required|string|max:255',
-            'nip' => 'nullable|string|max:50',
-            'nidn' => 'nullable|string|max:50',
-            'nik' => 'nullable|string|max:16',
-            'jabatan' => 'required|string|max:100',
-            'pangkat_golongan' => 'nullable|string|max:100',
-            'gelar_depan' => 'nullable|string|max:50',
-            'gelar_belakang' => 'nullable|string|max:100',
-            'periode_awal' => 'nullable|date',
-            'periode_akhir' => 'nullable|date|after:periode_awal',
-            'tandatangan' => 'nullable|image|mimes:png,jpg,jpeg|max:1024',
-            'foto' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
-            'is_active' => 'boolean',
-            'dosen_id' => 'nullable|exists:dosen,id',
-        ]);
-
-        if ($request->hasFile('tandatangan')) {
-            $validated['tandatangan_path'] = $request->file('tandatangan')
-                ->store('tandatangan', 'public');
-        }
-
-        if ($request->hasFile('foto')) {
-            $validated['foto_path'] = $request->file('foto')
-                ->store('foto_pejabat', 'public');
-        }
-
-        unset($validated['tandatangan']);
-        unset($validated['foto']);
+        $validated = $request->validate($this->validationRules());
+        $validated = $this->processFileUploads($request, $validated);
 
         $pejabat = Pejabat::create($validated);
 
@@ -118,7 +91,20 @@ class PejabatController extends Controller
 
     public function update(Request $request, Pejabat $pejabat): RedirectResponse
     {
-        $validated = $request->validate([
+        $validated = $request->validate($this->validationRules());
+        $validated = $this->processFileUploads($request, $validated, $pejabat);
+
+        $pejabat->update($validated);
+
+        ActivityLog::log('updated', "Memperbarui data pejabat: {$pejabat->nama_lengkap} ({$pejabat->jabatan})", $pejabat);
+
+        return redirect()->route('admin.pejabat.index')
+            ->with('success', 'Pejabat berhasil diperbarui');
+    }
+
+    private function validationRules(): array
+    {
+        return [
             'nama' => 'required|string|max:255',
             'nip' => 'nullable|string|max:50',
             'nidn' => 'nullable|string|max:50',
@@ -133,35 +119,30 @@ class PejabatController extends Controller
             'foto' => 'nullable|image|mimes:png,jpg,jpeg|max:2048',
             'is_active' => 'boolean',
             'dosen_id' => 'nullable|exists:dosen,id',
-        ]);
+        ];
+    }
 
+    private function processFileUploads(Request $request, array $validated, ?Pejabat $existing = null): array
+    {
         if ($request->hasFile('tandatangan')) {
-            // Delete old file
-            if ($pejabat->tandatangan_path) {
-                Storage::disk('public')->delete($pejabat->tandatangan_path);
+            if ($existing?->tandatangan_path) {
+                Storage::disk('public')->delete($existing->tandatangan_path);
             }
             $validated['tandatangan_path'] = $request->file('tandatangan')
                 ->store('tandatangan', 'public');
         }
 
         if ($request->hasFile('foto')) {
-            // Delete old file
-            if ($pejabat->foto_path) {
-                Storage::disk('public')->delete($pejabat->foto_path);
+            if ($existing?->foto_path) {
+                Storage::disk('public')->delete($existing->foto_path);
             }
             $validated['foto_path'] = $request->file('foto')
                 ->store('foto_pejabat', 'public');
         }
 
-        unset($validated['tandatangan']);
-        unset($validated['foto']);
+        unset($validated['tandatangan'], $validated['foto']);
 
-        $pejabat->update($validated);
-
-        ActivityLog::log('updated', "Memperbarui data pejabat: {$pejabat->nama_lengkap} ({$pejabat->jabatan})", $pejabat);
-
-        return redirect()->route('admin.pejabat.index')
-            ->with('success', 'Pejabat berhasil diperbarui');
+        return $validated;
     }
 
     public function destroy(Pejabat $pejabat): RedirectResponse

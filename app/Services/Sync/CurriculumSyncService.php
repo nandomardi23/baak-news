@@ -32,20 +32,7 @@ class CurriculumSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            foreach ($data as $item) {
-                $records[] = [
-                    'id_kurikulum' => $item['id_kurikulum'],
-                    'nama_kurikulum' => $item['nama_kurikulum'],
-                    'id_prodi' => $item['id_prodi'],
-                    'id_semester' => $item['id_semester'],
-                    'jumlah_sks_lulus' => $item['jumlah_sks_lulus'] ?? 0,
-                    'jumlah_sks_wajib' => $item['jumlah_sks_wajib'] ?? 0,
-                    'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'] ?? 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
+            $records = $this->mapKurikulumData($data);
 
             $this->batchUpsert(Kurikulum::class, $records, ['id_kurikulum'], [
                 'nama_kurikulum', 'id_prodi', 'id_semester', 'jumlah_sks_lulus', 'jumlah_sks_wajib', 'jumlah_sks_pilihan', 'updated_at'
@@ -93,42 +80,9 @@ class CurriculumSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $mkRecords = [];
-            $relRecords = [];
-            
-            foreach ($data as $item) {
-                // 1. Mata Kuliah Master
-                $mkRecords[] = [
-                    'id_matkul' => $item['id_matkul'],
-                    'kode_matkul' => $item['kode_mata_kuliah'],
-                    'nama_matkul' => $item['nama_mata_kuliah'],
-                    'id_prodi' => $item['id_prodi'],
-                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                    'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
-                    'sks_praktek' => $item['sks_praktek'] ?? 0,
-                    'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
-                    'sks_simulasi' => $item['sks_simulasi'] ?? 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-
-                // 2. Relation
-                if (isset($item['id_kurikulum'])) {
-                    $relRecords[] = [
-                        'id_matkul' => $item['id_matkul'],
-                        'id_kurikulum' => $item['id_kurikulum'],
-                        'semester' => $item['semester'],
-                        'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                        'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
-                        'sks_praktek' => $item['sks_praktek'] ?? 0,
-                        'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
-                        'sks_simulasi' => $item['sks_simulasi'] ?? 0,
-                        'apakah_wajib' => $item['apakah_wajib'] ?? 0,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ];
-                }
-            }
+            $mapped = $this->mapMataKuliahData($data);
+            $mkRecords = $mapped['mkRecords'];
+            $relRecords = $mapped['relRecords'];
 
             $this->batchUpsert(MataKuliah::class, $mkRecords, ['id_matkul'], [
                 'kode_matkul', 'nama_matkul', 'id_prodi', 'sks_mata_kuliah', 'sks_tatap_muka', 'sks_praktek', 'sks_praktek_lapangan', 'sks_simulasi', 'updated_at'
@@ -176,5 +130,64 @@ class CurriculumSyncService extends BaseSyncService
         } catch (\Exception $e) {
             return 0;
         }
+    }
+
+    private function mapKurikulumData(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = [
+                'id_kurikulum' => $item['id_kurikulum'],
+                'nama_kurikulum' => $item['nama_kurikulum'],
+                'id_prodi' => $item['id_prodi'],
+                'id_semester' => $item['id_semester'],
+                'jumlah_sks_lulus' => $item['jumlah_sks_lulus'] ?? 0,
+                'jumlah_sks_wajib' => $item['jumlah_sks_wajib'] ?? 0,
+                'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'] ?? 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        return $records;
+    }
+
+    private function mapMataKuliahData(array $data): array
+    {
+        $mkRecords = [];
+        $relRecords = [];
+        
+        foreach ($data as $item) {
+            $mkRecords[] = [
+                'id_matkul' => $item['id_matkul'],
+                'kode_matkul' => $item['kode_mata_kuliah'],
+                'nama_matkul' => $item['nama_mata_kuliah'],
+                'id_prodi' => $item['id_prodi'],
+                'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
+                'sks_praktek' => $item['sks_praktek'] ?? 0,
+                'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
+                'sks_simulasi' => $item['sks_simulasi'] ?? 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+
+            if (isset($item['id_kurikulum'])) {
+                $relRecords[] = [
+                    'id_matkul' => $item['id_matkul'],
+                    'id_kurikulum' => $item['id_kurikulum'],
+                    'semester' => $item['semester'],
+                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
+                    'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
+                    'sks_praktek' => $item['sks_praktek'] ?? 0,
+                    'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
+                    'sks_simulasi' => $item['sks_simulasi'] ?? 0,
+                    'apakah_wajib' => $item['apakah_wajib'] ?? 0,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+        
+        return ['mkRecords' => $mkRecords, 'relRecords' => $relRecords];
     }
 }

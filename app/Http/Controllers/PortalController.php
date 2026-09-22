@@ -19,11 +19,23 @@ class PortalController extends Controller
 {
     public function index(Request $request): Response
     {
-        // Fase 4: Cache Program Studi
-        $prodi = Cache::remember('public.prodi', 3600 * 24, function () {
+        return Inertia::render('Landing/Home', [
+            'prodi' => $this->getProdiList(),
+            'templates' => $this->getTemplates($request),
+            'filters' => $request->only(['search_template', 'kategori']),
+            'heroBackgroundImage' => $this->getHeroBackgroundImage(),
+        ]);
+    }
+
+    private function getProdiList()
+    {
+        return Cache::remember('public.prodi', 3600 * 24, function () {
             return ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'nama_prodi']);
         });
-        
+    }
+
+    private function getTemplates(Request $request)
+    {
         $templatesQuery = DokumenTemplate::query();
 
         if ($request->filled('search_template')) {
@@ -37,17 +49,13 @@ class PortalController extends Controller
             $templatesQuery->where('kategori', $request->kategori);
         }
 
-        $templates = $templatesQuery->orderBy('created_at', 'desc')->paginate(5)->withQueryString();
+        return $templatesQuery->orderBy('created_at', 'desc')->paginate(5)->withQueryString();
+    }
 
-        // Get hero background image
+    private function getHeroBackgroundImage()
+    {
         $heroBgPath = Setting::getValue('hero_background_image');
-
-        return Inertia::render('Landing/Home', [
-            'prodi' => $prodi,
-            'templates' => $templates,
-            'filters' => $request->only(['search_template', 'kategori']),
-            'heroBackgroundImage' => $heroBgPath ? Storage::url($heroBgPath) : null,
-        ]);
+        return $heroBgPath ? Storage::url($heroBgPath) : null;
     }
 
     public function profile(): Response
@@ -105,12 +113,28 @@ class PortalController extends Controller
 
     public function kalender(): Response
     {
-        // Fase 4: Cache Kalender Akademik
-        $activeTahun = Cache::remember('public.active_tahun', 3600 * 2, function () {
+        $activeTahun = $this->getActiveTahunAkademik();
+
+        return Inertia::render('Landing/Kalender', [
+            'kalender' => $this->getKalenderData($activeTahun),
+            'tahunAkademik' => $activeTahun ? [
+                'id' => $activeTahun->id,
+                'nama' => $activeTahun->nama_semester,
+            ] : null,
+            'upcomingEvents' => $this->getUpcomingEvents($activeTahun),
+        ]);
+    }
+
+    private function getActiveTahunAkademik()
+    {
+        return Cache::remember('public.active_tahun', 3600 * 2, function () {
             return TahunAkademik::where('is_active', true)->first();
         });
+    }
 
-        $kalender = Cache::remember('public.kalender.' . ($activeTahun?->id ?? 'all'), 3600 * 2, function () use ($activeTahun) {
+    private function getKalenderData(?TahunAkademik $activeTahun)
+    {
+        return Cache::remember('public.kalender.' . ($activeTahun?->id ?? 'all'), 3600 * 2, function () use ($activeTahun) {
             return KalenderAkademik::with('tahunAkademik')
                 ->when($activeTahun, fn($q) => $q->where('tahun_akademik_id', $activeTahun->id))
                 ->orderBy('tanggal_mulai')
@@ -128,8 +152,11 @@ class PortalController extends Controller
                     'duration_days' => $item->duration_days,
                 ])->toArray();
         });
+    }
 
-        $upcomingEvents = Cache::remember('public.kalender_upcoming.' . ($activeTahun?->id ?? 'all'), 3600 * 2, function () use ($activeTahun) {
+    private function getUpcomingEvents(?TahunAkademik $activeTahun)
+    {
+        return Cache::remember('public.kalender_upcoming.' . ($activeTahun?->id ?? 'all'), 3600 * 2, function () use ($activeTahun) {
             return KalenderAkademik::upcoming()
                 ->when($activeTahun, fn($q) => $q->where('tahun_akademik_id', $activeTahun->id))
                 ->take(5)
@@ -142,15 +169,6 @@ class PortalController extends Controller
                     'warna' => $item->warna ?: $item->default_color,
                 ])->toArray();
         });
-
-        return Inertia::render('Landing/Kalender', [
-            'kalender' => $kalender,
-            'tahunAkademik' => $activeTahun ? [
-                'id' => $activeTahun->id,
-                'nama' => $activeTahun->nama_semester,
-            ] : null,
-            'upcomingEvents' => $upcomingEvents,
-        ]);
     }
 
     public function downloadDokumenTemplate(DokumenTemplate $dokumen_template)

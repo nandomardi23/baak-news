@@ -33,59 +33,7 @@ class StudentSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            $prodiMap = \App\Models\ProgramStudi::pluck('id', 'id_prodi')->toArray();
-            foreach ($data as $item) {
-                $angkatan = substr((string) $item['id_periode'], 0, 4);
-
-                // Parse date - NeoFeeder returns dd-mm-yyyy format, MySQL needs yyyy-mm-dd
-                $tanggalLahir = null;
-                if (!empty($item['tanggal_lahir'])) {
-                    try {
-                        $tanggalLahir = \Carbon\Carbon::createFromFormat('d-m-Y', $item['tanggal_lahir'])->format('Y-m-d');
-                    } catch (\Exception $e) {
-                        // Try other common formats
-                        try {
-                            $tanggalLahir = \Carbon\Carbon::parse($item['tanggal_lahir'])->format('Y-m-d');
-                        } catch (\Exception $e2) {
-                            $tanggalLahir = null;
-                        }
-                    }
-                }
-
-                $nim = $item['nim'];
-                if (empty($nim)) {
-                    // Fallback for missing NIM to prevent crash
-                    // Use id_mahasiswa as temporary NIM or skip
-                    // Log warning
-                    \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Missing NIM for student {$item['nama_mahasiswa']} (ID: {$item['id_mahasiswa']}). Using ID as NIM.");
-                    $nim = $item['id_mahasiswa'];
-                }
-
-                $records[] = [
-                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                    'id_mahasiswa' => $item['id_mahasiswa'],
-                    'nim' => $nim,
-                    'nama' => $item['nama_mahasiswa'],
-                    'jenis_kelamin' => $item['jenis_kelamin'],
-                    'tanggal_lahir' => $tanggalLahir,
-                    'angkatan' => $angkatan,
-                    'id_prodi' => $item['id_prodi'],
-                    'program_studi_id' => $prodiMap[$item['id_prodi']] ?? null,
-                    'status_mahasiswa' => $item['nama_status_mahasiswa'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-
-            // Deduplicate by NIM - NeoFeeder sometimes returns duplicate NIM records
-            // which causes the entire batch INSERT to fail due to NIM unique constraint.
-            // Keep the last occurrence (latest registration) for each NIM.
-            $uniqueRecords = [];
-            foreach ($records as $record) {
-                $uniqueRecords[$record['nim']] = $record;
-            }
-            $records = array_values($uniqueRecords);
+            $records = $this->mapMahasiswaData($data);
 
             $updateColumns = [
                 'id_mahasiswa',
@@ -100,13 +48,11 @@ class StudentSyncService extends BaseSyncService
                 'updated_at'
             ];
 
-            // Try batch upsert first, fallback to one-by-one on failure
             try {
                 $this->batchUpsert(Mahasiswa::class, $records, ['id_registrasi_mahasiswa'], $updateColumns);
                 $synced = count($records);
             } catch (\Exception $e) {
                 \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Batch upsert failed, falling back to one-by-one. Error: " . $e->getMessage());
-                // Fallback: insert records one-by-one to avoid losing entire batch
                 foreach ($records as $record) {
                     try {
                         Mahasiswa::upsert([$record], ['id_registrasi_mahasiswa'], $updateColumns);
@@ -170,62 +116,7 @@ class StudentSyncService extends BaseSyncService
                 }
 
                 if ($mahasiswa) {
-                    $mahasiswa->tempat_lahir = $bio['tempat_lahir'];
-                    $mahasiswa->id_agama = $bio['id_agama'];
-                    $mahasiswa->nama_agama = $bio['nama_agama'];
-                    $mahasiswa->nik = $bio['nik'];
-                    $mahasiswa->nisn = $bio['nisn'];
-                    $mahasiswa->npwp = $bio['npwp'];
-                    $mahasiswa->kewarganegaraan = $bio['kewarganegaraan'];
-                    $mahasiswa->jalan = $bio['jalan'];
-                    $mahasiswa->dusun = $bio['dusun'];
-                    $mahasiswa->rt = $bio['rt'];
-                    $mahasiswa->rw = $bio['rw'];
-                    $mahasiswa->kelurahan = $bio['kelurahan'];
-                    $mahasiswa->kode_pos = $bio['kode_pos'];
-                    $mahasiswa->id_wilayah = $bio['id_wilayah'];
-                    $mahasiswa->nama_wilayah = $bio['nama_wilayah'];
-                    $mahasiswa->id_jenis_tinggal = $bio['id_jenis_tinggal'];
-                    $mahasiswa->nama_jenis_tinggal = $bio['nama_jenis_tinggal'];
-                    $mahasiswa->id_alat_transportasi = $bio['id_alat_transportasi'];
-                    $mahasiswa->nama_alat_transportasi = $bio['nama_alat_transportasi'];
-                    $mahasiswa->telepon = $bio['telepon'];
-                    $mahasiswa->handphone = $bio['handphone'];
-                    $mahasiswa->email = $bio['email'];
-                    $mahasiswa->nik_ayah = $bio['nik_ayah'];
-                    $mahasiswa->nama_ayah = $bio['nama_ayah'];
-                    $mahasiswa->tanggal_lahir_ayah = $this->parseDate($bio['tanggal_lahir_ayah']);
-                    $mahasiswa->id_pendidikan_ayah = $bio['id_pendidikan_ayah'];
-                    $mahasiswa->nama_pendidikan_ayah = $bio['nama_pendidikan_ayah'];
-                    $mahasiswa->id_pekerjaan_ayah = $bio['id_pekerjaan_ayah'];
-                    $mahasiswa->nama_pekerjaan_ayah = $bio['nama_pekerjaan_ayah'];
-                    $mahasiswa->id_penghasilan_ayah = $bio['id_penghasilan_ayah'];
-                    $mahasiswa->nama_penghasilan_ayah = $bio['nama_penghasilan_ayah'];
-                    $mahasiswa->nik_ibu = $bio['nik_ibu'];
-                    $mahasiswa->nama_ibu = $bio['nama_ibu_kandung'];
-                    $mahasiswa->tanggal_lahir_ibu = $this->parseDate($bio['tanggal_lahir_ibu']);
-                    $mahasiswa->id_pendidikan_ibu = $bio['id_pendidikan_ibu'];
-                    $mahasiswa->nama_pendidikan_ibu = $bio['nama_pendidikan_ibu'];
-                    $mahasiswa->id_pekerjaan_ibu = $bio['id_pekerjaan_ibu'];
-                    $mahasiswa->nama_pekerjaan_ibu = $bio['nama_pekerjaan_ibu'];
-                    $mahasiswa->id_penghasilan_ibu = $bio['id_penghasilan_ibu'];
-                    $mahasiswa->nama_penghasilan_ibu = $bio['nama_penghasilan_ibu'];
-                    $mahasiswa->nama_wali = $bio['nama_wali'];
-                    $mahasiswa->tanggal_lahir_wali = $this->parseDate($bio['tanggal_lahir_wali']);
-                    $mahasiswa->id_pendidikan_wali = $bio['id_pendidikan_wali'];
-                    $mahasiswa->nama_pendidikan_wali = $bio['nama_pendidikan_wali'];
-                    $mahasiswa->id_pekerjaan_wali = $bio['id_pekerjaan_wali'];
-                    $mahasiswa->nama_pekerjaan_wali = $bio['nama_pekerjaan_wali'];
-                    $mahasiswa->id_penghasilan_wali = $bio['id_penghasilan_wali'];
-                    $mahasiswa->nama_penghasilan_wali = $bio['nama_penghasilan_wali'];
-                    $mahasiswa->id_kebutuhan_khusus_mahasiswa = $bio['id_kebutuhan_khusus_mahasiswa'];
-                    $mahasiswa->nama_kebutuhan_khusus_mahasiswa = $bio['nama_kebutuhan_khusus_mahasiswa'];
-                    $mahasiswa->id_kebutuhan_khusus_ayah = $bio['id_kebutuhan_khusus_ayah'];
-                    $mahasiswa->nama_kebutuhan_khusus_ayah = $bio['nama_kebutuhan_khusus_ayah'];
-                    $mahasiswa->id_kebutuhan_khusus_ibu = $bio['id_kebutuhan_khusus_ibu'];
-                    $mahasiswa->nama_kebutuhan_khusus_ibu = $bio['nama_kebutuhan_khusus_ibu'];
-
-                    $mahasiswa->save();
+                    $this->updateMahasiswaBiodata($mahasiswa, $bio);
                     $synced++;
                 }
             } catch (\Exception $e) {
@@ -273,30 +164,7 @@ class StudentSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            foreach ($data as $item) {
-                $records[] = [
-                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                    'id_mahasiswa' => $item['id_mahasiswa'],
-                    'nim' => $item['nim'],
-                    'nama_mahasiswa' => $item['nama_mahasiswa'],
-                    'id_jenis_keluar' => $item['id_jenis_keluar'],
-                    'nama_jenis_keluar' => $item['nama_jenis_keluar'],
-                    'tanggal_keluar' => $item['tanggal_keluar'],
-                    'id_periode_keluar' => $item['id_periode_keluar'],
-                    'keterangan_keluar' => $item['keterangan_keluar'] ?? null,
-                    'nomor_sk_yudisium' => $item['nomor_sk_yudisium'],
-                    'tanggal_sk_yudisium' => $item['tanggal_sk_yudisium'],
-                    'ipk' => $item['ipk'],
-                    'nomor_ijazah' => $item['nomor_ijazah'],
-                    'jalur_skripsi' => $item['jalur_skripsi'] ?? 0,
-                    'judul_skripsi' => $item['judul_skripsi'] ?? null,
-                    'bulan_awal_bimbingan' => $item['bulan_awal_bimbingan'] ?? null,
-                    'bulan_akhir_bimbingan' => $item['bulan_akhir_bimbingan'] ?? null,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
+            $records = $this->mapMahasiswaLulusDOData($data);
 
             $this->batchUpsert(MahasiswaLulusDO::class, $records, ['id_registrasi_mahasiswa'], [
                 'id_mahasiswa',
@@ -360,29 +228,7 @@ class StudentSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = [];
-            foreach ($data as $item) {
-                $records[] = [
-                    'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                    'id_mahasiswa' => $item['id_mahasiswa'],
-                    'nim' => $item['nim'],
-                    'nama_mahasiswa' => $item['nama_mahasiswa'],
-                    'id_jenis_daftar' => $item['id_jenis_daftar'],
-                    'nama_jenis_daftar' => $item['nama_jenis_daftar'],
-                    'id_jalur_daftar' => $item['id_jalur_daftar'] ?? null,
-                    'nama_jalur_daftar' => $item['nama_jalur_daftar'] ?? null,
-                    'id_periode_masuk' => $item['id_periode_masuk'],
-                    'tanggal_daftar' => $item['tanggal_daftar'],
-                    'id_perguruan_tinggi_asal' => $item['id_perguruan_tinggi_asal'] ?? null,
-                    'nama_perguruan_tinggi_asal' => $item['nama_perguruan_tinggi_asal'] ?? null,
-                    'id_prodi_asal' => $item['id_prodi_asal'] ?? null,
-                    'nama_prodi_asal' => $item['nama_prodi_asal'] ?? null,
-                    'sks_diakui' => $item['sks_diakui'] ?? 0,
-                    'biaya_masuk' => $item['biaya_masuk'] ?? 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
+            $records = $this->mapRiwayatPendidikanData($data);
 
             $this->batchUpsert(RiwayatPendidikanMahasiswa::class, $records, ['id_registrasi_mahasiswa'], [
                 'id_mahasiswa',
@@ -459,4 +305,174 @@ class StudentSyncService extends BaseSyncService
             return 0;
         }
     }
-}
+
+    private function mapMahasiswaData(array $data): array
+    {
+        $records = [];
+        $prodiMap = \App\Models\ProgramStudi::pluck('id', 'id_prodi')->toArray();
+        
+        foreach ($data as $item) {
+            $angkatan = substr((string) $item['id_periode'], 0, 4);
+
+            $tanggalLahir = null;
+            if (!empty($item['tanggal_lahir'])) {
+                try {
+                    $tanggalLahir = \Carbon\Carbon::createFromFormat('d-m-Y', $item['tanggal_lahir'])->format('Y-m-d');
+                } catch (\Exception $e) {
+                    try {
+                        $tanggalLahir = \Carbon\Carbon::parse($item['tanggal_lahir'])->format('Y-m-d');
+                    } catch (\Exception $e2) {
+                        $tanggalLahir = null;
+                    }
+                }
+            }
+
+            $nim = $item['nim'];
+            if (empty($nim)) {
+                \Illuminate\Support\Facades\Log::warning("SyncMahasiswa: Missing NIM for student {$item['nama_mahasiswa']} (ID: {$item['id_mahasiswa']}). Using ID as NIM.");
+                $nim = $item['id_mahasiswa'];
+            }
+
+            $records[] = [
+                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                'id_mahasiswa' => $item['id_mahasiswa'],
+                'nim' => $nim,
+                'nama' => $item['nama_mahasiswa'],
+                'jenis_kelamin' => $item['jenis_kelamin'],
+                'tanggal_lahir' => $tanggalLahir,
+                'angkatan' => $angkatan,
+                'id_prodi' => $item['id_prodi'],
+                'program_studi_id' => $prodiMap[$item['id_prodi']] ?? null,
+                'status_mahasiswa' => $item['nama_status_mahasiswa'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+
+        $uniqueRecords = [];
+        foreach ($records as $record) {
+            $uniqueRecords[$record['nim']] = $record;
+        }
+        return array_values($uniqueRecords);
+    }
+
+    private function updateMahasiswaBiodata(Mahasiswa $mahasiswa, array $bio): void
+    {
+        $mahasiswa->tempat_lahir = $bio['tempat_lahir'] ?? null;
+        $mahasiswa->id_agama = $bio['id_agama'] ?? null;
+        $mahasiswa->nama_agama = $bio['nama_agama'] ?? null;
+        $mahasiswa->nik = $bio['nik'] ?? null;
+        $mahasiswa->nisn = $bio['nisn'] ?? null;
+        $mahasiswa->npwp = $bio['npwp'] ?? null;
+        $mahasiswa->kewarganegaraan = $bio['kewarganegaraan'] ?? null;
+        $mahasiswa->jalan = $bio['jalan'] ?? null;
+        $mahasiswa->dusun = $bio['dusun'] ?? null;
+        $mahasiswa->rt = $bio['rt'] ?? null;
+        $mahasiswa->rw = $bio['rw'] ?? null;
+        $mahasiswa->kelurahan = $bio['kelurahan'] ?? null;
+        $mahasiswa->kode_pos = $bio['kode_pos'] ?? null;
+        $mahasiswa->id_wilayah = $bio['id_wilayah'] ?? null;
+        $mahasiswa->nama_wilayah = $bio['nama_wilayah'] ?? null;
+        $mahasiswa->id_jenis_tinggal = $bio['id_jenis_tinggal'] ?? null;
+        $mahasiswa->nama_jenis_tinggal = $bio['nama_jenis_tinggal'] ?? null;
+        $mahasiswa->id_alat_transportasi = $bio['id_alat_transportasi'] ?? null;
+        $mahasiswa->nama_alat_transportasi = $bio['nama_alat_transportasi'] ?? null;
+        $mahasiswa->telepon = $bio['telepon'] ?? null;
+        $mahasiswa->handphone = $bio['handphone'] ?? null;
+        $mahasiswa->email = $bio['email'] ?? null;
+        
+        $mahasiswa->nik_ayah = $bio['nik_ayah'] ?? null;
+        $mahasiswa->nama_ayah = $bio['nama_ayah'] ?? null;
+        $mahasiswa->tanggal_lahir_ayah = $this->parseDate($bio['tanggal_lahir_ayah'] ?? null);
+        $mahasiswa->id_pendidikan_ayah = $bio['id_pendidikan_ayah'] ?? null;
+        $mahasiswa->nama_pendidikan_ayah = $bio['nama_pendidikan_ayah'] ?? null;
+        $mahasiswa->id_pekerjaan_ayah = $bio['id_pekerjaan_ayah'] ?? null;
+        $mahasiswa->nama_pekerjaan_ayah = $bio['nama_pekerjaan_ayah'] ?? null;
+        $mahasiswa->id_penghasilan_ayah = $bio['id_penghasilan_ayah'] ?? null;
+        $mahasiswa->nama_penghasilan_ayah = $bio['nama_penghasilan_ayah'] ?? null;
+        
+        $mahasiswa->nik_ibu = $bio['nik_ibu'] ?? null;
+        $mahasiswa->nama_ibu = $bio['nama_ibu_kandung'] ?? null;
+        $mahasiswa->tanggal_lahir_ibu = $this->parseDate($bio['tanggal_lahir_ibu'] ?? null);
+        $mahasiswa->id_pendidikan_ibu = $bio['id_pendidikan_ibu'] ?? null;
+        $mahasiswa->nama_pendidikan_ibu = $bio['nama_pendidikan_ibu'] ?? null;
+        $mahasiswa->id_pekerjaan_ibu = $bio['id_pekerjaan_ibu'] ?? null;
+        $mahasiswa->nama_pekerjaan_ibu = $bio['nama_pekerjaan_ibu'] ?? null;
+        $mahasiswa->id_penghasilan_ibu = $bio['id_penghasilan_ibu'] ?? null;
+        $mahasiswa->nama_penghasilan_ibu = $bio['nama_penghasilan_ibu'] ?? null;
+        
+        $mahasiswa->nama_wali = $bio['nama_wali'] ?? null;
+        $mahasiswa->tanggal_lahir_wali = $this->parseDate($bio['tanggal_lahir_wali'] ?? null);
+        $mahasiswa->id_pendidikan_wali = $bio['id_pendidikan_wali'] ?? null;
+        $mahasiswa->nama_pendidikan_wali = $bio['nama_pendidikan_wali'] ?? null;
+        $mahasiswa->id_pekerjaan_wali = $bio['id_pekerjaan_wali'] ?? null;
+        $mahasiswa->nama_pekerjaan_wali = $bio['nama_pekerjaan_wali'] ?? null;
+        $mahasiswa->id_penghasilan_wali = $bio['id_penghasilan_wali'] ?? null;
+        $mahasiswa->nama_penghasilan_wali = $bio['nama_penghasilan_wali'] ?? null;
+        
+        $mahasiswa->id_kebutuhan_khusus_mahasiswa = $bio['id_kebutuhan_khusus_mahasiswa'] ?? null;
+        $mahasiswa->nama_kebutuhan_khusus_mahasiswa = $bio['nama_kebutuhan_khusus_mahasiswa'] ?? null;
+        $mahasiswa->id_kebutuhan_khusus_ayah = $bio['id_kebutuhan_khusus_ayah'] ?? null;
+        $mahasiswa->nama_kebutuhan_khusus_ayah = $bio['nama_kebutuhan_khusus_ayah'] ?? null;
+        $mahasiswa->id_kebutuhan_khusus_ibu = $bio['id_kebutuhan_khusus_ibu'] ?? null;
+        $mahasiswa->nama_kebutuhan_khusus_ibu = $bio['nama_kebutuhan_khusus_ibu'] ?? null;
+        
+        $mahasiswa->save();
+    }
+
+    private function mapMahasiswaLulusDOData(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = [
+                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                'id_mahasiswa' => $item['id_mahasiswa'],
+                'nim' => $item['nim'],
+                'nama_mahasiswa' => $item['nama_mahasiswa'],
+                'id_jenis_keluar' => $item['id_jenis_keluar'],
+                'nama_jenis_keluar' => $item['nama_jenis_keluar'],
+                'tanggal_keluar' => $item['tanggal_keluar'],
+                'id_periode_keluar' => $item['id_periode_keluar'],
+                'keterangan_keluar' => $item['keterangan_keluar'] ?? null,
+                'nomor_sk_yudisium' => $item['nomor_sk_yudisium'],
+                'tanggal_sk_yudisium' => $item['tanggal_sk_yudisium'],
+                'ipk' => $item['ipk'],
+                'nomor_ijazah' => $item['nomor_ijazah'],
+                'jalur_skripsi' => $item['jalur_skripsi'] ?? 0,
+                'judul_skripsi' => $item['judul_skripsi'] ?? null,
+                'bulan_awal_bimbingan' => $item['bulan_awal_bimbingan'] ?? null,
+                'bulan_akhir_bimbingan' => $item['bulan_akhir_bimbingan'] ?? null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        return $records;
+    }
+
+    private function mapRiwayatPendidikanData(array $data): array
+    {
+        $records = [];
+        foreach ($data as $item) {
+            $records[] = [
+                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
+                'id_mahasiswa' => $item['id_mahasiswa'],
+                'nim' => $item['nim'],
+                'nama_mahasiswa' => $item['nama_mahasiswa'],
+                'id_jenis_daftar' => $item['id_jenis_daftar'],
+                'nama_jenis_daftar' => $item['nama_jenis_daftar'],
+                'id_jalur_daftar' => $item['id_jalur_daftar'] ?? null,
+                'nama_jalur_daftar' => $item['nama_jalur_daftar'] ?? null,
+                'id_periode_masuk' => $item['id_periode_masuk'],
+                'tanggal_daftar' => $item['tanggal_daftar'],
+                'id_perguruan_tinggi_asal' => $item['id_perguruan_tinggi_asal'] ?? null,
+                'nama_perguruan_tinggi_asal' => $item['nama_perguruan_tinggi_asal'] ?? null,
+                'id_prodi_asal' => $item['id_prodi_asal'] ?? null,
+                'nama_prodi_asal' => $item['nama_prodi_asal'] ?? null,
+                'sks_diakui' => $item['sks_diakui'] ?? 0,
+                'biaya_masuk' => $item['biaya_masuk'] ?? 0,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
+        return $records;
+    }

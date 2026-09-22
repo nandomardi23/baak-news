@@ -15,7 +15,22 @@ class StudentDocumentController extends Controller
     {
         $mahasiswa->load(['programStudi', 'krs.tahunAkademik', 'nilai.tahunAkademik', 'nilai.mataKuliah', 'dosenWali']);
 
-        // Calculate actual SKS and IPK from grades
+        [$ipk, $sks] = $this->calculateIpkAndSks($mahasiswa);
+
+        return \Inertia\Inertia::render('Landing/Dokumen', [
+            'mahasiswa' => $this->transformMahasiswa($mahasiswa, $ipk, $sks),
+            'semesters' => $this->getSemesters($mahasiswa),
+            'existingPending' => \App\Models\SuratPengajuan::where('mahasiswa_id', $mahasiswa->id)->pending()->exists(),
+            'recentPengajuan' => $this->getRecentPengajuan($mahasiswa),
+            'dosens' => \App\Models\Dosen::active()->orderBy('nama')->get()->map(fn($d) => [
+                'id' => (string) $d->id,
+                'nama' => $d->nama_lengkap
+            ]),
+        ]);
+    }
+
+    private function calculateIpkAndSks(Mahasiswa $mahasiswa): array
+    {
         $totalSks = 0;
         $totalBobot = 0;
         foreach ($mahasiswa->nilai as $nilai) {
@@ -27,16 +42,20 @@ class StudentDocumentController extends Controller
                 }
             }
         }
-        
+
         $calculatedIpk = $totalSks > 0 ? $totalBobot / $totalSks : 0;
         $ipk = (float)($mahasiswa->ipk ?? 0) > 0 ? (float)$mahasiswa->ipk : $calculatedIpk;
         $sks = ($mahasiswa->sks_tempuh ?? 0) > 0 ? $mahasiswa->sks_tempuh : $totalSks;
 
-        // Get all semesters where student has KRS or Nilai
+        return [$ipk, $sks];
+    }
+
+    private function getSemesters(Mahasiswa $mahasiswa)
+    {
         $krsSemesters = $mahasiswa->krs->pluck('tahunAkademik')->filter()->unique('id');
         $nilaiSemesters = $mahasiswa->nilai->pluck('tahunAkademik')->filter()->unique('id');
-        
-        $allSemesters = $krsSemesters->merge($nilaiSemesters)
+
+        return $krsSemesters->merge($nilaiSemesters)
             ->unique('id')
             ->sortByDesc('id_semester')
             ->values()
@@ -46,14 +65,26 @@ class StudentDocumentController extends Controller
                 'has_krs' => $krsSemesters->contains('id', $ta->id),
                 'has_nilai' => $nilaiSemesters->contains('id', $ta->id),
             ]);
+    }
 
-        // Check for existing pending request
-        $existingPending = \App\Models\SuratPengajuan::where('mahasiswa_id', $mahasiswa->id)
-            ->pending()
-            ->exists();
+    private function transformMahasiswa(Mahasiswa $mahasiswa, float $ipk, int $sks): array
+    {
+        return [
+            'id' => $mahasiswa->id,
+            'nim' => $mahasiswa->nim,
+            'nama' => $mahasiswa->nama,
+            'prodi' => $mahasiswa->programStudi?->nama_prodi,
+            'angkatan' => $mahasiswa->angkatan,
+            'ipk' => number_format($ipk, 2),
+            'sks_tempuh' => $sks,
+            'dosen_wali_id' => $mahasiswa->dosen_wali_id ? (string) $mahasiswa->dosen_wali_id : null,
+            'dosen_wali_nama' => $mahasiswa->dosenWali?->nama_lengkap ?? null,
+        ];
+    }
 
-        // Get recent pengajuan
-        $recentPengajuan = \App\Models\SuratPengajuan::where('mahasiswa_id', $mahasiswa->id)
+    private function getRecentPengajuan(Mahasiswa $mahasiswa)
+    {
+        return \App\Models\SuratPengajuan::where('mahasiswa_id', $mahasiswa->id)
             ->latest()
             ->take(5)
             ->get()
@@ -65,27 +96,6 @@ class StudentDocumentController extends Controller
                 'status_badge' => $item->status_badge,
                 'created_at' => $item->created_at->format('d M Y'),
             ]);
-
-        return \Inertia\Inertia::render('Landing/Dokumen', [
-            'mahasiswa' => [
-                'id' => $mahasiswa->id,
-                'nim' => $mahasiswa->nim,
-                'nama' => $mahasiswa->nama,
-                'prodi' => $mahasiswa->programStudi?->nama_prodi,
-                'angkatan' => $mahasiswa->angkatan,
-                'ipk' => number_format($ipk, 2),
-                'sks_tempuh' => $sks,
-                'dosen_wali_id' => $mahasiswa->dosen_wali_id ? (string) $mahasiswa->dosen_wali_id : null,
-                'dosen_wali_nama' => $mahasiswa->dosenWali?->nama_lengkap ?? null,
-            ],
-            'semesters' => $allSemesters,
-            'existingPending' => $existingPending,
-            'recentPengajuan' => $recentPengajuan,
-            'dosens' => \App\Models\Dosen::active()->orderBy('nama')->get()->map(fn($d) => [
-                'id' => (string) $d->id,
-                'nama' => $d->nama_lengkap
-            ]),
-        ]);
     }
 
     public function updateDosenWali(Request $request, Mahasiswa $mahasiswa): \Illuminate\Http\RedirectResponse

@@ -17,55 +17,57 @@ class StudentPengajuanController extends Controller
     {
         $mahasiswa->load('programStudi');
 
-        // Check for existing pending request for any type
-        $existingPending = SuratPengajuan::where('mahasiswa_id', $mahasiswa->id)
-            ->pending()
-            ->exists();
+        return Inertia::render('Landing/FormPengajuan', [
+            'mahasiswa' => $this->transformMahasiswa($mahasiswa),
+            'existingPending' => SuratPengajuan::where('mahasiswa_id', $mahasiswa->id)->pending()->exists(),
+            'semesters' => $this->getAvailableSemesters(),
+        ]);
+    }
 
-        // Get available semesters for KRS/KHS
-        $semesters = TahunAkademik::orderBy('id_semester', 'desc')
+    private function transformMahasiswa(Mahasiswa $mahasiswa): array
+    {
+        return [
+            'id' => $mahasiswa->id,
+            'nim' => $mahasiswa->nim,
+            'nama' => $mahasiswa->nama,
+            'tempat_lahir' => $mahasiswa->tempat_lahir,
+            'tanggal_lahir' => $mahasiswa->tanggal_lahir?->format('Y-m-d'),
+            'alamat' => $mahasiswa->alamat,
+            'rt' => $mahasiswa->rt,
+            'rw' => $mahasiswa->rw,
+            'kelurahan' => $mahasiswa->kelurahan,
+            'kecamatan' => $mahasiswa->kecamatan,
+            'kota_kabupaten' => $mahasiswa->kota_kabupaten,
+            'provinsi' => $mahasiswa->provinsi,
+            'no_hp' => $mahasiswa->no_hp,
+            'prodi' => $mahasiswa->programStudi?->nama_prodi,
+            'jenis_program' => $mahasiswa->programStudi?->jenis_program ?? 'reguler',
+            'angkatan' => $mahasiswa->angkatan,
+            'status' => $mahasiswa->status_text,
+            // Parent data
+            'nama_ayah' => $mahasiswa->nama_ayah,
+            'pekerjaan_ayah' => $mahasiswa->pekerjaan_ayah,
+            'nama_ibu' => $mahasiswa->nama_ibu,
+            'pekerjaan_ibu' => $mahasiswa->pekerjaan_ibu,
+            'alamat_ortu' => $mahasiswa->alamat_ortu,
+            'rt_ortu' => $mahasiswa->rt_ortu,
+            'rw_ortu' => $mahasiswa->rw_ortu,
+            'kelurahan_ortu' => $mahasiswa->kecamatan_ortu,
+            'kecamatan_ortu' => $mahasiswa->kecamatan_ortu,
+            'kota_kabupaten_ortu' => $mahasiswa->kota_kabupaten_ortu,
+            'provinsi_ortu' => $mahasiswa->provinsi_ortu,
+        ];
+    }
+
+    private function getAvailableSemesters()
+    {
+        return TahunAkademik::orderBy('id_semester', 'desc')
             ->take(6)
             ->get()
             ->map(fn($ta) => [
                 'id' => $ta->id,
                 'nama' => $ta->nama_semester,
             ]);
-
-        return Inertia::render('Landing/FormPengajuan', [
-            'mahasiswa' => [
-                'id' => $mahasiswa->id,
-                'nim' => $mahasiswa->nim,
-                'nama' => $mahasiswa->nama,
-                'tempat_lahir' => $mahasiswa->tempat_lahir,
-                'tanggal_lahir' => $mahasiswa->tanggal_lahir?->format('Y-m-d'),
-                'alamat' => $mahasiswa->alamat,
-                'rt' => $mahasiswa->rt,
-                'rw' => $mahasiswa->rw,
-                'kelurahan' => $mahasiswa->kelurahan,
-                'kecamatan' => $mahasiswa->kecamatan,
-                'kota_kabupaten' => $mahasiswa->kota_kabupaten,
-                'provinsi' => $mahasiswa->provinsi,
-                'no_hp' => $mahasiswa->no_hp,
-                'prodi' => $mahasiswa->programStudi?->nama_prodi,
-                'jenis_program' => $mahasiswa->programStudi?->jenis_program ?? 'reguler',
-                'angkatan' => $mahasiswa->angkatan,
-                'status' => $mahasiswa->status_text,
-                // Parent data
-                'nama_ayah' => $mahasiswa->nama_ayah,
-                'pekerjaan_ayah' => $mahasiswa->pekerjaan_ayah,
-                'nama_ibu' => $mahasiswa->nama_ibu,
-                'pekerjaan_ibu' => $mahasiswa->pekerjaan_ibu,
-                'alamat_ortu' => $mahasiswa->alamat_ortu,
-                'rt_ortu' => $mahasiswa->rt_ortu,
-                'rw_ortu' => $mahasiswa->rw_ortu,
-                'kelurahan_ortu' => $mahasiswa->kecamatan_ortu,
-                'kecamatan_ortu' => $mahasiswa->kecamatan_ortu,
-                'kota_kabupaten_ortu' => $mahasiswa->kota_kabupaten_ortu,
-                'provinsi_ortu' => $mahasiswa->provinsi_ortu,
-            ],
-            'existingPending' => $existingPending,
-            'semesters' => $semesters,
-        ]);
     }
 
     public function submit(StoreSuratPengajuanRequest $request, Mahasiswa $mahasiswa): RedirectResponse

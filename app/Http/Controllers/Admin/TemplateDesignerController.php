@@ -52,28 +52,30 @@ class TemplateDesignerController extends Controller
      */
     public function uploadPdf(Request $request): RedirectResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|in:surat,krs,khs,transkrip,kartu_ujian',
             'template_file' => 'required|file|mimes:pdf|max:10240',
         ]);
 
-        $file = $request->file('template_file');
-        $type = $request->input('type');
-        $name = $request->input('name');
-        
-        // Ensure directory exists
+        $path = $this->storeTemplateFile($request->file('template_file'), $validated['type']);
+        $this->createTemplateRecord($validated['name'], $validated['type'], $path);
+
+        return back()->with('success', 'Template ' . strtoupper($validated['type']) . ' berhasil diupload');
+    }
+
+    private function storeTemplateFile($file, string $type): string
+    {
         if (!file_exists(storage_path('app/public/template-surat'))) {
             mkdir(storage_path('app/public/template-surat'), 0755, true);
         }
 
         $filename = $type . '_' . time() . '.pdf';
-        $path = $file->storeAs('template-surat', $filename, 'public');
+        return $file->storeAs('template-surat', $filename, 'public');
+    }
 
-        // Create or update template record
-        // For KRS, KHS, and Transkrip, we might only want one active template at a time
-        // But for "surat", we can have many.
-        
+    private function createTemplateRecord(string $name, string $type, string $path): void
+    {
         LetterTemplate::create([
             'name' => $name,
             'slug' => \Str::slug($name) . '-' . time(),
@@ -83,7 +85,5 @@ class TemplateDesignerController extends Controller
             'orientation' => 'portrait',
             'is_active' => true,
         ]);
-
-        return back()->with('success', 'Template ' . strtoupper($type) . ' berhasil diupload');
     }
 }

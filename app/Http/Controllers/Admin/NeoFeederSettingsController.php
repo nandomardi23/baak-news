@@ -54,44 +54,18 @@ class NeoFeederSettingsController extends Controller
     public function testConnection(): JsonResponse
     {
         try {
-            $url = Setting::getValue('neo_feeder_url', '');
-            $username = Setting::getValue('neo_feeder_username', '');
-            $password = Setting::getValue('neo_feeder_password', '');
+            $credentials = $this->getCredentials();
 
-            if (empty($url) || empty($username) || empty($password)) {
+            if (!$credentials) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Kredensial belum lengkap. Pastikan URL, Username, dan Password sudah diisi dan disimpan.',
                 ]);
             }
 
-            // Make direct test request
-            $client = new \GuzzleHttp\Client([
-                'timeout' => 30,
-                'verify' => false,
-            ]);
+            $data = $this->requestToken($credentials);
 
-            $response = $client->post($url, [
-                'json' => [
-                    'act' => 'GetToken',
-                    'username' => $username,
-                    'password' => $password,
-                ],
-            ]);
-
-            $data = json_decode($response->getBody()->getContents(), true);
-            
-            if (isset($data['data']['token'])) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Koneksi berhasil! Token diterima.',
-                ]);
-            }
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal mendapatkan token: ' . ($data['error_desc'] ?? 'Periksa kredensial.'),
-            ]);
+            return $this->parseTokenResponse($data);
         } catch (\GuzzleHttp\Exception\ConnectException $e) {
             return response()->json([
                 'success' => false,
@@ -103,5 +77,51 @@ class NeoFeederSettingsController extends Controller
                 'message' => 'Error: ' . $e->getMessage(),
             ]);
         }
+    }
+
+    private function getCredentials(): ?array
+    {
+        $url = Setting::getValue('neo_feeder_url', '');
+        $username = Setting::getValue('neo_feeder_username', '');
+        $password = Setting::getValue('neo_feeder_password', '');
+
+        if (empty($url) || empty($username) || empty($password)) {
+            return null;
+        }
+
+        return compact('url', 'username', 'password');
+    }
+
+    private function requestToken(array $credentials): array
+    {
+        $client = new \GuzzleHttp\Client([
+            'timeout' => 30,
+            'verify' => false,
+        ]);
+
+        $response = $client->post($credentials['url'], [
+            'json' => [
+                'act' => 'GetToken',
+                'username' => $credentials['username'],
+                'password' => $credentials['password'],
+            ],
+        ]);
+
+        return json_decode($response->getBody()->getContents(), true);
+    }
+
+    private function parseTokenResponse(array $data): JsonResponse
+    {
+        if (isset($data['data']['token'])) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Koneksi berhasil! Token diterima.',
+            ]);
+        }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal mendapatkan token: ' . ($data['error_desc'] ?? 'Periksa kredensial.'),
+        ]);
     }
 }

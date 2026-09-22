@@ -20,50 +20,10 @@ class YudisiumChecklistController extends Controller
         $globalReqCount = $allRequirements->whereNull('program_studi_id')->count();
         $prodiReqCount = $allRequirements->whereNotNull('program_studi_id')->groupBy('program_studi_id')->map(fn($group) => $group->count());
 
-        // Query Mahasiswa who have at least one checklist
-        $query = \App\Models\Mahasiswa::with(['programStudi', 'yudisiumChecklists'])
-            ->whereHas('yudisiumChecklists')
-            ->orderBy(
-                MahasiswaYudisiumChecklist::select('updated_at')
-                    ->whereColumn('mahasiswa_id', 'mahasiswa.id')
-                    ->latest()
-                    ->take(1),
-                'desc'
-            ); // Order by latest checklist update
-
-        // Apply standardized Search and Sort
+        $query = $this->buildIndexQuery();
+        
         $mahasiswa = $this->applyDataTable($query, $request, ['nama', 'nim'], 20);
-
-        $mahasiswa->through(function ($mhs) use ($globalReqCount, $prodiReqCount) {
-            $totalRequirements = $globalReqCount + ($prodiReqCount->get($mhs->program_studi_id) ?? 0);
-            
-            $checklists = $mhs->yudisiumChecklists;
-            $approvedCount = $checklists->where('status', 'approved')->count();
-            
-            $progress = $totalRequirements > 0 
-                ? round(($approvedCount / $totalRequirements) * 100) 
-                : 0;
-
-            $anyRejected = $checklists->contains('status', 'rejected');
-            $overallStatus = 'Menunggu Validasi';
-            if ($anyRejected) {
-                $overallStatus = 'Ada Syarat Ditolak';
-            } elseif ($approvedCount === $totalRequirements && $totalRequirements > 0) {
-                $overallStatus = 'Memenuhi Syarat';
-            }
-
-            return [
-                'id' => $mhs->id,
-                'nim' => $mhs->nim,
-                'nama' => $mhs->nama,
-                'prodi' => $mhs->programStudi?->nama_prodi,
-                'progress' => $progress,
-                'approved_count' => $approvedCount,
-                'total_requirements' => $totalRequirements,
-                'status_keseluruhan' => $overallStatus,
-                'last_updated' => $checklists->max('updated_at')?->format('d M Y H:i'),
-            ];
-        });
+        $mahasiswa->through(fn($mhs) => $this->transformIndexData($mhs, $globalReqCount, $prodiReqCount));
 
         return Inertia::render('Admin/Yudisium/Submissions', [
             'mahasiswa' => $mahasiswa,
@@ -74,34 +34,95 @@ class YudisiumChecklistController extends Controller
     public function show(\App\Models\Mahasiswa $mahasiswa)
     {
         $mahasiswa->load('programStudi');
-        $requirements = \App\Models\YudisiumRequirement::active()
+        $requirements = $this->getRequirements($mahasiswa);
+        $checklists = $mahasiswa->yudisiumChecklists()->with('processedBy')->get()->keyBy('yudisium_requirement_id');
+
+        $data = $requirements->map(fn($req) => $this->transformRequirementData($req, $checklists->get($req->id)));
+
+        $totalRequirements = $requirements->count();
+        $approvedCount = $data->where('status', 'approved')->count();
+        
+        return response()->json([
+            'mahasiswa' => $this->transformMahasiswaStats($mahasiswa, $totalRequirements, $approvedCount, $data),
+            'requirements' => $data,
+        ]);
+    }
+
+    private function buildIndexQuery()
+    {
+        return \App\Models\Mahasiswa::with(['programStudi', 'yudisiumChecklists'])
+            ->whereHas('yudisiumChecklists')
+            ->orderBy(
+                MahasiswaYudisiumChecklist::select('updated_at')
+                    ->whereColumn('mahasiswa_id', 'mahasiswa.id')
+                    ->latest()
+                    ->take(1),
+                'desc'
+            );
+    }
+
+    private function transformIndexData($mhs, int $globalReqCount, \Illuminate\Support\Collection $prodiReqCount): array
+    {
+        $totalRequirements = $globalReqCount + ($prodiReqCount->get($mhs->program_studi_id) ?? 0);
+        
+        $checklists = $mhs->yudisiumChecklists;
+        $approvedCount = $checklists->where('status', 'approved')->count();
+        
+        $progress = $totalRequirements > 0 
+            ? round(($approvedCount / $totalRequirements) * 100) 
+            : 0;
+
+        $anyRejected = $checklists->contains('status', 'rejected');
+        $overallStatus = 'Menunggu Validasi';
+        if ($anyRejected) {
+            $overallStatus = 'Ada Syarat Ditolak';
+        } elseif ($approvedCount === $totalRequirements && $totalRequirements > 0) {
+            $overallStatus = 'Memenuhi Syarat';
+        }
+
+        return [
+            'id' => $mhs->id,
+            'nim' => $mhs->nim,
+            'nama' => $mhs->nama,
+            'prodi' => $mhs->programStudi?->nama_prodi,
+            'progress' => $progress,
+            'approved_count' => $approvedCount,
+            'total_requirements' => $totalRequirements,
+            'status_keseluruhan' => $overallStatus,
+            'last_updated' => $checklists->max('updated_at')?->format('d M Y H:i'),
+        ];
+    }
+
+    private function getRequirements(\App\Models\Mahasiswa $mahasiswa)
+    {
+        return \App\Models\YudisiumRequirement::active()
             ->where(function ($q) use ($mahasiswa) {
                 $q->whereNull('program_studi_id')
                   ->orWhere('program_studi_id', $mahasiswa->program_studi_id);
             })->get();
-        $checklists = $mahasiswa->yudisiumChecklists()->with('processedBy')->get()->keyBy('yudisium_requirement_id');
+    }
 
-        $data = $requirements->map(function ($req) use ($checklists) {
-            $checklist = $checklists->get($req->id);
-            return [
-                'checklist_id' => $checklist?->id,
-                'requirement_id' => $req->id,
-                'nama_syarat' => $req->nama_syarat,
-                'deskripsi' => $req->deskripsi,
-                'is_upload_required' => $req->is_upload_required,
-                'status' => $checklist ? $checklist->status : 'belum_ada',
-                'status_label' => $checklist ? $checklist->status_label : 'Belum Ada',
-                'status_badge' => $checklist ? $checklist->status_badge : 'belum_ada',
-                'catatan' => $checklist ? $checklist->catatan : null,
-                'file_url' => $checklist && $checklist->file_path ? asset('storage/' . $checklist->file_path) : null,
-                'processed_by' => $checklist?->processedBy?->name,
-                'processed_at' => $checklist?->processed_at?->format('d M Y H:i'),
-                'updated_at' => $checklist?->updated_at?->format('d M Y H:i'),
-            ];
-        });
+    private function transformRequirementData($req, $checklist): array
+    {
+        return [
+            'checklist_id' => $checklist?->id,
+            'requirement_id' => $req->id,
+            'nama_syarat' => $req->nama_syarat,
+            'deskripsi' => $req->deskripsi,
+            'is_upload_required' => $req->is_upload_required,
+            'status' => $checklist ? $checklist->status : 'belum_ada',
+            'status_label' => $checklist ? $checklist->status_label : 'Belum Ada',
+            'status_badge' => $checklist ? $checklist->status_badge : 'belum_ada',
+            'catatan' => $checklist ? $checklist->catatan : null,
+            'file_url' => $checklist && $checklist->file_path ? asset('storage/' . $checklist->file_path) : null,
+            'processed_by' => $checklist?->processedBy?->name,
+            'processed_at' => $checklist?->processed_at?->format('d M Y H:i'),
+            'updated_at' => $checklist?->updated_at?->format('d M Y H:i'),
+        ];
+    }
 
-        $totalRequirements = $requirements->count();
-        $approvedCount = $data->where('status', 'approved')->count();
+    private function transformMahasiswaStats(\App\Models\Mahasiswa $mahasiswa, int $totalRequirements, int $approvedCount, \Illuminate\Support\Collection $data): array
+    {
         $progress = $totalRequirements > 0 ? round(($approvedCount / $totalRequirements) * 100) : 0;
         
         $anyRejected = $data->contains('status', 'rejected');
@@ -109,19 +130,16 @@ class YudisiumChecklistController extends Controller
             ? 'Memenuhi Syarat' 
             : ($anyRejected ? 'Ada Syarat Ditolak' : 'Belum Memenuhi Syarat');
 
-        return response()->json([
-            'mahasiswa' => [
-                'id' => $mahasiswa->id,
-                'nim' => $mahasiswa->nim,
-                'nama' => $mahasiswa->nama,
-                'prodi' => $mahasiswa->programStudi?->nama_prodi,
-                'progress' => $progress,
-                'approved_count' => $approvedCount,
-                'total_requirements' => $totalRequirements,
-                'overallStatus' => $overallStatus,
-            ],
-            'requirements' => $data,
-        ]);
+        return [
+            'id' => $mahasiswa->id,
+            'nim' => $mahasiswa->nim,
+            'nama' => $mahasiswa->nama,
+            'prodi' => $mahasiswa->programStudi?->nama_prodi,
+            'progress' => $progress,
+            'approved_count' => $approvedCount,
+            'total_requirements' => $totalRequirements,
+            'overallStatus' => $overallStatus,
+        ];
     }
 
     public function approve(MahasiswaYudisiumChecklist $checklist): RedirectResponse

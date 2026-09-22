@@ -60,20 +60,26 @@ class DokumenTemplateController extends Controller
         ];
 
         if ($request->hasFile('file')) {
-            // Delete old file
-            if ($dokumen_template->file_path && Storage::disk('public')->exists($dokumen_template->file_path)) {
-                Storage::disk('public')->delete($dokumen_template->file_path);
-            }
-
-            $file = $request->file('file');
-            $data['file_path'] = $file->store('dokumen_templates', 'public');
-            $data['file_type'] = $file->getClientOriginalExtension();
-            $data['file_size'] = $file->getSize();
+            $data = array_merge($data, $this->handleFileUpload($request, $dokumen_template));
         }
 
         $dokumen_template->update($data);
 
         return redirect()->back()->with('success', 'Template dokumen berhasil diperbarui.');
+    }
+
+    private function handleFileUpload(Request $request, ?DokumenTemplate $oldTemplate = null): array
+    {
+        if ($oldTemplate?->file_path && Storage::disk('public')->exists($oldTemplate->file_path)) {
+            Storage::disk('public')->delete($oldTemplate->file_path);
+        }
+
+        $file = $request->file('file');
+        return [
+            'file_path' => $file->store('dokumen_templates', 'public'),
+            'file_type' => $file->getClientOriginalExtension(),
+            'file_size' => $file->getSize(),
+        ];
     }
 
     public function destroy(DokumenTemplate $dokumen_template)
