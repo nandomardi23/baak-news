@@ -16,6 +16,24 @@ class MataKuliahController extends Controller
      */
     public function index(Request $request): Response
     {
+        $query = $this->buildIndexQuery($request);
+        $query = $this->applyIndexSorting($query, $request);
+
+        $mataKuliah = $query->paginate($request->input('per_page', 20))
+            ->withQueryString()
+            ->through(fn($mk) => $this->transformIndexData($mk));
+
+        $prodiList = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'id_prodi', 'nama_prodi']);
+
+        return Inertia::render('Admin/Akademik/MataKuliah', [
+            'mataKuliah' => $mataKuliah,
+            'prodiList' => $prodiList,
+            'filters' => $request->only(['prodi', 'search']),
+        ]);
+    }
+
+    private function buildIndexQuery(Request $request)
+    {
         $query = MataKuliah::with('programStudi')->withCount(['krsDetail', 'nilai']);
 
         if ($request->filled('prodi')) {
@@ -29,6 +47,11 @@ class MataKuliahController extends Controller
             });
         }
 
+        return $query;
+    }
+
+    private function applyIndexSorting($query, Request $request)
+    {
         $sortField = $request->input('sort_field', 'created_at');
         $sortDirection = $request->input('sort_direction', 'desc');
         $allowedSorts = ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah', 'sks_teori', 'sks_praktek', 'created_at'];
@@ -37,29 +60,23 @@ class MataKuliahController extends Controller
             $sortField = 'created_at';
         }
 
-        $mataKuliah = $query->orderBy($sortField, $sortDirection)
-            ->paginate($request->input('per_page', 20))
-            ->withQueryString()
-            ->through(fn($mk) => [
-                'id' => $mk->id,
-                'kode_matkul' => $mk->kode_matkul,
-                'nama_matkul' => $mk->nama_matkul,
-                'sks_mata_kuliah' => $mk->sks_mata_kuliah,
-                'sks_teori' => $mk->sks_teori,
-                'sks_praktek' => $mk->sks_praktek,
-                'prodi' => $mk->programStudi?->nama_prodi,
-                'id_prodi' => $mk->id_prodi, // needed for edit
-                'krs_detail_count' => $mk->krs_detail_count ?? 0,
-                'nilai_count' => $mk->nilai_count ?? 0,
-            ]);
+        return $query->orderBy($sortField, $sortDirection);
+    }
 
-        $prodiList = ProgramStudi::active()->orderBy('nama_prodi')->get(['id', 'id_prodi', 'nama_prodi']);
-
-        return Inertia::render('Admin/Akademik/MataKuliah', [
-            'mataKuliah' => $mataKuliah,
-            'prodiList' => $prodiList,
-            'filters' => $request->only(['prodi', 'search']),
-        ]);
+    private function transformIndexData(MataKuliah $mk): array
+    {
+        return [
+            'id' => $mk->id,
+            'kode_matkul' => $mk->kode_matkul,
+            'nama_matkul' => $mk->nama_matkul,
+            'sks_mata_kuliah' => $mk->sks_mata_kuliah,
+            'sks_teori' => $mk->sks_teori,
+            'sks_praktek' => $mk->sks_praktek,
+            'prodi' => $mk->programStudi?->nama_prodi,
+            'id_prodi' => $mk->id_prodi, // needed for edit
+            'krs_detail_count' => $mk->krs_detail_count ?? 0,
+            'nilai_count' => $mk->nilai_count ?? 0,
+        ];
     }
 
     /**

@@ -19,34 +19,60 @@ class KalenderController extends Controller
         $tahunAkademikId = $request->input('tahun_akademik_id');
         $jenis = $request->input('jenis');
 
-        // Get active or selected tahun akademik
-        $activeTahun = $tahunAkademikId
+        $activeTahun = $this->getActiveTahun($tahunAkademikId);
+        $query = $this->buildIndexQuery($activeTahun, $jenis);
+
+        $kalender = $query->get()
+            ->map(fn(KalenderAkademik $item) => $this->transformIndexData($item));
+
+        return Inertia::render('Admin/Kalender/Index', [
+            'kalender' => $kalender,
+            'filters' => [
+                'tahun_akademik_id' => $activeTahun?->id,
+                'jenis' => $jenis,
+            ],
+            'tahunAkademikOptions' => TahunAkademik::orderByDesc('id')->get(['id', 'nama_semester as nama']),
+            'jenisOptions' => $this->getJenisOptions(),
+        ]);
+    }
+
+    private function getActiveTahun($tahunAkademikId)
+    {
+        return $tahunAkademikId
             ? TahunAkademik::find($tahunAkademikId)
             : TahunAkademik::where('is_active', true)->first();
+    }
 
+    private function buildIndexQuery($activeTahun, $jenis)
+    {
         $query = KalenderAkademik::with('tahunAkademik');
         
         if ($activeTahun) {
             $query->where('tahun_akademik_id', $activeTahun->id);
         }
 
-        $kalender = $query->jenis($jenis)
-            ->latest()
-            ->get()
-            ->map(fn(KalenderAkademik $item) => [
-                'id' => $item->id,
-                'judul' => $item->judul,
-                'deskripsi' => $item->deskripsi,
-                'tanggal_mulai' => $item->tanggal_mulai->format('Y-m-d'),
-                'tanggal_selesai' => $item->tanggal_selesai?->format('Y-m-d'),
-                'tanggal_format' => $item->tanggal_format,
-                'jenis' => $item->jenis,
-                'jenis_label' => $item->jenis_label,
-                'warna' => $item->warna ?: $item->default_color,
-                'tahun_akademik' => $item->tahunAkademik?->nama_semester,
-                'duration_days' => $item->duration_days,
-            ]);
+        return $query->jenis($jenis)->latest();
+    }
 
+    private function transformIndexData(KalenderAkademik $item): array
+    {
+        return [
+            'id' => $item->id,
+            'judul' => $item->judul,
+            'deskripsi' => $item->deskripsi,
+            'tanggal_mulai' => $item->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $item->tanggal_selesai?->format('Y-m-d'),
+            'tanggal_format' => $item->tanggal_format,
+            'jenis' => $item->jenis,
+            'jenis_label' => $item->jenis_label,
+            'warna' => $item->warna ?: $item->default_color,
+            'tahun_akademik' => $item->tahunAkademik?->nama_semester,
+            'duration_days' => $item->duration_days,
+        ];
+    }
+
+    private function getJenisOptions()
+    {
         $dynamicJenis = KalenderAkademik::select('jenis')
             ->distinct()
             ->pluck('jenis')
@@ -57,21 +83,11 @@ class KalenderController extends Controller
                 'color' => '#6B7280',
             ])->values();
 
-        $jenisOptions = collect(KalenderAkademik::JENIS_OPTIONS)->map(fn($opt, $key) => [
+        return collect(KalenderAkademik::JENIS_OPTIONS)->map(fn($opt, $key) => [
             'value' => $key,
             'label' => $opt['label'],
             'color' => $opt['color'],
         ])->values()->concat($dynamicJenis);
-
-        return Inertia::render('Admin/Kalender/Index', [
-            'kalender' => $kalender,
-            'filters' => [
-                'tahun_akademik_id' => $activeTahun?->id,
-                'jenis' => $jenis,
-            ],
-            'tahunAkademikOptions' => TahunAkademik::orderByDesc('id')->get(['id', 'nama_semester as nama']),
-            'jenisOptions' => $jenisOptions,
-        ]);
     }
 
     public function store(Request $request): RedirectResponse

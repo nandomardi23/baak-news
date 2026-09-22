@@ -15,40 +15,12 @@ class DosenController extends Controller
 
     public function index(Request $request): Response
     {
-        $query = Dosen::with('programStudi')->withCount(['kelasMengajar']);
-
-        // Search
-        if ($search = $request->input('search')) {
-            $query->search($search);
-        }
-
-        // Filter by prodi
-        if ($prodiId = $request->input('prodi')) {
-            $query->where('program_studi_id', $prodiId);
-        }
-
-        // Filter by status
-        if ($request->input('status') === 'aktif') {
-            $query->active();
-        }
+        $query = $this->buildIndexQuery($request);
 
         $allowedSorts = ['nidn', 'nip', 'nama', 'jabatan_fungsional', 'status_aktif', 'created_at'];
 
         $dosen = $this->dataTableQuery($query, $request, $allowedSorts, 'created_at', 'desc')
-            ->through(fn($item) => [
-                'id' => $item->id,
-                'id_dosen' => $item->id_dosen,
-                'nidn' => $item->nidn,
-                'nip' => $item->nip,
-                'nama' => $item->nama,
-                'nama_lengkap' => $item->nama_lengkap,
-                'jenis_kelamin' => $item->jenis_kelamin,
-                'jabatan_fungsional' => $item->jabatan_fungsional,
-                'status_aktif' => $item->status_aktif,
-                'prodi' => $item->programStudi?->nama_prodi,
-                'program_studi_id' => $item->program_studi_id,
-                'kelas_mengajar_count' => $item->kelas_mengajar_count ?? 0,
-            ]);
+            ->through(fn($item) => $this->transformIndexData($item));
 
         return Inertia::render('Admin/Dosen/Index', [
             'dosen' => $dosen,
@@ -59,6 +31,43 @@ class DosenController extends Controller
                 'status' => $request->input('status'),
             ],
         ]);
+    }
+
+    private function buildIndexQuery(Request $request)
+    {
+        $query = Dosen::with('programStudi')->withCount(['kelasMengajar']);
+
+        if ($search = $request->input('search')) {
+            $query->search($search);
+        }
+
+        if ($prodiId = $request->input('prodi')) {
+            $query->where('program_studi_id', $prodiId);
+        }
+
+        if ($request->input('status') === 'aktif') {
+            $query->active();
+        }
+
+        return $query;
+    }
+
+    private function transformIndexData(Dosen $item): array
+    {
+        return [
+            'id' => $item->id,
+            'id_dosen' => $item->id_dosen,
+            'nidn' => $item->nidn,
+            'nip' => $item->nip,
+            'nama' => $item->nama,
+            'nama_lengkap' => $item->nama_lengkap,
+            'jenis_kelamin' => $item->jenis_kelamin,
+            'jabatan_fungsional' => $item->jabatan_fungsional,
+            'status_aktif' => $item->status_aktif,
+            'prodi' => $item->programStudi?->nama_prodi,
+            'program_studi_id' => $item->program_studi_id,
+            'kelas_mengajar_count' => $item->kelas_mengajar_count ?? 0,
+        ];
     }
     public function store(Request $request)
     {

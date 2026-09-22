@@ -72,57 +72,84 @@ class StudentPengajuanController extends Controller
     {
         $validated = $request->validated();
 
-        // Hanya mahasiswa berstatus 'Aktif' yang boleh mengajukan surat aktif kuliah
-        if ($validated['jenis_surat'] === 'aktif_kuliah' && strtolower($mahasiswa->status_text) !== 'aktif') {
-            return back()->withErrors(['jenis_surat' => "Mahasiswa berstatus {$mahasiswa->status_text} tidak dapat mengajukan Surat Keterangan Aktif Kuliah. Status harus Aktif."]);
+        // Validasi eligibilitas mahasiswa
+        $eligibilityError = $this->validateAktifKuliahEligibility($validated, $mahasiswa);
+        if ($eligibilityError) {
+            return $eligibilityError;
         }
 
-        // Update mahasiswa data if provided
-        $mahasiswaData = collect($validated)
-            ->only([
-                'nama', 'tempat_lahir', 'tanggal_lahir', 
-                'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi', 'no_hp', 
-                'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu', 
-                'alamat_ortu', 'rt_ortu', 'rw_ortu', 'kelurahan_ortu', 'kecamatan_ortu', 'kota_kabupaten_ortu', 'provinsi_ortu'
-            ])
-            ->filter()
-            ->toArray();
-        
-        if (!empty($mahasiswaData)) {
-            // Enforce Title Case for name if present
-            if (isset($mahasiswaData['nama'])) {
-                $mahasiswaData['nama'] = \Illuminate\Support\Str::title(strtolower($mahasiswaData['nama']));
-            }
-            
-            $mahasiswa->update($mahasiswaData);
-        }
+        // Update data mahasiswa jika ada perubahan
+        $this->updateMahasiswaData($validated, $mahasiswa);
 
-        // Build data_tambahan based on jenis_surat
-        $dataTambahan = [];
-        switch ($validated['jenis_surat']) {
-            case 'aktif_kuliah':
-                $dataTambahan['keperluan'] = $validated['keperluan'];
-                break;
-            case 'krs':
-            case 'khs':
-                $dataTambahan['tahun_akademik_id'] = $validated['tahun_akademik_id'];
-                break;
-            case 'transkrip':
-                $dataTambahan['jenis'] = $validated['jenis_transkrip'] ?? 'reguler';
-                break;
-        }
-
-        // Create surat pengajuan
+        // Buat surat pengajuan
         SuratPengajuan::create([
             'mahasiswa_id' => $mahasiswa->id,
             'jenis_surat' => $validated['jenis_surat'],
             'keperluan' => $validated['keperluan'] ?? null,
-            'data_tambahan' => $dataTambahan,
+            'data_tambahan' => $this->buildDataTambahan($validated),
             'status' => 'pending',
         ]);
 
         return redirect()->route('landing.status', ['mahasiswa' => $mahasiswa->id])
             ->with('success', 'Pengajuan surat berhasil dikirim');
+    }
+
+    /**
+     * Validasi bahwa mahasiswa berstatus Aktif untuk surat aktif kuliah.
+     */
+    private function validateAktifKuliahEligibility(array $validated, Mahasiswa $mahasiswa): ?RedirectResponse
+    {
+        if ($validated['jenis_surat'] !== 'aktif_kuliah') {
+            return null;
+        }
+
+        if (strtolower($mahasiswa->status_text) !== 'aktif') {
+            return back()->withErrors([
+                'jenis_surat' => "Mahasiswa berstatus {$mahasiswa->status_text} tidak dapat mengajukan Surat Keterangan Aktif Kuliah. Status harus Aktif.",
+            ]);
+        }
+
+        return null;
+    }
+
+    /**
+     * Update data mahasiswa dari form input (nama, alamat, data orang tua, dll).
+     */
+    private function updateMahasiswaData(array $validated, Mahasiswa $mahasiswa): void
+    {
+        $mahasiswaData = collect($validated)
+            ->only([
+                'nama', 'tempat_lahir', 'tanggal_lahir',
+                'alamat', 'rt', 'rw', 'kelurahan', 'kecamatan', 'kota_kabupaten', 'provinsi', 'no_hp',
+                'nama_ayah', 'pekerjaan_ayah', 'nama_ibu', 'pekerjaan_ibu',
+                'alamat_ortu', 'rt_ortu', 'rw_ortu', 'kelurahan_ortu', 'kecamatan_ortu', 'kota_kabupaten_ortu', 'provinsi_ortu',
+            ])
+            ->filter()
+            ->toArray();
+
+        if (empty($mahasiswaData)) {
+            return;
+        }
+
+        // Enforce Title Case untuk nama
+        if (isset($mahasiswaData['nama'])) {
+            $mahasiswaData['nama'] = \Illuminate\Support\Str::title(strtolower($mahasiswaData['nama']));
+        }
+
+        $mahasiswa->update($mahasiswaData);
+    }
+
+    /**
+     * Bangun data_tambahan berdasarkan jenis surat.
+     */
+    private function buildDataTambahan(array $validated): array
+    {
+        return match ($validated['jenis_surat']) {
+            'aktif_kuliah' => ['keperluan' => $validated['keperluan']],
+            'krs', 'khs' => ['tahun_akademik_id' => $validated['tahun_akademik_id']],
+            'transkrip' => ['jenis' => $validated['jenis_transkrip'] ?? 'reguler'],
+            default => [],
+        };
     }
 
     public function status(Mahasiswa $mahasiswa): Response

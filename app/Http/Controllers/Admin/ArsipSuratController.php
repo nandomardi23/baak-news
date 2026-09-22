@@ -21,22 +21,8 @@ class ArsipSuratController extends Controller
      */
     public function index(Request $request): Response
     {
-        $query = ArsipSurat::with('creator')->latest('tanggal_surat');
+        $query = $this->buildIndexQuery($request);
 
-        // Filter by jenis
-        if ($request->filled('jenis') && $request->jenis !== 'all') {
-            $query->where('jenis', $request->jenis);
-        }
-
-        // Filter by date range
-        if ($request->filled('dari_tanggal')) {
-            $query->where('tanggal_surat', '>=', $request->dari_tanggal);
-        }
-        if ($request->filled('sampai_tanggal')) {
-            $query->where('tanggal_surat', '<=', $request->sampai_tanggal);
-        }
-
-        // Apply standardized Search and Sort
         $arsipSurat = $this->applyDataTable(
             $query,
             $request,
@@ -44,7 +30,35 @@ class ArsipSuratController extends Controller
             15
         );
 
-        $arsipSurat->through(fn($item) => [
+        $arsipSurat->through(fn($item) => $this->transformIndexData($item));
+
+        return Inertia::render('Admin/ArsipSurat/Index', [
+            'arsipSurat' => $arsipSurat,
+            'filters' => $request->only(['jenis', 'dari_tanggal', 'sampai_tanggal', 'search', 'sort_field', 'sort_direction']),
+        ]);
+    }
+
+    private function buildIndexQuery(Request $request)
+    {
+        $query = ArsipSurat::with('creator')->latest('tanggal_surat');
+
+        if ($request->filled('jenis') && $request->jenis !== 'all') {
+            $query->where('jenis', $request->jenis);
+        }
+
+        if ($request->filled('dari_tanggal')) {
+            $query->where('tanggal_surat', '>=', $request->dari_tanggal);
+        }
+        if ($request->filled('sampai_tanggal')) {
+            $query->where('tanggal_surat', '<=', $request->sampai_tanggal);
+        }
+
+        return $query;
+    }
+
+    private function transformIndexData(ArsipSurat $item): array
+    {
+        return [
             'id' => $item->id,
             'jenis' => $item->jenis,
             'jenis_label' => $item->jenis_label,
@@ -62,55 +76,21 @@ class ArsipSuratController extends Controller
             'is_image' => $item->is_image,
             'created_by' => $item->creator?->name,
             'created_at' => $item->created_at ? \Carbon\Carbon::parse($item->created_at)->format('d M Y H:i') : null,
-        ]);
-
-        return Inertia::render('Admin/ArsipSurat/Index', [
-            'arsipSurat' => $arsipSurat,
-            'filters' => $request->only(['jenis', 'dari_tanggal', 'sampai_tanggal', 'search', 'sort_field', 'sort_direction']),
-        ]);
+        ];
     }
 
-    /**
-     * Store a newly created arsip surat.
-     */
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'jenis' => 'required|in:masuk,keluar',
-            'nomor_surat' => 'required|string|max:100',
-            'tanggal_surat' => 'required|date',
-            'tanggal_diterima' => 'nullable|date|required_if:jenis,masuk',
-            'asal_surat' => 'nullable|string|max:255|required_if:jenis,masuk',
-            'tujuan_surat' => 'nullable|string|max:255|required_if:jenis,keluar',
-            'perihal' => 'required|string|max:255',
-            'keterangan' => 'nullable|string|max:1000',
-            'file' => 'required|file|mimes:pdf,jpg,jpeg,png,webp|max:10240', // max 10MB
-        ]);
-
-        // Store file
+        $validated = $this->validateArsip($request, false);
         $filePath = $request->file('file')->store('arsip-surat', 'public');
-
-        $arsip = ArsipSurat::create([
-            'jenis' => $validated['jenis'],
-            'nomor_surat' => $validated['nomor_surat'],
-            'tanggal_surat' => \Carbon\Carbon::parse($validated['tanggal_surat'])->format('Y-m-d'),
-            'tanggal_diterima' => !empty($validated['tanggal_diterima']) ? \Carbon\Carbon::parse($validated['tanggal_diterima'])->format('Y-m-d') : null,
-            'asal_surat' => $validated['asal_surat'] ?? null,
-            'tujuan_surat' => $validated['tujuan_surat'] ?? null,
-            'perihal' => $validated['perihal'],
-            'keterangan' => $validated['keterangan'] ?? null,
-            'file_path' => $filePath,
-            'created_by' => auth()->id(),
-        ]);
+        
+        $arsip = $this->createArsip($validated, $filePath);
 
         ActivityLog::log('created', "Menambahkan arsip {$arsip->jenis_label}: {$arsip->perihal}", $arsip);
 
         return back()->with('success', 'Arsip surat berhasil ditambahkan');
     }
 
-    /**
-     * Display the specified arsip surat.
-     */
     public function show(ArsipSurat $arsipSurat): Response
     {
         $arsipSurat->load('creator');
@@ -141,12 +121,22 @@ class ArsipSuratController extends Controller
         ]);
     }
 
-    /**
-     * Update the specified arsip surat.
-     */
     public function update(Request $request, ArsipSurat $arsipSurat): RedirectResponse
     {
-        $validated = $request->validate([
+        $validated = $this->validateArsip($request, true);
+        $validated = $this->handleFileUpload($request, $arsipSurat, $validated);
+        
+        $this->updateArsip($arsipSurat, $validated);
+
+        ActivityLog::log('updated', "Memperbarui arsip {$arsipSurat->jenis_label}: {$arsipSurat->perihal}", $arsipSurat);
+
+        return back()->with('success', 'Arsip surat berhasil diperbarui');
+    }
+
+    private function validateArsip(Request $request, bool $isUpdate): array
+    {
+        $fileRule = $isUpdate ? 'nullable' : 'required';
+        return $request->validate([
             'jenis' => 'required|in:masuk,keluar',
             'nomor_surat' => 'required|string|max:100',
             'tanggal_surat' => 'required|date',
@@ -155,31 +145,47 @@ class ArsipSuratController extends Controller
             'tujuan_surat' => 'nullable|string|max:255|required_if:jenis,keluar',
             'perihal' => 'required|string|max:255',
             'keterangan' => 'nullable|string|max:1000',
-            'file' => 'nullable|file|mimes:pdf,jpg,jpeg,png,webp|max:10240',
+            'file' => "$fileRule|file|mimes:pdf,jpg,jpeg,png,webp|max:10240",
         ]);
+    }
 
-        // If new file uploaded, replace old one
+    private function createArsip(array $validated, string $filePath): ArsipSurat
+    {
+        return ArsipSurat::create([
+            'jenis' => $validated['jenis'],
+            'nomor_surat' => $validated['nomor_surat'],
+            'tanggal_surat' => \Carbon\Carbon::parse($validated['tanggal_surat'])->format('Y-m-d'),
+            'tanggal_diterima' => !empty($validated['tanggal_diterima']) ? \Carbon\Carbon::parse($validated['tanggal_diterima'])->format('Y-m-d') : null,
+            'asal_surat' => $validated['asal_surat'] ?? null,
+            'tujuan_surat' => $validated['tujuan_surat'] ?? null,
+            'perihal' => $validated['perihal'],
+            'keterangan' => $validated['keterangan'] ?? null,
+            'file_path' => $filePath,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    private function handleFileUpload(Request $request, ArsipSurat $arsipSurat, array $validated): array
+    {
         if ($request->hasFile('file')) {
-            // Delete old file
             if ($arsipSurat->file_path && Storage::disk('public')->exists($arsipSurat->file_path)) {
                 Storage::disk('public')->delete($arsipSurat->file_path);
             }
             $validated['file_path'] = $request->file('file')->store('arsip-surat', 'public');
         }
 
-        // Remove 'file' key from validated (it's the UploadedFile, not the path)
         unset($validated['file']);
+        return $validated;
+    }
 
+    private function updateArsip(ArsipSurat $arsipSurat, array $validated): void
+    {
         $validated['tanggal_surat'] = \Carbon\Carbon::parse($validated['tanggal_surat'])->format('Y-m-d');
         if (!empty($validated['tanggal_diterima'])) {
             $validated['tanggal_diterima'] = \Carbon\Carbon::parse($validated['tanggal_diterima'])->format('Y-m-d');
         }
 
         $arsipSurat->update($validated);
-
-        ActivityLog::log('updated', "Memperbarui arsip {$arsipSurat->jenis_label}: {$arsipSurat->perihal}", $arsipSurat);
-
-        return back()->with('success', 'Arsip surat berhasil diperbarui');
     }
 
     /**

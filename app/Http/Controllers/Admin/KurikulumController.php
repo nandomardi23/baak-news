@@ -14,41 +14,12 @@ class KurikulumController extends Controller
 {
     public function index(Request $request): Response
     {
-        $query = Kurikulum::with(['programStudi', 'tahunAkademik']);
+        $query = $this->buildIndexQuery($request);
+        $query = $this->applyIndexSorting($query, $request);
 
-        // Search
-        if ($search = $request->input('search')) {
-            $query->where('nama_kurikulum', 'like', "%{$search}%");
-        }
-
-        // Filter by prodi
-        if ($prodiId = $request->input('prodi')) {
-            $query->whereHas('programStudi', function ($q) use ($prodiId) {
-                $q->where('id', $prodiId);
-            });
-        }
-
-        $sortField = $request->input('sort_field', 'created_at');
-        $sortDirection = $request->input('sort_direction', 'desc');
-
-        $allowedSorts = ['nama_kurikulum', 'id_semester', 'jumlah_sks_lulus', 'created_at'];
-        if (!in_array($sortField, $allowedSorts)) {
-            $sortField = 'created_at';
-        }
-
-        $kurikulum = $query->orderBy($sortField, $sortDirection)
-            ->paginate($request->input('per_page', 20))
+        $kurikulum = $query->paginate($request->input('per_page', 20))
             ->withQueryString()
-            ->through(fn($item) => [
-                'id' => $item->id,
-                'id_kurikulum' => $item->id_kurikulum,
-                'nama_kurikulum' => $item->nama_kurikulum,
-                'prodi' => $item->programStudi?->nama_prodi,
-                'semester' => $item->tahunAkademik?->nama_semester ?? $item->id_semester,
-                'jumlah_sks_lulus' => $item->jumlah_sks_lulus,
-                'jumlah_sks_wajib' => $item->jumlah_sks_wajib,
-                'jumlah_sks_pilihan' => $item->jumlah_sks_pilihan,
-            ]);
+            ->through(fn($item) => $this->transformIndexData($item));
 
         return Inertia::render('Admin/Akademik/Kurikulum/Index', [
             'kurikulum' => $kurikulum,
@@ -65,54 +36,116 @@ class KurikulumController extends Controller
         $kurikulum = Kurikulum::with(['programStudi', 'tahunAkademik', 'matkulKurikulum.mataKuliah'])
             ->findOrFail($id);
 
-        $matkulQuery = \App\Models\MatkulKurikulum::with('mataKuliah')
-            ->where('id_kurikulum', $kurikulum->id_kurikulum);
+        $matkulQuery = $this->buildMatkulQuery($kurikulum->id_kurikulum, request('search'));
+        $matkulQuery = $this->applyMatkulSorting($matkulQuery, request('sort_field', 'semester'), request('sort_direction', 'asc'));
 
-        if ($search = request('search')) {
+        $matkulKurikulum = $matkulQuery->paginate(request('per_page', 10))
+            ->withQueryString()
+            ->through(fn($mk) => $this->transformMatkulData($mk));
+
+        return Inertia::render('Admin/Akademik/Kurikulum/Show', [
+            'kurikulum' => $this->transformKurikulumData($kurikulum),
+            'matkulKurikulum' => $matkulKurikulum,
+            'filters' => request()->only(['search', 'per_page', 'sort_field', 'sort_direction']),
+        ]);
+    }
+
+    private function buildIndexQuery(Request $request)
+    {
+        $query = Kurikulum::with(['programStudi', 'tahunAkademik']);
+
+        if ($search = $request->input('search')) {
+            $query->where('nama_kurikulum', 'like', "%{$search}%");
+        }
+
+        if ($prodiId = $request->input('prodi')) {
+            $query->whereHas('programStudi', function ($q) use ($prodiId) {
+                $q->where('id', $prodiId);
+            });
+        }
+
+        return $query;
+    }
+
+    private function applyIndexSorting($query, Request $request)
+    {
+        $sortField = $request->input('sort_field', 'created_at');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        $allowedSorts = ['nama_kurikulum', 'id_semester', 'jumlah_sks_lulus', 'created_at'];
+        if (!in_array($sortField, $allowedSorts)) {
+            $sortField = 'created_at';
+        }
+
+        return $query->orderBy($sortField, $sortDirection);
+    }
+
+    private function transformIndexData(Kurikulum $item): array
+    {
+        return [
+            'id' => $item->id,
+            'id_kurikulum' => $item->id_kurikulum,
+            'nama_kurikulum' => $item->nama_kurikulum,
+            'prodi' => $item->programStudi?->nama_prodi,
+            'semester' => $item->tahunAkademik?->nama_semester ?? $item->id_semester,
+            'jumlah_sks_lulus' => $item->jumlah_sks_lulus,
+            'jumlah_sks_wajib' => $item->jumlah_sks_wajib,
+            'jumlah_sks_pilihan' => $item->jumlah_sks_pilihan,
+        ];
+    }
+
+    private function buildMatkulQuery(string $idKurikulum, ?string $search)
+    {
+        $matkulQuery = \App\Models\MatkulKurikulum::with('mataKuliah')
+            ->where('id_kurikulum', $idKurikulum);
+
+        if ($search) {
             $matkulQuery->whereHas('mataKuliah', function ($q) use ($search) {
                 $q->where('nama_matkul', 'like', "%{$search}%")
                     ->orWhere('kode_matkul', 'like', "%{$search}%");
             });
         }
 
-        $sortField = request('sort_field', 'semester');
-        $sortDirection = request('sort_direction', 'asc');
+        return $matkulQuery;
+    }
 
+    private function applyMatkulSorting($matkulQuery, string $sortField, string $sortDirection)
+    {
         if (in_array($sortField, ['kode_matkul', 'nama_matkul', 'sks_mata_kuliah'])) {
-            $matkulQuery->join('mata_kuliah', 'mata_kuliah.id', '=', 'matkul_kurikulum.mata_kuliah_id')
+            return $matkulQuery->join('mata_kuliah', 'mata_kuliah.id', '=', 'matkul_kurikulum.mata_kuliah_id')
                 ->orderBy("mata_kuliah.{$sortField}", $sortDirection)
                 ->select('matkul_kurikulum.*');
-        } else {
-            $matkulQuery->orderBy($sortField, $sortDirection);
         }
 
-        $matkulKurikulum = $matkulQuery->paginate(request('per_page', 10))
-            ->withQueryString()
-            ->through(fn($mk) => [
-                'id' => $mk->id,
-                'kode_matkul' => $mk->mataKuliah?->kode_matkul,
-                'nama_matkul' => $mk->mataKuliah?->nama_matkul,
-                'semester' => $mk->semester,
-                'sks_mata_kuliah' => $mk->sks_mata_kuliah,
-                'sks_tatap_muka' => $mk->sks_tatap_muka,
-                'sks_praktek' => $mk->sks_praktek,
-                'sks_praktek_lapangan' => $mk->sks_praktek_lapangan,
-                'sks_simulasi' => $mk->sks_simulasi,
-                'apakah_wajib' => $mk->apakah_wajib ? 'Wajib' : 'Pilihan',
-            ]);
+        return $matkulQuery->orderBy($sortField, $sortDirection);
+    }
 
-        return Inertia::render('Admin/Akademik/Kurikulum/Show', [
-            'kurikulum' => [
-                'id' => $kurikulum->id,
-                'nama_kurikulum' => $kurikulum->nama_kurikulum,
-                'prodi' => $kurikulum->programStudi?->nama_prodi,
-                'semester' => $kurikulum->tahunAkademik?->nama_semester ?? $kurikulum->id_semester,
-                'jumlah_sks_lulus' => $kurikulum->jumlah_sks_lulus,
-                'jumlah_sks_wajib' => $kurikulum->jumlah_sks_wajib,
-                'jumlah_sks_pilihan' => $kurikulum->jumlah_sks_pilihan,
-            ],
-            'matkulKurikulum' => $matkulKurikulum,
-            'filters' => request()->only(['search', 'per_page', 'sort_field', 'sort_direction']),
-        ]);
+    private function transformMatkulData($mk): array
+    {
+        return [
+            'id' => $mk->id,
+            'kode_matkul' => $mk->mataKuliah?->kode_matkul,
+            'nama_matkul' => $mk->mataKuliah?->nama_matkul,
+            'semester' => $mk->semester,
+            'sks_mata_kuliah' => $mk->sks_mata_kuliah,
+            'sks_tatap_muka' => $mk->sks_tatap_muka,
+            'sks_praktek' => $mk->sks_praktek,
+            'sks_praktek_lapangan' => $mk->sks_praktek_lapangan,
+            'sks_simulasi' => $mk->sks_simulasi,
+            'apakah_wajib' => $mk->apakah_wajib ? 'Wajib' : 'Pilihan',
+        ];
+    }
+
+    private function transformKurikulumData(Kurikulum $kurikulum): array
+    {
+        return [
+            'id' => $kurikulum->id,
+            'nama_kurikulum' => $kurikulum->nama_kurikulum,
+            'prodi' => $kurikulum->programStudi?->nama_prodi,
+            'semester' => $kurikulum->tahunAkademik?->nama_semester ?? $kurikulum->id_semester,
+            'jumlah_sks_lulus' => $kurikulum->jumlah_sks_lulus,
+            'jumlah_sks_wajib' => $kurikulum->jumlah_sks_wajib,
+            'jumlah_sks_pilihan' => $kurikulum->jumlah_sks_pilihan,
+        ];
     }
 }
