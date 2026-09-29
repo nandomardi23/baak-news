@@ -5,6 +5,7 @@ namespace App\Services\Sync;
 use App\Models\Reference;
 use App\Models\RefWilayah;
 use App\Models\ProgramStudi;
+use App\Services\Sync\Mappers\ReferenceDataMapper;
 
 class ReferenceSyncService extends BaseSyncService
 {
@@ -113,7 +114,7 @@ class ReferenceSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapProdiData($data);
+            $records = ReferenceDataMapper::mapProdi($data);
 
             try {
                 ProgramStudi::upsert(
@@ -127,20 +128,7 @@ class ReferenceSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     /**
@@ -176,7 +164,7 @@ class ReferenceSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapSemesterData($data);
+            $records = ReferenceDataMapper::mapSemester($data);
 
             try {
                 \App\Models\TahunAkademik::upsert(
@@ -190,20 +178,7 @@ class ReferenceSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : ($hasMore ? 0 : 100);
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncAgama(?string $syncSince = null): array
@@ -226,7 +201,7 @@ class ReferenceSyncService extends BaseSyncService
             if ($response && isset($response['data'])) {
                 $data = $response['data'];
                 $batchCount = count($data);
-                $records = $this->mapWilayahData($data);
+                $records = ReferenceDataMapper::mapWilayah($data);
 
                 if (!empty($records)) {
                     RefWilayah::upsert($records, ['id_wilayah'], ['id_negara', 'nama_wilayah', 'id_induk_wilayah', 'id_level_wilayah', 'updated_at']);
@@ -249,19 +224,7 @@ class ReferenceSyncService extends BaseSyncService
                 $totalAll = 10000;
             }
 
-            $nextOffset = $offset + $batchCount;
-            $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-            $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : ($hasMore ? 0 : 100);
-
-            return [
-                'synced' => $batchCount,
-                'total' => $batchCount,
-                'total_all' => $totalAll,
-                'offset' => $offset,
-                'next_offset' => $hasMore ? $nextOffset : null,
-                'has_more' => $hasMore,
-                'progress' => $progress
-            ];
+            return $this->buildPaginatedResult($batchCount, $batchCount, [], $totalAll, $offset, $limit);
         } catch (\Exception $e) {
             \Illuminate\Support\Facades\Log::error("SyncWilayah failed: " . $e->getMessage());
             return [
@@ -373,56 +336,5 @@ class ReferenceSyncService extends BaseSyncService
         }
     }
 
-    private function mapProdiData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $records[] = [
-                'id_prodi' => $item['id_prodi'],
-                'kode_prodi' => $item['kode_program_studi'],
-                'nama_prodi' => $item['nama_program_studi'],
-                'jenjang' => $item['nama_jenjang_pendidikan'],
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
 
-    private function mapSemesterData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $records[] = [
-                'id_semester' => $item['id_semester'],
-                'nama_semester' => $item['nama_semester'],
-                'tahun' => $item['id_tahun_ajaran'],
-                'semester' => $item['semester'] == 1 ? 'ganjil' : 'genap',
-                'tanggal_mulai' => isset($item['tanggal_mulai']) ? date('Y-m-d', strtotime($item['tanggal_mulai'])) : null,
-                'tanggal_selesai' => isset($item['tanggal_selesai']) ? date('Y-m-d', strtotime($item['tanggal_selesai'])) : null,
-                'is_active' => $item['a_periode_aktif'] == '1',
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
-
-    private function mapWilayahData(array $data): array
-    {
-        $records = [];
-        $now = now();
-        foreach ($data as $item) {
-            $records[] = [
-                'id_wilayah' => $item['id_wilayah'],
-                'id_negara' => $item['id_negara'],
-                'nama_wilayah' => $item['nama_wilayah'],
-                'id_induk_wilayah' => $item['id_induk_wilayah'],
-                'id_level_wilayah' => (int) $item['id_level_wilayah'],
-                'created_at' => $now,
-                'updated_at' => $now,
-            ];
-        }
-        return $records;
-    }
 }

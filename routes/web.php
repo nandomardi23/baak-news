@@ -92,7 +92,7 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     Route::get('mahasiswa/kartu-ujian/batch/print', [BatchKartuUjianController::class, 'print'])->name('mahasiswa.kartu_ujian.batch');
     Route::get('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'show'])->name('mahasiswa.show');
     Route::get('mahasiswa/{mahasiswa}/edit', [MahasiswaController::class, 'edit'])->name('mahasiswa.edit');
-    Route::post('mahasiswa/{mahasiswa}/sync-krs', [\App\Http\Controllers\Admin\SyncController::class, 'syncKrsMahasiswa'])->name('mahasiswa.sync.krs');
+    Route::post('mahasiswa/{mahasiswa}/sync-krs', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncKrsMahasiswa'])->name('mahasiswa.sync.krs');
     Route::patch('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'update'])->name('mahasiswa.update');
     Route::delete('mahasiswa/{mahasiswa}', [MahasiswaController::class, 'destroy'])->name('mahasiswa.destroy');
     Route::get('mahasiswa/{mahasiswa}/krs/{tahunAkademik}/print', [MahasiswaPrintController::class, 'printKrs'])->name('mahasiswa.krs.print');
@@ -172,31 +172,31 @@ Route::middleware(['auth', 'verified', 'role:admin|staff_baak'])->prefix('admin'
     // Sync routes (AJAX)
     Route::middleware('role:admin|staff_baak')->prefix('sync')->name('sync.')->group(function () {
         // Referensi (Sub-types via body)
-        Route::post('referensi', [\App\Http\Controllers\Admin\SyncController::class, 'syncReferensi'])->name('referensi');
+        Route::post('referensi', [\App\Http\Controllers\Admin\ReferenceSyncController::class, 'syncReferensi'])->name('referensi');
 
         // Explicit Routes mapping to Specific Methods
-        Route::post('prodi', [\App\Http\Controllers\Admin\SyncController::class, 'syncProdi'])->name('prodi');
-        Route::post('semester', [\App\Http\Controllers\Admin\SyncController::class, 'syncSemester'])->name('semester');
-        Route::post('kurikulum', [\App\Http\Controllers\Admin\SyncController::class, 'syncKurikulum'])->name('kurikulum');
-        Route::post('matakuliah', [\App\Http\Controllers\Admin\SyncController::class, 'syncMataKuliah'])->name('matakuliah');
-        Route::post('mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswa'])->name('mahasiswa');
-        Route::post('biodata', [\App\Http\Controllers\Admin\SyncController::class, 'syncBiodata'])->name('biodata');
-        Route::post('mahasiswa/detail', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswaDetail'])->name('mahasiswa-detail');
-        Route::post('mahasiswa-lulus-do', [\App\Http\Controllers\Admin\SyncController::class, 'syncMahasiswaLulusDO'])->name('mahasiswa-lulus-do');
+        Route::post('prodi', [\App\Http\Controllers\Admin\ReferenceSyncController::class, 'syncProdi'])->name('prodi');
+        Route::post('semester', [\App\Http\Controllers\Admin\ReferenceSyncController::class, 'syncSemester'])->name('semester');
+        Route::post('kurikulum', [\App\Http\Controllers\Admin\CurriculumSyncController::class, 'syncKurikulum'])->name('kurikulum');
+        Route::post('matakuliah', [\App\Http\Controllers\Admin\CurriculumSyncController::class, 'syncMataKuliah'])->name('matakuliah');
+        Route::post('mahasiswa', [\App\Http\Controllers\Admin\StudentSyncController::class, 'syncMahasiswa'])->name('mahasiswa');
+        Route::post('biodata', [\App\Http\Controllers\Admin\StudentSyncController::class, 'syncBiodata'])->name('biodata');
+        Route::post('mahasiswa/detail', [\App\Http\Controllers\Admin\StudentSyncController::class, 'syncMahasiswaDetail'])->name('mahasiswa-detail');
+        Route::post('mahasiswa-lulus-do', [\App\Http\Controllers\Admin\StudentSyncController::class, 'syncMahasiswaLulusDO'])->name('mahasiswa-lulus-do');
 
-        Route::post('dosen', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosen'])->name('dosen');
-        Route::post('nilai', [\App\Http\Controllers\Admin\SyncController::class, 'syncNilai'])->name('nilai');
-        Route::post('krs', [\App\Http\Controllers\Admin\SyncController::class, 'syncKrs'])->name('krs');
-        Route::post('aktivitas', [\App\Http\Controllers\Admin\SyncController::class, 'syncAktivitasKuliah'])->name('aktivitas');
-        Route::post('kelas-kuliah', [\App\Http\Controllers\Admin\SyncController::class, 'syncKelasKuliah'])->name('kelas-kuliah');
-        Route::post('dosen-pengajar', [\App\Http\Controllers\Admin\SyncController::class, 'syncDosenPengajar'])->name('dosen-pengajar');
-        Route::post('ajar-dosen', [\App\Http\Controllers\Admin\SyncController::class, 'syncAjarDosen'])->name('ajar-dosen');
+        Route::post('dosen', [\App\Http\Controllers\Admin\LecturerSyncController::class, 'syncDosen'])->name('dosen');
+        Route::post('nilai', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncNilai'])->name('nilai');
+        Route::post('krs', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncKrs'])->name('krs');
+        Route::post('aktivitas', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncAktivitasKuliah'])->name('aktivitas');
+        Route::post('kelas-kuliah', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncKelasKuliah'])->name('kelas-kuliah');
+        Route::post('dosen-pengajar', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncDosenPengajar'])->name('dosen-pengajar');
+        Route::post('ajar-dosen', [\App\Http\Controllers\Admin\LecturerSyncController::class, 'syncAjarDosen'])->name('ajar-dosen');
 
-        Route::post('bimbingan-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncBimbinganMahasiswa'])->name('bimbingan-mahasiswa');
-        Route::post('uji-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncUjiMahasiswa'])->name('uji-mahasiswa');
-        Route::post('aktivitas-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncAktivitasMahasiswa'])->name('aktivitas-mahasiswa');
-        Route::post('anggota-aktivitas-mahasiswa', [\App\Http\Controllers\Admin\SyncController::class, 'syncAnggotaAktivitasMahasiswa'])->name('anggota-aktivitas-mahasiswa');
-        Route::post('konversi-kampus-merdeka', [\App\Http\Controllers\Admin\SyncController::class, 'syncKonversiKampusMerdeka'])->name('konversi-kampus-merdeka');
+        Route::post('bimbingan-mahasiswa', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncBimbinganMahasiswa'])->name('bimbingan-mahasiswa');
+        Route::post('uji-mahasiswa', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncUjiMahasiswa'])->name('uji-mahasiswa');
+        Route::post('aktivitas-mahasiswa', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncAktivitasMahasiswa'])->name('aktivitas-mahasiswa');
+        Route::post('anggota-aktivitas-mahasiswa', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncAnggotaAktivitasMahasiswa'])->name('anggota-aktivitas-mahasiswa');
+        Route::post('konversi-kampus-merdeka', [\App\Http\Controllers\Admin\AcademicSyncController::class, 'syncKonversiKampusMerdeka'])->name('konversi-kampus-merdeka');
     });
 });
 

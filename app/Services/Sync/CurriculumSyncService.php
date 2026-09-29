@@ -5,6 +5,7 @@ namespace App\Services\Sync;
 use App\Models\Kurikulum;
 use App\Models\MataKuliah;
 use App\Models\MatkulKurikulum;
+use App\Services\Sync\Mappers\CurriculumDataMapper;
 
 class CurriculumSyncService extends BaseSyncService
 {
@@ -32,7 +33,7 @@ class CurriculumSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapKurikulumData($data);
+            $records = CurriculumDataMapper::mapKurikulum($data);
 
             $this->batchUpsert(Kurikulum::class, $records, ['id_kurikulum'], [
                 'nama_kurikulum', 'id_prodi', 'id_semester', 'jumlah_sks_lulus', 'jumlah_sks_wajib', 'jumlah_sks_pilihan', 'updated_at'
@@ -40,20 +41,7 @@ class CurriculumSyncService extends BaseSyncService
             $synced = count($records);
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncMataKuliah(int $offset = 0, int $limit = 2000, ?string $syncSince = null): array
@@ -80,7 +68,7 @@ class CurriculumSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $mapped = $this->mapMataKuliahData($data);
+            $mapped = CurriculumDataMapper::mapMataKuliah($data);
             $mkRecords = $mapped['mkRecords'];
             $relRecords = $mapped['relRecords'];
 
@@ -97,20 +85,7 @@ class CurriculumSyncService extends BaseSyncService
             $synced = count($mkRecords);
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
     public function getCountKurikulum(): int
     {
@@ -132,62 +107,5 @@ class CurriculumSyncService extends BaseSyncService
         }
     }
 
-    private function mapKurikulumData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $records[] = [
-                'id_kurikulum' => $item['id_kurikulum'],
-                'nama_kurikulum' => $item['nama_kurikulum'],
-                'id_prodi' => $item['id_prodi'],
-                'id_semester' => $item['id_semester'],
-                'jumlah_sks_lulus' => $item['jumlah_sks_lulus'] ?? 0,
-                'jumlah_sks_wajib' => $item['jumlah_sks_wajib'] ?? 0,
-                'jumlah_sks_pilihan' => $item['jumlah_sks_pilihan'] ?? 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-        }
-        return $records;
-    }
 
-    private function mapMataKuliahData(array $data): array
-    {
-        $mkRecords = [];
-        $relRecords = [];
-        
-        foreach ($data as $item) {
-            $mkRecords[] = [
-                'id_matkul' => $item['id_matkul'],
-                'kode_matkul' => $item['kode_mata_kuliah'],
-                'nama_matkul' => $item['nama_mata_kuliah'],
-                'id_prodi' => $item['id_prodi'],
-                'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
-                'sks_praktek' => $item['sks_praktek'] ?? 0,
-                'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
-                'sks_simulasi' => $item['sks_simulasi'] ?? 0,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ];
-
-            if (isset($item['id_kurikulum'])) {
-                $relRecords[] = [
-                    'id_matkul' => $item['id_matkul'],
-                    'id_kurikulum' => $item['id_kurikulum'],
-                    'semester' => $item['semester'],
-                    'sks_mata_kuliah' => $item['sks_mata_kuliah'] ?? 0,
-                    'sks_tatap_muka' => $item['sks_tatap_muka'] ?? 0,
-                    'sks_praktek' => $item['sks_praktek'] ?? 0,
-                    'sks_praktek_lapangan' => $item['sks_praktek_lapangan'] ?? 0,
-                    'sks_simulasi' => $item['sks_simulasi'] ?? 0,
-                    'apakah_wajib' => $item['apakah_wajib'] ?? 0,
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ];
-            }
-        }
-        
-        return ['mkRecords' => $mkRecords, 'relRecords' => $relRecords];
-    }
 }

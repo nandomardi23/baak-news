@@ -13,6 +13,7 @@ use App\Models\BimbinganMahasiswa;
 use App\Models\UjiMahasiswa;
 use App\Models\KonversiKampusMerdeka;
 use App\Models\Mahasiswa;
+use App\Services\Sync\Mappers\AcademicDataMapper;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
@@ -43,7 +44,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapKelasKuliahData($data);
+            $records = AcademicDataMapper::mapKelasKuliah($data);
 
             try {
                 $this->batchUpsert(KelasKuliah::class, $records, ['id_kelas_kuliah'], [
@@ -69,20 +70,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncDosenPengajar(int $offset = 0, int $limit = 2000, ?string $syncSince = null): array
@@ -112,7 +100,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $mapped = $this->mapDosenPengajarData($data);
+            $mapped = AcademicDataMapper::mapDosenPengajar($data);
             $pivotRecords = $mapped['pivotRecords'];
             $kelasDosenUpdates = $mapped['kelasDosenUpdates'];
 
@@ -137,20 +125,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncKrs(int $offset = 0, int $limit = 500, ?string $idSemester = null, ?string $syncSince = null): array
@@ -213,20 +188,7 @@ class AcademicSyncService extends BaseSyncService
             $synced = $this->upsertKrsDetails($data, $krsIdMap, $matkulMap, $errors);
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncNilai(int $offset = 0, int $limit = 2000, ?string $idSemester = null, ?string $syncSince = null): array
@@ -278,20 +240,7 @@ class AcademicSyncService extends BaseSyncService
             $synced = $this->upsertNilaiRecords($data, $mahasiswaMap, $matkulMap, $semesterId, $errors);
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     /**
@@ -365,20 +314,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     /**
@@ -565,7 +501,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapBimbinganMahasiswaData($data);
+            $records = AcademicDataMapper::mapBimbinganMahasiswa($data);
 
             if (!empty($records)) {
                 try {
@@ -578,20 +514,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncUjiMahasiswa(int $offset = 0, int $limit = 500, ?string $syncSince = null): array
@@ -619,7 +542,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapUjiMahasiswaData($data);
+            $records = AcademicDataMapper::mapUjiMahasiswa($data);
 
             try {
                 $this->batchUpsert(UjiMahasiswa::class, $records, ['id_uji_mahasiswa'], ['id_aktivitas_mahasiswa', 'id_dosen', 'penguji_ke', 'id_kategori_kegiatan', 'updated_at']);
@@ -630,20 +553,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncAktivitasMahasiswa(int $offset = 0, int $limit = 500, ?string $idSemester = null, ?string $syncSince = null): array
@@ -673,7 +583,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapAktivitasMahasiswaData($data);
+            $records = AcademicDataMapper::mapAktivitasMahasiswa($data, [$this, 'parseDate']);
 
             if (!empty($records)) {
                 try {
@@ -686,20 +596,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncAnggotaAktivitasMahasiswa(int $offset = 0, int $limit = 500, ?string $idSemester = null, ?string $syncSince = null): array
@@ -729,7 +626,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapAnggotaAktivitasMahasiswaData($data);
+            $records = AcademicDataMapper::mapAnggotaAktivitasMahasiswa($data);
 
             try {
                 $this->batchUpsert(AnggotaAktivitasMahasiswa::class, $records, ['id_anggota'], ['id_aktivitas', 'id_registrasi_mahasiswa', 'nim', 'nama_mahasiswa', 'id_peran_anggota', 'nama_peran_anggota', 'updated_at']);
@@ -740,20 +637,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     public function syncKonversiKampusMerdeka(int $offset = 0, int $limit = 500, ?string $idSemester = null, ?string $syncSince = null): array
@@ -783,7 +667,7 @@ class AcademicSyncService extends BaseSyncService
         $errors = [];
 
         if (!empty($data)) {
-            $records = $this->mapKonversiKampusMerdekaData($data);
+            $records = AcademicDataMapper::mapKonversiKampusMerdeka($data);
 
             try {
                 $this->batchUpsert(KonversiKampusMerdeka::class, $records, ['id_konversi_aktivitas'], ['id_matkul', 'nama_mata_kuliah', 'sks_mata_kuliah', 'nilai_angka', 'nilai_huruf', 'nilai_indeks', 'id_semester', 'id_aktivitas_mahasiswa', 'judul_aktivitas_mahasiswa', 'id_anggota', 'nim', 'nama_mahasiswa', 'updated_at']);
@@ -794,20 +678,7 @@ class AcademicSyncService extends BaseSyncService
             }
         }
 
-        $nextOffset = $offset + $batchCount;
-        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
-        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
-
-        return [
-            'total' => $batchCount,
-            'synced' => $synced,
-            'errors' => $errors,
-            'total_all' => $totalAll,
-            'offset' => $offset,
-            'next_offset' => $hasMore ? $nextOffset : null,
-            'has_more' => $hasMore,
-            'progress' => $progress,
-        ];
+        return $this->buildPaginatedResult($batchCount, $synced, $errors, $totalAll, $offset, $limit);
     }
 
     /**
@@ -1081,90 +952,6 @@ class AcademicSyncService extends BaseSyncService
             'skipped' => $skipped,
             'errors' => $errors,
         ];
-    }
-    private function mapKelasKuliahData(array $data): array
-    {
-        $idMatkuls = collect($data)->pluck('id_matkul')->unique()->filter()->toArray();
-        $idProdis = collect($data)->pluck('id_prodi')->unique()->filter()->toArray();
-        $idSemesters = collect($data)->pluck('id_semester')->unique()->filter()->toArray();
-
-        $matkulMap = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)
-            ->get(['id', 'id_matkul', 'kode_matkul', 'nama_matkul'])
-            ->keyBy('id_matkul');
-
-        $prodiMap = \App\Models\ProgramStudi::whereIn('id_prodi', $idProdis)
-            ->pluck('id', 'id_prodi');
-
-        $semesterMap = \App\Models\TahunAkademik::whereIn('id_semester', $idSemesters)
-            ->pluck('id', 'id_semester');
-
-        $records = [];
-        foreach ($data as $item) {
-            $matkul = $matkulMap[$item['id_matkul']] ?? null;
-
-            $records[] = [
-                'id_kelas_kuliah' => $item['id_kelas_kuliah'],
-                'id_prodi' => $item['id_prodi'],
-                'program_studi_id' => $prodiMap[$item['id_prodi']] ?? null,
-                'id_semester' => $item['id_semester'],
-                'tahun_akademik_id' => $semesterMap[$item['id_semester']] ?? null,
-                'id_matkul' => $item['id_matkul'],
-                'mata_kuliah_id' => $matkul ? $matkul->id : null,
-                'kode_mata_kuliah' => $item['kode_mata_kuliah'] ?? ($matkul ? $matkul->kode_matkul : null),
-                'nama_mata_kuliah' => $item['nama_mata_kuliah'] ?? ($matkul ? $matkul->nama_matkul : null),
-                'nama_kelas_kuliah' => $item['nama_kelas_kuliah'],
-                'sks' => $item['sks'],
-                'bahasan' => $item['bahasan'] ?? null,
-                'tanggal_mulai_efektif' => isset($item['tanggal_mulai_efektif']) ? date('Y-m-d', strtotime($item['tanggal_mulai_efektif'])) : null,
-                'tanggal_akhir_efektif' => isset($item['tanggal_akhir_efektif']) ? date('Y-m-d', strtotime($item['tanggal_akhir_efektif'])) : null,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-
-        return $records;
-    }
-
-    private function mapDosenPengajarData(array $data): array
-    {
-        $apiKelasIds = collect($data)->pluck('id_kelas_kuliah')->unique()->filter()->toArray();
-        $apiDosenIds = collect($data)->pluck('id_dosen')->unique()->filter()->toArray();
-
-        $kelasMap = KelasKuliah::whereIn('id_kelas_kuliah', $apiKelasIds)
-            ->pluck('id', 'id_kelas_kuliah');
-
-        $dosenMap = \App\Models\Dosen::whereIn('id_dosen', $apiDosenIds)
-            ->pluck('id', 'id_dosen');
-
-        $pivotRecords = [];
-        $kelasDosenUpdates = [];
-
-        foreach ($data as $item) {
-            $kelasLocalId = $kelasMap[$item['id_kelas_kuliah']] ?? null;
-            $dosenLocalId = $dosenMap[$item['id_dosen']] ?? null;
-
-            if (!$kelasLocalId || !$dosenLocalId)
-                continue;
-
-            $pivotRecords[] = [
-                'kelas_kuliah_id' => $kelasLocalId,
-                'id_kelas_kuliah' => $item['id_kelas_kuliah'],
-                'dosen_id' => $dosenLocalId,
-                'id_dosen' => $item['id_dosen'],
-                'id_aktivitas_mengajar' => $item['id_aktivitas_mengajar'] ?? null,
-                'id_registrasi_dosen' => $item['id_registrasi_dosen'] ?? null,
-                'sks_substansi_total' => $item['sks_substansi_total'] ?? 0,
-                'rencana_tatap_muka' => $item['rencana_tatap_muka'] ?? 0,
-                'realisasi_tatap_muka' => $item['realisasi_tatap_muka'] ?? 0,
-                'id_jenis_evaluasi' => $item['id_jenis_evaluasi'] ?? null,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-
-            $kelasDosenUpdates[$item['id_kelas_kuliah']] = $item['id_dosen'];
-        }
-
-        return ['pivotRecords' => $pivotRecords, 'kelasDosenUpdates' => $kelasDosenUpdates];
     }
 
     private function updateLegacyDosenColumn(array $kelasDosenUpdates): void
@@ -1477,119 +1264,6 @@ class AcademicSyncService extends BaseSyncService
         return $synced;
     }
 
-
-
-    private function mapBimbinganMahasiswaData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $idAktivitas = $item['id_aktivitas_mahasiswa'] ?? null;
-            $idDosen = $item['id_dosen'] ?? null;
-
-            if (!$idAktivitas || !$idDosen)
-                continue;
-
-            $records[] = [
-                'id_aktivitas_mahasiswa' => $idAktivitas,
-                'id_dosen' => $idDosen,
-                'id_bimbingan_mahasiswa' => $item['id_bimbingan_mahasiswa'] ?? md5($idAktivitas . $idDosen),
-                'pembimbing_ke' => $item['pembimbing_ke'] ?? null,
-                'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
-
-    private function mapUjiMahasiswaData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $records[] = [
-                'id_uji_mahasiswa' => $item['id_uji_mahasiswa'],
-                'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? '',
-                'id_dosen' => $item['id_dosen'] ?? '',
-                'penguji_ke' => $item['penguji_ke'] ?? null,
-                'id_kategori_kegiatan' => $item['id_kategori_kegiatan'] ?? null,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
-
-    private function mapAktivitasMahasiswaData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $idAktivitas = $item['id_aktivitas'] ?? $item['id_aktivitas_mahasiswa'] ?? null;
-            if (!$idAktivitas)
-                continue;
-
-            $records[] = [
-                'id_aktivitas' => $idAktivitas,
-                'id_jenis_aktivitas' => $item['id_jenis_aktivitas'] ?? null,
-                'nama_jenis_aktivitas' => $item['nama_jenis_aktivitas'] ?? null,
-                'id_prodi' => $item['id_prodi'] ?? null,
-                'id_semester' => $item['id_semester'] ?? null,
-                'judul' => $item['judul_aktivitas_mahasiswa'] ?? $item['judul'] ?? null,
-                'keterangan' => $item['keterangan_aktivitas_mahasiswa'] ?? $item['keterangan'] ?? null,
-                'lokasi' => $item['lokasi_kegiatan'] ?? $item['lokasi'] ?? null,
-                'sk_tugas' => $item['sk_tugas'] ?? null,
-                'tanggal_sk_tugas' => $this->parseDate($item['tanggal_sk_tugas'] ?? null),
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
-
-    private function mapAnggotaAktivitasMahasiswaData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $idAktivitas = $item['id_aktivitas'] ?? $item['id_aktivitas_mahasiswa'] ?? null;
-
-            $records[] = [
-                'id_anggota' => $item['id_anggota'],
-                'id_aktivitas' => $idAktivitas,
-                'id_registrasi_mahasiswa' => $item['id_registrasi_mahasiswa'],
-                'nim' => $item['nim'],
-                'nama_mahasiswa' => $item['nama_mahasiswa'],
-                'id_peran_anggota' => $item['id_peran_anggota'],
-                'nama_peran_anggota' => $item['nama_peran_anggota'],
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
-
-    private function mapKonversiKampusMerdekaData(array $data): array
-    {
-        $records = [];
-        foreach ($data as $item) {
-            $records[] = [
-                'id_konversi_aktivitas' => $item['id_konversi_aktivitas'],
-                'id_matkul' => $item['id_matkul'],
-                'nama_mata_kuliah' => $item['nama_mata_kuliah'],
-                'sks_mata_kuliah' => $item['sks_mata_kuliah'],
-                'nilai_angka' => $item['nilai_angka'],
-                'nilai_huruf' => $item['nilai_huruf'],
-                'nilai_indeks' => $item['nilai_indeks'],
-                'id_semester' => $item['id_semester'],
-                'id_aktivitas_mahasiswa' => $item['id_aktivitas_mahasiswa'] ?? null,
-                'judul_aktivitas_mahasiswa' => $item['judul_aktivitas_mahasiswa'] ?? null,
-                'id_anggota' => $item['id_anggota'] ?? null,
-                'nim' => $item['nim'] ?? null,
-                'nama_mahasiswa' => $item['nama_mahasiswa'] ?? null,
-                'updated_at' => now(),
-                'created_at' => now(),
-            ];
-        }
-        return $records;
-    }
 
     private function processKrsMahasiswaDetails(Krs $krs, array $items): void
     {

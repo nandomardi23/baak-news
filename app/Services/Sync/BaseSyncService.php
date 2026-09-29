@@ -127,4 +127,39 @@ abstract class BaseSyncService
             }
         }
     }
+
+    /**
+     * Build standardized paginated sync result array.
+     * Eliminates repeated pagination logic across all sync methods.
+     */
+    protected function buildPaginatedResult(
+        int $batchCount,
+        int $synced,
+        array $errors,
+        int $totalAll,
+        int $offset,
+        int $limit,
+        ?string $message = null
+    ): array {
+        $nextOffset = $offset + $batchCount;
+        $hasMore = ($totalAll > 0 ? $nextOffset < $totalAll : ($batchCount === $limit)) && ($batchCount > 0);
+        $progress = $totalAll > 0 ? min(100, round($nextOffset / $totalAll * 100)) : 100;
+
+        $result = [
+            'total' => $batchCount,
+            'synced' => $synced,
+            'errors' => $errors,
+            'total_all' => $totalAll,
+            'offset' => $offset,
+            'next_offset' => $hasMore ? $nextOffset : null,
+            'has_more' => $hasMore,
+            'progress' => $progress,
+        ];
+
+        if ($message) {
+            $result['message'] = $message;
+        }
+
+        return $result;
+    }
 }

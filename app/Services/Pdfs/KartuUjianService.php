@@ -194,6 +194,13 @@ class KartuUjianService extends BasePdfService
     {
         if ($useTemplate) return;
 
+        $this->drawHeaderLogo($startX, $startY);
+        $this->drawHeaderText($startX, $startY);
+        $this->drawHeaderLine($startX, $startY);
+    }
+
+    private function drawHeaderLogo(float $startX, float $startY): void
+    {
         $logoPath = public_path('images/logo.png');
         if (!file_exists($logoPath)) {
             $logoPath = storage_path('app/public/logo.png');
@@ -207,7 +214,10 @@ class KartuUjianService extends BasePdfService
             $this->SetFont('Arial', 'I', 6);
             $this->Cell(20, 4, 'LOGO', 0, 0, 'C');
         }
+    }
 
+    private function drawHeaderText(float $startX, float $startY): void
+    {
         $this->SetY($startY + 5);
         $this->SetX($startX);
         $this->SetFont('Arial', 'I', 9);
@@ -218,7 +228,10 @@ class KartuUjianService extends BasePdfService
         $this->SetFont('Arial', '', 7);
         $this->Cell(0, 4, 'Jl. WR. Supratman, Kelurahan Air Raja, Kecamatan Tanjungpinang Timur, Kota Tanjungpinang,', 0, 1, 'C');
         $this->Cell(0, 4, 'Kepulauan Riau. Tlp (0771) 4440071', 0, 1, 'C');
+    }
 
+    private function drawHeaderLine(float $startX, float $startY): void
+    {
         $this->SetLineWidth(0.5);
         $this->Line($startX, $startY + 32, $startX + 190, $startY + 32);
         $this->SetLineWidth(0.2);
@@ -240,21 +253,31 @@ class KartuUjianService extends BasePdfService
         ];
 
         foreach ($fields as $label => $value) {
-            $this->SetX($startX + 10);
-            $this->Cell(25, 7, $label, 0, 0);
-            $this->Cell(3, 7, ':', 0, 0);
-
-            $currentX = $this->GetX();
-            $currentY = $this->GetY();
-            $this->Cell(80, 7, $value, 0, 1);
-
-            $lineY = $currentY + 6.5;
-            $this->SetLineWidth(0.1);
-            for ($i = $currentX; $i < ($currentX + 80); $i += 2) {
-                $this->Line($i, $lineY, $i + 1, $lineY);
-            }
+            $this->drawInfoField($startX, $label, $value);
         }
 
+        $this->drawExamTypeBadge($infoY);
+    }
+
+    private function drawInfoField(float $startX, string $label, string $value): void
+    {
+        $this->SetX($startX + 10);
+        $this->Cell(25, 7, $label, 0, 0);
+        $this->Cell(3, 7, ':', 0, 0);
+
+        $currentX = $this->GetX();
+        $currentY = $this->GetY();
+        $this->Cell(80, 7, $value, 0, 1);
+
+        $lineY = $currentY + 6.5;
+        $this->SetLineWidth(0.1);
+        for ($i = $currentX; $i < ($currentX + 80); $i += 2) {
+            $this->Line($i, $lineY, $i + 1, $lineY);
+        }
+    }
+
+    private function drawExamTypeBadge(float $infoY): void
+    {
         $boxX = 150;
         $boxY = $infoY;
         $this->SetFillColor(220, 220, 220);
@@ -265,9 +288,6 @@ class KartuUjianService extends BasePdfService
 
     private function drawExamTable(Mahasiswa $mahasiswa, TahunAkademik $tahunAkademik, float $startX, float $tableY, string $jenis): void
     {
-        $this->SetY($tableY);
-        $this->SetX($startX);
-
         $cols = [
             ['w' => 10, 't' => 'NO'],
             ['w' => 45, 't' => 'TANGGAL'],
@@ -275,6 +295,24 @@ class KartuUjianService extends BasePdfService
             ['w' => 42, 't' => 'PARAF'],
         ];
 
+        $this->SetY($tableY);
+        $this->SetX($startX);
+        $this->drawTableHeader($cols);
+
+        $krs = $mahasiswa->krs()
+            ->where('tahun_akademik_id', $tahunAkademik->id)
+            ->with(['details.mataKuliah', 'details.kelasKuliah'])
+            ->first();
+
+        if ($krs && $krs->details->count() > 0) {
+            foreach ($krs->details as $index => $detail) {
+                $this->drawExamRow($detail, $index, $cols, $startX, $jenis);
+            }
+        }
+    }
+
+    private function drawTableHeader(array $cols): void
+    {
         $this->SetFillColor(0, 191, 255);
         $this->SetTextColor(0, 0, 0);
         $this->SetFont('Arial', 'B', 10);
@@ -286,41 +324,53 @@ class KartuUjianService extends BasePdfService
         $this->SetFillColor(255, 255, 255);
         $this->SetFont('Arial', '', 10);
         $this->SetTextColor(0, 0, 0);
+    }
 
-        $krs = $mahasiswa->krs()
-            ->where('tahun_akademik_id', $tahunAkademik->id)
-            ->with(['details.mataKuliah', 'details.kelasKuliah'])
-            ->first();
+    private function drawExamRow(object $detail, int $index, array $cols, float $startX, string $jenis): void
+    {
+        $mk = $detail->mataKuliah;
+        $this->SetX($startX);
 
-        if ($krs && $krs->details->count() > 0) {
-            foreach ($krs->details as $index => $detail) {
-                $mk = $detail->mataKuliah;
-                $this->SetX($startX);
+        $tanggalStr = $this->resolveExamDate($detail, $jenis);
 
-                $tanggalStr = '';
-                if ($detail->id_kelas_kuliah) {
-                    $kelasKuliah = $detail->kelasKuliah ?? \App\Models\KelasKuliah::where('id_kelas_kuliah', $detail->id_kelas_kuliah)->first();
-                    if ($kelasKuliah) {
-                        $dateField = strtolower($jenis) === 'uas' ? 'tanggal_uas' : 'tanggal_uts';
-                        if ($kelasKuliah->$dateField) {
-                            try {
-                                $tanggalStr = $this->formatTanggalLengkap($kelasKuliah->$dateField);
-                            } catch (\Exception $e) {
-                                $tanggalStr = '';
-                            }
-                        }
-                    }
-                }
+        $this->Cell($cols[0]['w'], 7, $index + 1, 1, 0, 'C');
+        $this->Cell($cols[1]['w'], 7, $tanggalStr, 1, 0, 'C');
+        $this->Cell($cols[2]['w'], 7, substr($mk->nama_matkul ?? '-', 0, 50), 1, 0, 'L');
+        $this->Cell($cols[3]['w'], 7, '', 1, 1, 'C');
+    }
 
-                $this->Cell($cols[0]['w'], 7, $index + 1, 1, 0, 'C');
-                $this->Cell($cols[1]['w'], 7, $tanggalStr, 1, 0, 'C');
-                $this->Cell($cols[2]['w'], 7, substr($mk->nama_matkul ?? '-', 0, 50), 1, 0, 'L');
-                $this->Cell($cols[3]['w'], 7, '', 1, 1, 'C');
-            }
+    private function resolveExamDate(object $detail, string $jenis): string
+    {
+        if (!$detail->id_kelas_kuliah) {
+            return '';
+        }
+
+        $kelasKuliah = $detail->kelasKuliah ?? \App\Models\KelasKuliah::where('id_kelas_kuliah', $detail->id_kelas_kuliah)->first();
+        if (!$kelasKuliah) {
+            return '';
+        }
+
+        $dateField = strtolower($jenis) === 'uas' ? 'tanggal_uas' : 'tanggal_uts';
+        if (!$kelasKuliah->$dateField) {
+            return '';
+        }
+
+        try {
+            return $this->formatTanggalLengkap($kelasKuliah->$dateField);
+        } catch (\Exception $e) {
+            return '';
         }
     }
 
     private function drawFooter(float $startX, float $startY): void
+    {
+        $this->drawFooterNotes($startX);
+        $sigY = max($this->GetY() + 14, $startY + 110);
+        $this->drawFooterSignature($sigY);
+        $this->drawCutLine();
+    }
+
+    private function drawFooterNotes(float $startX): void
     {
         $footerY = $this->GetY() + 5;
         $this->SetY($footerY);
@@ -339,9 +389,10 @@ class KartuUjianService extends BasePdfService
             $this->SetX($startX);
             $this->MultiCell(0, 4.5, $note, 0, 'L');
         }
+    }
 
-        $sigY = max($this->GetY() + 14, $startY + 110);
-
+    private function drawFooterSignature(float $sigY): void
+    {
         $this->SetXY(140, $sigY);
         $kota = Setting::getValue('kota_terbit', 'Tanjungpinang');
         
@@ -368,7 +419,10 @@ class KartuUjianService extends BasePdfService
         $this->SetX(140);
         $this->SetFont('Arial', '', 10);
         $this->Cell(50, 5, 'NIK : ' . $nidn, 0, 1, 'C');
+    }
 
+    private function drawCutLine(): void
+    {
         $cutY = $this->GetY() + 10;
         $this->SetY($cutY);
         $this->SetFont('Arial', 'I', 8);
