@@ -1599,8 +1599,28 @@ class AcademicSyncService extends BaseSyncService
         $mkById = \App\Models\MataKuliah::whereIn('id_matkul', $idMatkuls)->get()->keyBy('id_matkul');
         $mkByKode = \App\Models\MataKuliah::whereIn('kode_matkul', $kodeMks)->get()->keyBy('kode_matkul');
 
-        $dosenMap = [];
+        $idKelasList = collect($items)
+            ->map(fn($d) => $d['id_kelas'] ?? $d['id_kelas_kuliah'] ?? null)
+            ->filter()->unique()->toArray();
+
+        // Eager load all dosen assignments for these classes from local DB
+        $dosenPengajarList = DB::table('dosen_pengajar_kelas')
+            ->whereIn('kelas_kuliah_id', $idKelasList)
+            ->get();
+
+        $idDosens = $dosenPengajarList->pluck('dosen_id')->filter()->unique()->toArray();
+        $dosenModels = \App\Models\Dosen::whereIn('id_dosen', $idDosens)->get()->keyBy('id_dosen');
+
         $dosenCache = [];
+        foreach ($dosenPengajarList as $ajar) {
+            $localDosen = $dosenModels->get($ajar->dosen_id);
+            if (!isset($dosenCache[$ajar->kelas_kuliah_id])) {
+                $dosenCache[$ajar->kelas_kuliah_id] = [
+                    'id' => $localDosen ? $localDosen->id : null,
+                    'nama' => $localDosen ? $localDosen->nama_lengkap : null,
+                ];
+            }
+        }
 
         foreach ($items as $detail) {
             $idMatkul = $detail['id_matkul'] ?? null;
@@ -1621,40 +1641,12 @@ class AcademicSyncService extends BaseSyncService
                     'nama_kelas' => $namaKelas,
                 ]);
 
-                if ($idKelas && $krsDetail) {
-                    if (!array_key_exists($idKelas, $dosenCache)) {
-                        try {
-                            $dosenResponse = $this->neoFeeder->getDosenPengajarKelasKuliah($idKelas);
-                            if ($dosenResponse && !empty($dosenResponse['data'])) {
-                                $ajar = $dosenResponse['data'][0];
-                                $idDosen = $ajar['id_dosen'] ?? null;
-
-                                $localDosen = null;
-                                if ($idDosen) {
-                                    if (!isset($dosenMap[$idDosen])) {
-                                        $dosenMap[$idDosen] = \App\Models\Dosen::where('id_dosen', $idDosen)->first();
-                                    }
-                                    $localDosen = $dosenMap[$idDosen];
-                                }
-
-                                $dosenCache[$idKelas] = [
-                                    'id' => $localDosen ? $localDosen->id : null,
-                                    'nama' => $localDosen ? $localDosen->nama_lengkap : ($ajar['nama_dosen'] ?? null),
-                                ];
-                            } else {
-                                $dosenCache[$idKelas] = null;
-                            }
-                        } catch (\Exception $e) {
-                            $dosenCache[$idKelas] = null;
-                        }
-                    }
-
-                    if ($dosenInfo = $dosenCache[$idKelas]) {
-                        $krsDetail->update([
-                            'dosen_id' => $dosenInfo['id'],
-                            'nama_dosen' => $dosenInfo['nama'],
-                        ]);
-                    }
+                if ($idKelas && isset($dosenCache[$idKelas])) {
+                    $dosenInfo = $dosenCache[$idKelas];
+                    $krsDetail->update([
+                        'dosen_id' => $dosenInfo['id'],
+                        'nama_dosen' => $dosenInfo['nama'],
+                    ]);
                 }
             }
         }

@@ -289,7 +289,7 @@ class KartuUjianService extends BasePdfService
 
         $krs = $mahasiswa->krs()
             ->where('tahun_akademik_id', $tahunAkademik->id)
-            ->with('details.mataKuliah')
+            ->with(['details.mataKuliah', 'details.kelasKuliah'])
             ->first();
 
         if ($krs && $krs->details->count() > 0) {
@@ -299,7 +299,7 @@ class KartuUjianService extends BasePdfService
 
                 $tanggalStr = '';
                 if ($detail->id_kelas_kuliah) {
-                    $kelasKuliah = \App\Models\KelasKuliah::where('id_kelas_kuliah', $detail->id_kelas_kuliah)->first();
+                    $kelasKuliah = $detail->kelasKuliah ?? \App\Models\KelasKuliah::where('id_kelas_kuliah', $detail->id_kelas_kuliah)->first();
                     if ($kelasKuliah) {
                         $dateField = strtolower($jenis) === 'uas' ? 'tanggal_uas' : 'tanggal_uts';
                         if ($kelasKuliah->$dateField) {

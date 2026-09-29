@@ -105,14 +105,20 @@ class StudentSyncService extends BaseSyncService
         $synced = 0;
         $errors = [];
 
+        $idMahasiswas = collect($data)->pluck('id_mahasiswa')->filter()->toArray();
+        $nims = collect($data)->pluck('nim')->filter()->toArray();
+
+        $mahasiswaById = Mahasiswa::whereIn('id_mahasiswa', $idMahasiswas)->get()->keyBy('id_mahasiswa');
+        $mahasiswaByNim = Mahasiswa::whereIn('nim', $nims)->get()->keyBy('nim');
+
         foreach ($data as $bio) {
             try {
                 // Find student by ID Mahasiswa
-                $mahasiswa = Mahasiswa::where('id_mahasiswa', $bio['id_mahasiswa'])->first();
+                $mahasiswa = $mahasiswaById->get($bio['id_mahasiswa']);
 
                 if (!$mahasiswa && isset($bio['nim'])) {
                     // Start looking by NIM if ID not found (fallback)
-                    $mahasiswa = Mahasiswa::where('nim', $bio['nim'])->first();
+                    $mahasiswa = $mahasiswaByNim->get($bio['nim']);
                 }
 
                 if ($mahasiswa) {

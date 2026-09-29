@@ -109,12 +109,22 @@ class RoleController extends Controller
 
         $existingRoles = Role::whereIn('name', $roles)->pluck('name')->toArray();
         $count = 0;
+        $insertData = [];
 
         foreach ($roles as $roleName) {
             if (!in_array($roleName, $existingRoles)) {
-                Role::create(['name' => $roleName]);
+                $insertData[] = [
+                    'name' => $roleName,
+                    'guard_name' => 'web',
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
                 $count++;
             }
+        }
+
+        if (!empty($insertData)) {
+            Role::insert($insertData);
         }
 
         if ($count > 0) {
